@@ -1,0 +1,35 @@
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using RSVP.Core.Contracts.Guest;
+using RSVP.Core.Interfaces;
+using RSVP.Core.Models;
+using RSVP.Core.Repositories;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks.Dataflow;
+
+namespace RSVP.Core.Services
+{
+    public class GuestService : IGuestService
+    {
+        private readonly IGuestRepository _db;
+
+        public GuestService(IGuestRepository db) => _db = db;
+
+        public async Task CreateGuest(CreateGuestDto dto)
+        {
+            var guest = new Guest
+            {
+                FullName = dto.FullName,
+                IsAttending = dto.IsAttending,
+                InviteId = dto.InviteId
+            };
+
+            await _db.CreateGuest(guest);
+        }
+
+        public async Task<List<Guest>> GetGuests() => await _db.GetGuests();
+        
+    }
+}
