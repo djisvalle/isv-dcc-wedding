@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using RSVP.Core.Contracts.Invite;
 using RSVP.Core.Interfaces;
+using RSVP.Core.Models;
+using RSVP.Core.Services;
 
 namespace RSVP.API.Controllers
 {
@@ -14,14 +16,28 @@ namespace RSVP.API.Controllers
     public class InviteController : ControllerBase
     {
         private readonly IInviteService _inviteService;
+        private readonly IGuestService _guestService;
 
-        public InviteController(IInviteService inviteService) => _inviteService = inviteService;
-        
+        public InviteController(IInviteService inviteService, IGuestService guestService)
+        {
+            _inviteService = inviteService;
+            _guestService = guestService;
+        }
 
         [HttpPost]
         public async Task<IActionResult> CreateInvite(CreateInviteDto invite)
         {
-            await _inviteService.CreateInvite(invite);
+            var inviteId = await _inviteService.CreateInvite(invite);
+
+            if (invite.Guests != null)
+            {
+                await _guestService.AddGuestsToInvite(invite.Guests, inviteId);
+            }
+
+            if (invite.GuestIds != null)
+            {
+                await _guestService.AddExistingGuestsToInvite(invite.GuestIds, inviteId);
+            }
 
             return Ok();
         }

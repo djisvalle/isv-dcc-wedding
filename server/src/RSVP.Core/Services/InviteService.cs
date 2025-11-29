@@ -12,7 +12,7 @@ namespace RSVP.Core.Services
 
         public InviteService(IInviteRepository db) => _db = db;
 
-        public async Task CreateInvite(CreateInviteDto dto)
+        public async Task<Guid> CreateInvite(CreateInviteDto dto)
         {
             var invite = new Invite
             {
@@ -20,7 +20,7 @@ namespace RSVP.Core.Services
                 InviteUrl = dto.InviteUrl
             };
 
-            await _db.CreateInvite(invite);
+            return await _db.CreateInvite(invite);
         }
         
     }

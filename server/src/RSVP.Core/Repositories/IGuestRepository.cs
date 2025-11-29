@@ -9,5 +9,7 @@ namespace RSVP.Core.Repositories
     {
         Task CreateGuest(Guest guest);
         Task<List<Guest>> GetGuests();
+        Task AddGuestsToInvite(List<Guest> guests);
+        Task<List<Guest>> GetGuestsByIds(List<Guid> dto);
     }
 }

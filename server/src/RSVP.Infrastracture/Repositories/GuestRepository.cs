@@ -21,6 +21,19 @@ namespace RSVP.Infrastracture.Repositories
         }
 
         public async Task<List<Guest>> GetGuests() => await _context.Guests.ToListAsync();
+
+        public async Task AddGuestsToInvite(List<Guest> guests)
+        {
+            await _context.Guests.AddRangeAsync(guests);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<Guest>> GetGuestsByIds(List<Guid> guestIds)
+        {
+            return await _context.Guests
+                .Where(g => guestIds.Contains(g.GuestId))
+                .ToListAsync();
+        }
         
     }
 }
