@@ -10,5 +10,7 @@ namespace RSVP.Core.Interfaces
     {
         Task CreateGuest(CreateGuestDto dto);
         Task<List<Guest>> GetGuests();
+        Task AddGuestsToInvite(List<CreateGuestDto> dto, Guid inviteId);
+        Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId);
     }
 }

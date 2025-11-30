@@ -30,6 +30,22 @@ namespace RSVP.Core.Services
         }
 
         public async Task<List<Guest>> GetGuests() => await _db.GetGuests();
-        
+
+        public async Task AddGuestsToInvite(List<CreateGuestDto> dto, Guid inviteId)
+        {
+            var guests = dto.Select(x => new Guest
+            {
+                FullName = x.FullName,
+                IsAttending = x.IsAttending,
+                InviteId = inviteId
+            }).ToList();
+
+            await _db.AddGuestsToInvite(guests);
+        }
+
+        public async Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId)
+        {
+            await _db.AddExistingGuestsToInvite(guestIds, inviteId);
+        }
     }
 }
