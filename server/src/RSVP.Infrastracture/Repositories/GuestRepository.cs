@@ -34,6 +34,14 @@ namespace RSVP.Infrastracture.Repositories
                 .Where(g => guestIds.Contains(g.GuestId))
                 .ToListAsync();
         }
-        
+
+        public async Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId)
+        {
+            await _context.Guests
+                .Where(g => guestIds.Contains(g.GuestId))
+                .ExecuteUpdateAsync(setters =>
+                    setters.SetProperty(g => g.InviteId, inviteId)
+                );
+        }
     }
 }
