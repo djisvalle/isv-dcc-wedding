@@ -8,5 +8,6 @@ namespace RSVP.Core.Repositories
     public interface IInviteRepository
     {
         Task<Guid> CreateInvite(Invite invite);
+        Task<List<InviteDashboard>> GetInviteDashboard();
     }
 }

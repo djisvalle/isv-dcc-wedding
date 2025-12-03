@@ -1,12 +1,11 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 
-interface ProtectedRoutesProps {
-    children: JSX.Element;
-    isAuthenticated: boolean;
+export default function ProtectedRoute() {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        return <Navigate to="/login" />;  
+    }
+
+    return <Outlet />;
 }
-
-export const ProtectedRoute = ({ children, isAuthenticated }: ProtectedRoutesProps) => {
-    return isAuthenticated ? children : <Navigate to="/login" />;
-};
-
-export default ProtectedRoute;

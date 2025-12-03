@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Razor.TagHelpers;
+﻿using Azure.Core.GeoJson;
+using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.EntityFrameworkCore;
 using RSVP.Core.Models;
 using RSVP.Core.Repositories;
@@ -42,6 +43,20 @@ namespace RSVP.Infrastracture.Repositories
                 .ExecuteUpdateAsync(setters =>
                     setters.SetProperty(g => g.InviteId, inviteId)
                 );
+        }
+
+        public async Task<List<GuestDashboard>> GetGuestDashboard()
+        {
+            return await _context.Guests
+                .Select(g => new GuestDashboard
+                {
+                    GuestId = g.GuestId,
+                    FullName = g.FullName,
+                    InviteName = g.Invite != null ? g.Invite.FamilyName : "",
+                    InviteUrl = g.Invite != null ? g.Invite.InviteUrl : "",
+                    IsAttending = g.IsAttending.HasValue ? (g.IsAttending.Value ? "Yes" : "No") : "Pending"
+                })
+                .ToListAsync();
         }
     }
 }

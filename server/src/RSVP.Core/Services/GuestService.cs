@@ -47,5 +47,10 @@ namespace RSVP.Core.Services
         {
             await _db.AddExistingGuestsToInvite(guestIds, inviteId);
         }
+
+        public async Task<List<GuestDashboard>> GetGuestDashboard()
+        {
+            return await _db.GetGuestDashboard();
+        }
     }
 }
