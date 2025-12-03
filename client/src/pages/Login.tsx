@@ -1,25 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLogin } from "@/hooks/useLogin";
 
-interface LoginProps {
-    onLogin: () => void
-}
-
-export default function Login({ onLogin }: LoginProps) {
+export default function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
     const login = useLogin((token) => {
         localStorage.setItem('token', token);
-        onLogin();
         navigate('/dashboard');
     });
 
     const handleLogin = () => {
         login.mutate({ username, password });
     };
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            navigate('/dashboard');
+        }
+    }, []);
 
     return (
         <div className="flex justify-center items-center h-screen">
@@ -41,7 +43,7 @@ export default function Login({ onLogin }: LoginProps) {
                 />
                 <button
                     onClick={handleLogin}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+                    className="bg-blue-500 hover:bg-blue-600 font-semibold py-2 px-4 rounded"
                 >
                     Login
                 </button>

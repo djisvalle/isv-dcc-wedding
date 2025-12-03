@@ -1,4 +1,5 @@
-﻿using RSVP.Core.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using RSVP.Core.Models;
 using RSVP.Core.Repositories;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,19 @@ namespace RSVP.Infrastracture.Repositories
             await _context.SaveChangesAsync();
 
             return invite.InviteId;
+        }
+
+        public async Task<List<InviteDashboard>> GetInviteDashboard()
+        {
+            return await _context.Invites
+                .Select(i => new InviteDashboard
+                {
+                    InviteId = i.InviteId,
+                    InviteName = i.FamilyName,
+                    InviteUrl = i.InviteUrl,
+                    GuestCount = i.Guests == null ? 0 : i.Guests.Count
+                })
+                .ToListAsync();
         }
     }
 }

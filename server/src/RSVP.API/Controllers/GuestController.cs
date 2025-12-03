@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using RSVP.Core.Contracts.Guest;
 using RSVP.Core.Contracts.User;
 using RSVP.Core.Interfaces;
+using RSVP.Core.Models;
 
 namespace RSVP.API.Controllers
 {
@@ -25,7 +26,6 @@ namespace RSVP.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetGuests() => Ok(await  _guestService.GetGuests());
-        
+        public async Task<ActionResult<List<Guest>>> GetGuests() => Ok(await _guestService.GetGuests());
     }
 }

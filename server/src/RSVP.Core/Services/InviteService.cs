@@ -23,5 +23,6 @@ namespace RSVP.Core.Services
             return await _db.CreateInvite(invite);
         }
         
+        public async Task<List<InviteDashboard>> GetInviteDashboard() => await _db.GetInviteDashboard();
     }
 }
