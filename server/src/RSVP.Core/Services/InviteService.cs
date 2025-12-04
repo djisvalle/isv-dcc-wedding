@@ -12,6 +12,8 @@ namespace RSVP.Core.Services
 
         public InviteService(IInviteRepository db) => _db = db;
 
+        public async Task<List<Invite>> GetInvites() => await _db.GetInvites();
+
         public async Task<Guid> CreateInvite(CreateInviteDto dto)
         {
             var invite = new Invite

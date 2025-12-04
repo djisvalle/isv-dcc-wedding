@@ -17,26 +17,37 @@ namespace RSVP.Core.Services
 
         public GuestService(IGuestRepository db) => _db = db;
 
+        public async Task<List<Guest>> GetGuests() => await _db.GetGuests();
+
         public async Task CreateGuest(CreateGuestDto dto)
         {
             var guest = new Guest
             {
-                FullName = dto.FullName,
-                IsAttending = dto.IsAttending,
+                FullName = dto.FullName,                
                 InviteId = dto.InviteId
+         
             };
 
             await _db.CreateGuest(guest);
         }
 
-        public async Task<List<Guest>> GetGuests() => await _db.GetGuests();
+        public async Task UpdateGuest(UpdateGuestDto dto)
+        {
+            var guest = new Guest
+            {
+                GuestId = dto.GuestId,
+                FullName = dto.FullName,
+                InviteId = dto.InviteId
+            };
+
+            await _db.UpdateGuest(guest);
+        }
 
         public async Task AddGuestsToInvite(List<CreateGuestDto> dto, Guid inviteId)
         {
             var guests = dto.Select(x => new Guest
             {
                 FullName = x.FullName,
-                IsAttending = x.IsAttending,
                 InviteId = inviteId
             }).ToList();
 

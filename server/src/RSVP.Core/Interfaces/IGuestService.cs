@@ -8,8 +8,9 @@ namespace RSVP.Core.Interfaces
 {
     public interface IGuestService
     {
-        Task CreateGuest(CreateGuestDto dto);
         Task<List<Guest>> GetGuests();
+        Task CreateGuest(CreateGuestDto dto);
+        Task UpdateGuest(UpdateGuestDto dto);
         Task AddGuestsToInvite(List<CreateGuestDto> dto, Guid inviteId);
         Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId);
         Task<List<GuestDashboard>> GetGuestDashboard();

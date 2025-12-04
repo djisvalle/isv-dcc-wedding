@@ -1,14 +1,17 @@
-import type Invite from "@/pages/Invite";
-
 export interface Guest {
     guestId: string;
     fullName: string;
-    isAttending: boolean;
+    isAttending: boolean | null;
     inviteId: string;
 }
 
-export interface GuestDto {
+export interface CreateGuestPayload {
     fullName: string;
-    isAttending: boolean;
-    inviteId: string;
+    inviteId: string | null;
+}
+
+export interface UpdateGuestPayload {
+    guestId: string;
+    fullName: string;
+    inviteId: string | null;
 }

@@ -24,6 +24,10 @@ namespace RSVP.API.Controllers
             _guestService = guestService;
         }
 
+        [HttpGet]
+        public async Task<ActionResult<Invite>> GetInvites() => Ok(await _inviteService.GetInvites());
+        
+
         [HttpPost]
         public async Task<IActionResult> CreateInvite(CreateInviteDto invite)
         {

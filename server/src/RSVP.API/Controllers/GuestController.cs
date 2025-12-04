@@ -21,8 +21,19 @@ namespace RSVP.API.Controllers
         public async Task<IActionResult> CreateGuest(CreateGuestDto dto)
         {
             await _guestService.CreateGuest(dto);
-
             return Ok();
+        }
+
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> UpdateGuest(Guid id, [FromBody] UpdateGuestDto dto)
+        {
+            if (id != dto.GuestId)
+            {
+                return BadRequest("Guest ID in URL does not match Guest ID in body.");
+            }
+
+            await _guestService.UpdateGuest(dto);
+            return NoContent();
         }
 
         [HttpGet]

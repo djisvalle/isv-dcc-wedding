@@ -13,6 +13,8 @@ namespace RSVP.Infrastracture.Repositories
 
         public InviteRepository(RsvpDbContext context) => _context = context;
 
+        public async Task<List<Invite>> GetInvites() => await _context.Invites.ToListAsync();
+
         public async Task<Guid> CreateInvite(Invite invite)
         {
             await _context.Invites.AddAsync(invite);

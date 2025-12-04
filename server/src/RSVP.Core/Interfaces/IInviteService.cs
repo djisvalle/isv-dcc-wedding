@@ -10,6 +10,7 @@ namespace RSVP.Core.Interfaces
     public interface IInviteService
     {
         Task<Guid> CreateInvite(CreateInviteDto dto);
+        Task<List<Invite>> GetInvites();
         Task<List<InviteDashboard>> GetInviteDashboard();
     }
 }

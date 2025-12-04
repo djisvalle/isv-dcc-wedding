@@ -15,19 +15,25 @@ namespace RSVP.Infrastracture.Repositories
 
         public GuestRepository(RsvpDbContext context) => _context = context;
 
+        public async Task AddGuestsToInvite(List<Guest> guests)
+        {
+            await _context.Guests.AddRangeAsync(guests);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task CreateGuest(Guest guest)
         {
             await _context.Guests.AddAsync(guest);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<Guest>> GetGuests() => await _context.Guests.ToListAsync();
-
-        public async Task AddGuestsToInvite(List<Guest> guests)
+        public async Task UpdateGuest(Guest guest)
         {
-            await _context.Guests.AddRangeAsync(guests);
+            _context.Guests.Update(guest);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Guest>> GetGuests() => await _context.Guests.ToListAsync();
 
         public async Task<List<Guest>> GetGuestsByIds(List<Guid> guestIds)
         {

@@ -6,8 +6,10 @@ using System.Text;
 
 namespace RSVP.Core.Contracts.Guest
 {
-    public class CreateGuestDto
+    public class UpdateGuestDto
     {
+        [Required]
+        public required Guid GuestId { get; set; }
         [Required, MaxLength(50)]
         public required string FullName { get; set; }
         public Guid? InviteId { get; set; }

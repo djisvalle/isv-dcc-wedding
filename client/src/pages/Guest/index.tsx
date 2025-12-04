@@ -2,48 +2,51 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../../components/ui/table";
 
-import { useGuest } from "../../hooks/useGuest";
+import { useCreateGuest, useGetAllGuests, useUpdateGuest } from "../../hooks/useGuest";
 import { useState } from "react";
 
 import GuestModal from "./GuestModal";
 
-import type { Guest, GuestDto } from "../../types/Guest";
+import type { Guest } from "../../types/Guest";
 
 export default function Guest() {
 
-    const { data, isPending, isError, error } = useGuest();
+    const { data } = useGetAllGuests();
     const [modalOpen, setModalOpen] = useState(false);
     const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
 
-    // const handleAddGuest = (guestData: GuestDto, guestId) => {
-    //     if (editingGuest) {
-    //         setEditingGuest(null);
-    //     }
-    //     else {
-    //         const newGuest: GuestDto = {
-    //             ...guestData
-    //         }
-    //     }
-    // }
+    const createGuest = useCreateGuest();
+    const updateGuest = useUpdateGuest();
 
-    // const handleEdit = (guest: Guest) => {
-    //     setEditingGuest(guest);
-    //     setModalOpen(true);
-    // };
-
-    // const handleModalOpenChange = (open : boolean) => {
-    //     setModalOpen(open);
-    //     if (!open) {
-    //         setEditingGuest(null);
-    //     }
-    // }
-
-    if (isPending) {
-        return <p>Loading...</p>
+    const handleUpsertGuest = (guestData: Omit<Guest, "guestId" | "isAttending">) => {
+        if (editingGuest) {
+            var formattedInviteId = guestData.inviteId ? guestData.inviteId : null;
+            updateGuest.mutateAsync({
+                guestId: editingGuest.guestId,
+                fullName: guestData.fullName,
+                inviteId: formattedInviteId
+            });
+            setEditingGuest(null);
+        }
+        else {
+            var formattedInviteId = guestData.inviteId ? guestData.inviteId : null;
+            createGuest.mutateAsync({
+                fullName: guestData.fullName,
+                inviteId: formattedInviteId
+            });
+        }
     }
 
-    if (isError) {
-        return <p>Error: {error.message}</p>
+    const handleEdit = (guest: Guest) => {
+        setEditingGuest(guest);
+        setModalOpen(true);
+    };
+
+    const handleModalOpenChange = (open: boolean) => {
+        setModalOpen(open);
+        if (!open) {
+            setEditingGuest(null);
+        }
     }
 
     return (
@@ -56,7 +59,6 @@ export default function Guest() {
                             <p className="text-muted-foreground mt-2">Add, update, remove guests</p>
                         </div>
                         <Button onClick={() => setModalOpen(true)}>Create Guest</Button>
-
                     </div>
 
                     <Card>
@@ -70,6 +72,7 @@ export default function Guest() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Guest Name</TableHead>
+                                            <TableHead>RSVP</TableHead>
                                             <TableHead className="w-[100px] text-center">Actions</TableHead>
                                         </TableRow>
 
@@ -78,7 +81,8 @@ export default function Guest() {
                                         {data.map((guest: Guest) => (
                                             <TableRow key={guest.guestId}>
                                                 <TableCell className="font-medium">{guest.fullName}</TableCell>
-                                                {/* <TableCell className="w-[100px] flex justify-center"><Button onClick={() => handleEdit(guest)}>Edit</Button></TableCell> */}
+                                                <TableCell>{guest.isAttending === null ? "Haven't responded yet" : guest.isAttending ? "Yes" : "No"}</TableCell>
+                                                <TableCell className="w-[100px] flex justify-center"><Button onClick={() => handleEdit(guest)}>Edit</Button></TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -88,8 +92,11 @@ export default function Guest() {
                     </Card>
                 </div>
             </div>
-            <GuestModal 
-                open={modalOpen} 
+            <GuestModal
+                open={modalOpen}
+                onOpenChange={handleModalOpenChange}
+                onSubmit={handleUpsertGuest}
+                editingGuest={editingGuest}
             />
         </>
     )
