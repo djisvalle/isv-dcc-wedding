@@ -36,11 +36,11 @@ namespace RSVP.Infrastracture
                 entity.HasData(
                         new User
                         {
-                            UserId = Guid.NewGuid(),
+                            UserId = Guid.Parse("CFBC2309-BE93-461E-D286-08DE2DBC0FE5"),
                             Username = "admin",
                             Password = "AQAAAAIAAYagAAAAEM3FttS8yf1q9mZTsKc4hjfrb0j5fSOtZZ/vBM9HARp+8SjFS0HlNojuqmxE2hfR5Q==",
                             Role = "admin",
-                            CreatedDateTime = DateTime.UtcNow
+                            CreatedDateTime = new DateTime(2025, 11,28)
                         }
                     );
             });
@@ -48,8 +48,7 @@ namespace RSVP.Infrastracture
             modelBuilder.Entity<Invite>(entity =>
             {
                 entity.HasKey(e => e.InviteId);
-                entity.Property(e => e.FamilyName).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.InviteUrl).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.InviteName).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.CreatedDateTime).HasDefaultValueSql("GETUTCDATE()");
 
                 entity.HasMany(i => i.Guests)

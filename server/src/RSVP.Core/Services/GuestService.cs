@@ -54,14 +54,14 @@ namespace RSVP.Core.Services
             await _db.AddGuestsToInvite(guests);
         }
 
-        public async Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId)
-        {
-            await _db.AddExistingGuestsToInvite(guestIds, inviteId);
-        }
+        public async Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId) => await _db.AddExistingGuestsToInvite(guestIds, inviteId);
+        
+        public async Task<List<GuestDashboard>> GetGuestDashboard() => await _db.GetGuestDashboard();
+        
+        public async Task<List<GuestDropdown>> GetGuestDropdown() => await _db.GetGuestDropdown();
 
-        public async Task<List<GuestDashboard>> GetGuestDashboard()
-        {
-            return await _db.GetGuestDashboard();
-        }
+        public async Task<List<GuestRsvp>> GetGuestsByInviteForRsvp(Guid inviteId) => await _db.GetGuestsByInviteForRsvp(inviteId);
+
+        public async Task ConfirmGuestRsvp(List<ConfirmGuestRsvpDto> dto) => await _db.ConfirmGuestRsvp(dto);
     }
 }

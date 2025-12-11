@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/sonner";
 
 import Login from "./pages/Login";
 import GuestHome from "./pages/GuestHome";
@@ -30,6 +31,7 @@ export default function App() {
           </Route>
         </Routes>
       </Router>
+      <Toaster position="top-center" toastOptions={{ duration: 5000 }} />
     </QueryClientProvider>
   );
 }

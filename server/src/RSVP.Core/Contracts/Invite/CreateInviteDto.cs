@@ -10,8 +10,7 @@ namespace RSVP.Core.Contracts.Invite
     public class CreateInviteDto
     {
         [Required, MaxLength(50)]
-        public required string FamilyName { get; set; }
-        public required string InviteUrl { get; set; }
+        public required string InviteName { get; set; }
         public List<CreateGuestDto>? Guests { get; set; }
         public List<Guid>? GuestIds { get; set; }
     }

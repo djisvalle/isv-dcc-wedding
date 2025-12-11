@@ -1,114 +1,85 @@
+"use client"
+
 import React, { useState } from "react";
-import { collection, addDoc, setDoc, getDoc } from "firebase/firestore";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { motion } from "motion/react";
+import { toast } from "sonner"
 
-export default function RSVP() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [attending, setAttending] = useState(false);
-  const [guests, setGuests] = useState(0);
+import { useConfirmGuestRsvp } from "@/hooks/useGuest";
 
+import type { GuestRsvp } from "@/types/Guest";
+
+export default function RSVP({ guests }: { guests: GuestRsvp[]}) {
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [confirmedGuests, setConfirmedGuests] = useState<GuestRsvp[]>(guests);
+
+  const confirmGuestRsvp = useConfirmGuestRsvp();
 
   const submitRSVP = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setMessage("");
-
-    console.log(name);
-    console.log(email);
-    console.log(attending);
-    console.log(guests);
+    
+    await confirmGuestRsvp.mutateAsync(confirmedGuests);
 
     setLoading(false);
-    setMessage("RSVP submitted successfully!");    
+    toast("RSVP submitted successfully");
   };
 
+  const updateGuestAttendance = (guestId: string, attending: boolean) => {
+    setConfirmedGuests(prev =>
+      prev.map(guest =>
+        guest.guestId === guestId 
+        ? { ...guest, isAttending: attending } 
+        : guest
+      ))
+  }
+
   return (
-    <section id="rsvp" className="py-20 px-4 max-w-3xl mx-auto">
-      <h2 className="text-3xl font-serif text-center mb-8">RSVP</h2>
-
-      <form onSubmit={submitRSVP} className="bg-white rounded-xl shadow p-6 space-y-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1">
-            Name
-          </label>
-          <input
-            required
-            type="text"
-            id="name"
-            className="w-full p-2 border rounded"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">
-            Email
-          </label>
-          <input
-            required
-            type="email"
-            id="email"
-            className="w-full p-2 border rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="attending" className="block text-sm font-medium mb-1">
-            Will you be attending?
-          </label>
-          <select
-            id="attending"
-            className="w-full p-2 border rounded"
-            value={attending ? "true" : "false"}
-            onChange={(e) => setAttending(e.target.value === "true")}
+    <section id="rsvp" className="py-20 px-4 max-w-2xl mx-auto">
+      <Card>
+        <CardHeader className="justify-center">
+          <CardTitle className="text-center text-3xl font-sans">Hello, {guests[0].inviteName}! <br /> We have reserved <b><u>{guests.length}</u></b> seats for you!</CardTitle>
+          <CardDescription className="text-center font-sans">Kindly confirm who will be attending</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submitRSVP} id="rsvp-form">
+            <Table className="w-3/4 mx-auto">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-serif text-gray-600">Name of Attendee</TableHead>
+                  <TableHead className="w-[100px] font-serif text-gray-600 text-center">Attending</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {confirmedGuests.map((guest: any) => (
+                  <TableRow key={guest.guestId}>
+                    <TableCell className="font-serif font-medium text-lg">{guest.fullName}</TableCell>
+                    <TableCell className="w-[100px] text-center">
+                      <Switch className="scale-150" checked={guest.isAttending} onCheckedChange={(value) => updateGuestAttendance(guest.guestId, value)} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </form>
+        </CardContent>
+        <CardFooter className="flex-col gap-2">
+          <p className="text-xs text-gray-600 text-center font-serif">For any questions or issues, please contact either <b>Israel</b> at <b>09190679165</b> or <b>Debs</b> at <b>09695192733</b>.</p>
+          <Separator className="my-4" />
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="w-full"
           >
-            <option value="true">Yes, I will be attending</option>
-            <option value="false">Sorry, we won't be able to make it</option>
-          </select>
-        </div>  
-
-        {attending === true && (
-          <div>
-            <label htmlFor="guests" className="block text-sm font-medium mb-1">
-              Number of guests (including you)
-            </label>
-            <input
-              required
-              type="number"
-              id="guests"
-              min={1}
-              max={10}
-              className="w-full p-2 border rounded"
-              value={guests}
-              onChange={(e) => setGuests(parseInt(e.target.value))}
-            />
-          </div>
-        )}
-
-
-        <div className="flex justify-end">
-          <button
-            disabled={loading}
-            className="bg-black text-white py-2 px-5 rounded hover:bg-gray-800"
-          >
-            {loading ? "Submitting..." : "Submit RSVP"}
-          </button>
-        </div>
-
-        {message && (
-          <p className="text-center mt-4 text-sm text-gray-700">{message}</p>
-        )}
-      </form>
-
-      {/* <iframe
-        src="https://forms.gle/aqRUxbLVUP2pjjhc8"
-        className="w-full h-[600px] rounded-lg shadow"
-      ></iframe> */}
+            <Button className="font-serif text-lg w-full" type="submit" form="rsvp-form">Submit RSVP</Button>
+          </motion.div>
+        </CardFooter>
+      </Card>
     </section>
   );
 }
+

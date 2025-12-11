@@ -1,5 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lustria&display=swap');
+
 @import "tailwindcss";
 @import "tw-animate-css";
+
+@tailwind utilities;
+
+@layer utilities {
+  .font-serif {
+    font-family: 'Inter', sans-serif;
+  }
+  .font-sans {
+    font-family: 'Lustria', serif;
+  }
+}
 
 @custom-variant dark (&:is(.dark *));
 

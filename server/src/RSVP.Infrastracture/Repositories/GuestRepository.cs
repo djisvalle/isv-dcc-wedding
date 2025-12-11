@@ -1,6 +1,7 @@
 ﻿using Azure.Core.GeoJson;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.EntityFrameworkCore;
+using RSVP.Core.Contracts.Guest;
 using RSVP.Core.Models;
 using RSVP.Core.Repositories;
 using System;
@@ -58,11 +59,49 @@ namespace RSVP.Infrastracture.Repositories
                 {
                     GuestId = g.GuestId,
                     FullName = g.FullName,
-                    InviteName = g.Invite != null ? g.Invite.FamilyName : "",
-                    InviteUrl = g.Invite != null ? g.Invite.InviteUrl : "",
+                    InviteName = g.Invite != null ? g.Invite.InviteName : "",
                     IsAttending = g.IsAttending.HasValue ? (g.IsAttending.Value ? "Yes" : "No") : "Pending"
                 })
                 .ToListAsync();
+        }
+
+        public async Task<List<GuestDropdown>> GetGuestDropdown()
+        {
+            return await _context.Guests
+                .Where(g => g.InviteId == null)
+                .Select(g => new GuestDropdown
+                {
+                    GuestId = g.GuestId,
+                    FullName = g.FullName
+                })
+                .ToListAsync();
+        }
+
+        public async Task<List<GuestRsvp>> GetGuestsByInviteForRsvp(Guid inviteId)
+        {
+            return await _context.Guests
+                .Where(g => g.InviteId == inviteId)
+                .Select(g => new GuestRsvp
+                {
+                    FullName = g.FullName,
+                    GuestId = g.GuestId,
+                    IsAttending = g.IsAttending ?? false,
+                    InviteName = g.Invite != null ? g.Invite.InviteName : ""
+                })
+                .ToListAsync();
+        }
+
+        public async Task ConfirmGuestRsvp(List<ConfirmGuestRsvpDto> dto)
+        {
+            foreach (var guestRsvp in dto)
+            {
+                await _context.Guests
+                    .Where(g => g.GuestId == guestRsvp.GuestId)
+                    .ExecuteUpdateAsync(setters =>
+                        setters
+                            .SetProperty(g => g.IsAttending, guestRsvp.IsAttending)
+                    );
+            }
         }
     }
 }

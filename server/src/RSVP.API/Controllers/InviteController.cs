@@ -25,9 +25,8 @@ namespace RSVP.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<Invite>> GetInvites() => Ok(await _inviteService.GetInvites());
-        
-
+        public async Task<ActionResult<List<Invite>>> GetInvites() => Ok(await _inviteService.GetInvites());
+            
         [HttpPost]
         public async Task<IActionResult> CreateInvite(CreateInviteDto invite)
         {

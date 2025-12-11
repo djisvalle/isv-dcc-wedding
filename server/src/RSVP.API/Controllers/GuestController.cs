@@ -5,6 +5,7 @@ using RSVP.Core.Contracts.Guest;
 using RSVP.Core.Contracts.User;
 using RSVP.Core.Interfaces;
 using RSVP.Core.Models;
+using System.Reflection.Metadata.Ecma335;
 
 namespace RSVP.API.Controllers
 {
@@ -38,5 +39,25 @@ namespace RSVP.API.Controllers
 
         [HttpGet]
         public async Task<ActionResult<List<Guest>>> GetGuests() => Ok(await _guestService.GetGuests());
+
+        [HttpGet("guest-dropdown")]
+        public async Task<ActionResult<List<GuestDropdown>>> GetGuestDropdown() => Ok(await _guestService.GetGuestDropdown());
+
+        [AllowAnonymous]
+        [HttpGet("get-by-invite/{invite:guid}")]
+        public async Task<ActionResult<List<GuestRsvp>>> GetGuestsByInviteForRsvp(Guid invite)
+        {
+            var guests = await _guestService.GetGuestsByInviteForRsvp(invite);
+            return Ok(guests);
+        }
+
+        [AllowAnonymous]
+        [HttpPatch("confirm-guest-rsvp")]
+        public async Task<IActionResult> ConfirmGuestRsvp([FromBody] List<ConfirmGuestRsvpDto> dto)
+        {
+            await _guestService.ConfirmGuestRsvp(dto);
+
+            return NoContent();
+        }
     }
 }

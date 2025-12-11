@@ -18,8 +18,7 @@ namespace RSVP.Core.Services
         {
             var invite = new Invite
             {
-                FamilyName = dto.FamilyName,
-                InviteUrl = dto.InviteUrl
+                InviteName = dto.InviteName
             };
 
             return await _db.CreateInvite(invite);

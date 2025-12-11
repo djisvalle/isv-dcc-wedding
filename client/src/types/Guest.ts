@@ -7,11 +7,18 @@ export interface Guest {
 
 export interface CreateGuestPayload {
     fullName: string;
-    inviteId: string | null;
+    inviteId?: string | null;
 }
 
 export interface UpdateGuestPayload {
     guestId: string;
     fullName: string;
     inviteId: string | null;
+}
+
+export interface GuestRsvp {
+    guestId: string;
+    fullName: string;
+    isAttending: boolean | null;
+    inviteName: string;
 }

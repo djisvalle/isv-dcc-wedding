@@ -5,7 +5,7 @@ import { Label } from "../../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 
 import { useState, useEffect } from "react";
-import { useInvite } from "../../hooks/useInvite";
+import { useGetAllInvites } from "../../hooks/useInvite";
 
 import type { Guest } from "../../types/Guest";
 
@@ -18,7 +18,7 @@ interface GuestModalProps {
 
 export default function GuestModal({ open, onOpenChange, onSubmit, editingGuest }: GuestModalProps) {
 
-    const { data } = useInvite();
+    const { data } = useGetAllInvites();
 
     const [fullName, setFullName] = useState('');
     const [inviteId, setInviteId] = useState('');
@@ -50,7 +50,7 @@ export default function GuestModal({ open, onOpenChange, onSubmit, editingGuest 
     }, [editingGuest]);
 
     return (
-        <Dialog open={open}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{editingGuest ? "Update Guest" : "Add Guest"}</DialogTitle>
@@ -77,7 +77,7 @@ export default function GuestModal({ open, onOpenChange, onSubmit, editingGuest 
                             <SelectContent>
                                 {data?.map((invite) => (
                                     <SelectItem key={invite.inviteId} value={invite.inviteId}>
-                                        {invite.familyName}
+                                        {invite.inviteName}
                                     </SelectItem>
                                 ))}
                             </SelectContent>

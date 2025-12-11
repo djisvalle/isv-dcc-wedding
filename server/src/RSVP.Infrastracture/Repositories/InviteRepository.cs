@@ -13,7 +13,12 @@ namespace RSVP.Infrastracture.Repositories
 
         public InviteRepository(RsvpDbContext context) => _context = context;
 
-        public async Task<List<Invite>> GetInvites() => await _context.Invites.ToListAsync();
+        public async Task<List<Invite>> GetInvites()
+        {
+            return await _context.Invites
+                .Include(i => i.Guests)
+                .ToListAsync();
+        }
 
         public async Task<Guid> CreateInvite(Invite invite)
         {
@@ -29,8 +34,7 @@ namespace RSVP.Infrastracture.Repositories
                 .Select(i => new InviteDashboard
                 {
                     InviteId = i.InviteId,
-                    InviteName = i.FamilyName,
-                    InviteUrl = i.InviteUrl,
+                    InviteName = i.InviteName,
                     GuestCount = i.Guests == null ? 0 : i.Guests.Count
                 })
                 .ToListAsync();

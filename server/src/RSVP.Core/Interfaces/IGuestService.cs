@@ -14,5 +14,8 @@ namespace RSVP.Core.Interfaces
         Task AddGuestsToInvite(List<CreateGuestDto> dto, Guid inviteId);
         Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId);
         Task<List<GuestDashboard>> GetGuestDashboard();
+        Task<List<GuestDropdown>> GetGuestDropdown();
+        Task<List<GuestRsvp>> GetGuestsByInviteForRsvp(Guid inviteId);
+        Task ConfirmGuestRsvp(List<ConfirmGuestRsvpDto> dto);
     }
 }

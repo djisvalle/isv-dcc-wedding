@@ -12,8 +12,8 @@ using RSVP.Infrastracture;
 namespace RSVP.Infrastracture.Migrations
 {
     [DbContext(typeof(RsvpDbContext))]
-    [Migration("20251127135332_SeedADminUser")]
-    partial class SeedADminUser
+    [Migration("20251209144753_RevisedInviteTable")]
+    partial class RevisedInviteTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -65,12 +65,7 @@ namespace RSVP.Infrastracture.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
-                    b.Property<string>("FamilyName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("InviteUrl")
+                    b.Property<string>("InviteName")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -99,6 +94,7 @@ namespace RSVP.Infrastracture.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Role")
+                        .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
@@ -116,8 +112,8 @@ namespace RSVP.Infrastracture.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("ef9fd5ac-eedd-4f3a-bea2-aae7f46f7d30"),
-                            CreatedDateTime = new DateTime(2025, 11, 27, 13, 53, 31, 833, DateTimeKind.Utc).AddTicks(9211),
+                            UserId = new Guid("cfbc2309-be93-461e-d286-08de2dbc0fe5"),
+                            CreatedDateTime = new DateTime(2025, 11, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Password = "AQAAAAIAAYagAAAAEM3FttS8yf1q9mZTsKc4hjfrb0j5fSOtZZ/vBM9HARp+8SjFS0HlNojuqmxE2hfR5Q==",
                             Role = "admin",
                             Username = "admin"
