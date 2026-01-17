@@ -1,22 +1,27 @@
-﻿using RSVP.Core.Contracts.Guest;
-using RSVP.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using RSVP.Domain.Entities;
 
-namespace RSVP.Core.Repositories
+namespace RSVP.Domain.Repositories
 {
     public interface IGuestRepository
     {
-        Task<List<Guest>> GetGuests();
-        Task CreateGuest(Guest guest);
-        Task UpdateGuest(Guest guest);
-        Task AddGuestsToInvite(List<Guest> guests);
-        Task<List<Guest>> GetGuestsByIds(List<Guid> dto);
-        Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId);
-        Task<List<GuestDashboard>> GetGuestDashboard();
-        Task<List<GuestDropdown>> GetGuestDropdown();
-        Task<List<GuestRsvp>> GetGuestsByInviteForRsvp(Guid inviteId);
-        Task ConfirmGuestRsvp(List<ConfirmGuestRsvpDto> dto);
+        Task<IEnumerable<Guest>> GetAllAsync();
+        Task<Guest?> GetByIdAsync(Guid id);
+        Task<IEnumerable<Guest>> GetByIdsAsync(IEnumerable<Guid> ids);
+        Task AddAsync(Guest guest);
+        void Update(Guest guest);
+        void Delete(Guest guest);
+        Task<bool> SaveChangesAsync();
+        Task<IEnumerable<Guest>> GetNoInviteAsync();
+        Task<IEnumerable<Guest>> GetByInviteAsync(Guid inviteId);
+        //Task AddGuestsToInvite(List<Guest> guests);
+
+        //Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId);
+        //Task RemoveGuestsFromInvite(List<Guid> guestIds, Guid inviteId);
+        //Task<List<Guest>> GetGuestDashboard();
+        //Task<List<Guest>> GetGuestDropdown();
+        //Task<List<Guest>> GetGuestsByInvite(Guid inviteId);
+
+        //
+        //Task ConfirmGuestRsvp(List<Guest> dto);
     }
 }

@@ -1,9 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using RSVP.Core.Models;
-using RSVP.Core.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using RSVP.Domain.Entities;
+using RSVP.Domain.Repositories;
 
 namespace RSVP.Infrastracture.Repositories
 {
@@ -13,31 +10,32 @@ namespace RSVP.Infrastracture.Repositories
 
         public InviteRepository(RsvpDbContext context) => _context = context;
 
-        public async Task<List<Invite>> GetInvites()
-        {
-            return await _context.Invites
-                .Include(i => i.Guests)
-                .ToListAsync();
-        }
+        public async Task<IEnumerable<Invite>> GetAllAsync() =>
+            await _context.Invites.AsNoTracking().Include(i => i.Guests).ToListAsync();
 
-        public async Task<Guid> CreateInvite(Invite invite)
-        {
+        public async Task<Invite?> GetByIdAsync(Guid id) =>
+            await _context.Invites.AsNoTracking().Include(i => i.Guests).FirstOrDefaultAsync(i => i.InviteId == id);
+
+        public async Task AddAsync(Invite invite) =>
             await _context.Invites.AddAsync(invite);
-            await _context.SaveChangesAsync();
+        
+        public void Update(Invite invite) =>
+            _context.Invites.Update(invite);
 
-            return invite.InviteId;
-        }
+        public async Task<bool> SaveChangesAsync() =>
+            await _context.SaveChangesAsync() > 0;
 
-        public async Task<List<InviteDashboard>> GetInviteDashboard()
-        {
-            return await _context.Invites
-                .Select(i => new InviteDashboard
-                {
-                    InviteId = i.InviteId,
-                    InviteName = i.InviteName,
-                    GuestCount = i.Guests == null ? 0 : i.Guests.Count
-                })
-                .ToListAsync();
-        }
+        //public async Task<List<InviteDashboardResponseDto>> GetInviteDashboard()
+        //{
+        //    return await _context.Invites
+        //        .Select(i => new InviteDashboardResponseDto
+        //        {
+        //            InviteId = i.InviteId,
+        //            InviteName = i.InviteName,
+        //            GuestCount = i.Guests == null ? 0 : i.Guests.Count
+        //        })
+        //        .AsNoTracking()
+        //        .ToListAsync();
+        //}
     }
 }

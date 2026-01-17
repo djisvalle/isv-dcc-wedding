@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using RSVP.Core.Contracts.Auth;
+using RSVP.Application.DTOs.Auth;
 using RSVP.Core.Models;
 using RSVP.Core.Repositories;
 using System;

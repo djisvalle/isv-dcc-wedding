@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using RSVP.Core.Models;
+using RSVP.Domain.Entities;
 
 namespace RSVP.Infrastracture
 {
@@ -64,6 +64,7 @@ namespace RSVP.Infrastracture
                 entity.Property(e => e.IsAttending);
                 entity.Property(e => e.InviteId);
                 entity.Property(e => e.CreatedDateTime).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.RsvpDate);
             });
         }
     }

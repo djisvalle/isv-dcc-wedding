@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using RSVP.Core.Contracts.Auth;
-using RSVP.Core.Contracts.User;
-using RSVP.Core.Interfaces;
 
 namespace RSVP.API.Controllers
 {

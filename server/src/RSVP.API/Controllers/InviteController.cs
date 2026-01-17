@@ -1,12 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.AspNetCore.Razor.TagHelpers;
-using RSVP.Core.Contracts.Invite;
-using RSVP.Core.Interfaces;
-using RSVP.Core.Models;
-using RSVP.Core.Services;
+using RSVP.Application.DTOs.Invite.Request;
+using RSVP.Application.DTOs.Invite.Response;
+using RSVP.Application.Interfaces;
 
 namespace RSVP.API.Controllers
 {
@@ -25,24 +21,36 @@ namespace RSVP.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Invite>>> GetInvites() => Ok(await _inviteService.GetInvites());
-            
-        [HttpPost]
-        public async Task<IActionResult> CreateInvite(CreateInviteDto invite)
+        public async Task<ActionResult<List<InviteResponseDto>>> GetAll() => 
+            Ok(await _inviteService.GetAllAsync());
+
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<InviteResponseDto>> GetById(Guid id)
         {
-            var inviteId = await _inviteService.CreateInvite(invite);
+            var invite = await _inviteService.GetByIdAsync(id);
+            
+            if (invite == null) return NotFound();
+            
+            return Ok(invite);
+        }
 
-            if (invite.Guests != null)
+        [HttpPost]
+        public async Task<IActionResult> Create(CreateInviteDto invite)
+        {
+            var createdInvite = await _inviteService.CreateAsync(invite);
+            return CreatedAtAction(nameof(GetById), new { id = invite.InviteId });
+        }
+
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInviteDto dto)
+        {
+            if (id != dto.InviteId)
             {
-                await _guestService.AddGuestsToInvite(invite.Guests, inviteId);
+                return BadRequest("Invite ID in URL does not match Invite ID in body.");
             }
 
-            if (invite.GuestIds != null)
-            {
-                await _guestService.AddExistingGuestsToInvite(invite.GuestIds, inviteId);
-            }
-
-            return Ok();
+            await _inviteService.UpdateAsync(dto);
+            return NoContent();
         }
     }
 }

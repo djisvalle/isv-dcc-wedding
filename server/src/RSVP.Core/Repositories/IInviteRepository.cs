@@ -1,14 +1,14 @@
-﻿using RSVP.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using RSVP.Domain.Entities;
 
-namespace RSVP.Core.Repositories
+namespace RSVP.Domain.Repositories
 {
     public interface IInviteRepository
     {
-        Task<List<Invite>> GetInvites();
-        Task<Guid> CreateInvite(Invite invite);
-        Task<List<InviteDashboard>> GetInviteDashboard();
+        Task<IEnumerable<Invite>> GetAllAsync();
+        Task<Invite?> GetByIdAsync(Guid id);
+        Task AddAsync(Invite invite);
+        void Update(Invite invite);
+        Task<bool> SaveChangesAsync();
+        //Task<List<InviteDashboardResponseDto>> GetInviteDashboard();
     }
 }

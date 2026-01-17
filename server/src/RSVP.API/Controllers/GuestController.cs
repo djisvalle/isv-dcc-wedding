@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using RSVP.Core.Contracts.Guest;
-using RSVP.Core.Contracts.User;
+using RSVP.Application.DTOs.Guest.Request;
+using RSVP.Application.DTOs.Guest.Response;
+using RSVP.Application.DTOs.User;
 using RSVP.Core.Interfaces;
 using RSVP.Core.Models;
-using System.Reflection.Metadata.Ecma335;
 
 namespace RSVP.API.Controllers
 {
@@ -18,45 +18,62 @@ namespace RSVP.API.Controllers
 
         public GuestController(IGuestService guestService) => _guestService = guestService;
 
-        [HttpPost]
-        public async Task<IActionResult> CreateGuest(CreateGuestDto dto)
+        [HttpGet]
+        public async Task<ActionResult<List<GuestResponseDto>>> GetAll() => 
+            Ok(await _guestService.GetAllAsync());
+
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<GuestResponseDto>> GetById(Guid id)
         {
-            await _guestService.CreateGuest(dto);
-            return Ok();
+            var guest = await _guestService.GetByIdAsync(id);
+
+            if (guest == null) return NotFound();
+
+            return Ok(guest);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create(CreateGuestDto dto)
+        {
+            var createdGuest = await _guestService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = createdGuest.GuestId });
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<IActionResult> UpdateGuest(Guid id, [FromBody] UpdateGuestDto dto)
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateGuestDto dto)
         {
             if (id != dto.GuestId)
             {
                 return BadRequest("Guest ID in URL does not match Guest ID in body.");
             }
 
-            await _guestService.UpdateGuest(dto);
+            await _guestService.UpdateAsync(dto);
             return NoContent();
         }
 
-        [HttpGet]
-        public async Task<ActionResult<List<Guest>>> GetGuests() => Ok(await _guestService.GetGuests());
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            await _guestService.DeleteAsync(id);
+            return NoContent();
+        }
 
-        [HttpGet("guest-dropdown")]
-        public async Task<ActionResult<List<GuestDropdown>>> GetGuestDropdown() => Ok(await _guestService.GetGuestDropdown());
+        [HttpGet("dropdown")]
+        public async Task<ActionResult<List<GuestDropdownResponseDto>>> GetDropdown() => 
+            Ok(await _guestService.GetDropdownAsync());
 
         [AllowAnonymous]
         [HttpGet("get-by-invite/{invite:guid}")]
-        public async Task<ActionResult<List<GuestRsvp>>> GetGuestsByInviteForRsvp(Guid invite)
-        {
-            var guests = await _guestService.GetGuestsByInviteForRsvp(invite);
-            return Ok(guests);
-        }
+        public async Task<ActionResult<List<GuestRsvpResponseDto>>> GetByInviteForRsvp(Guid invite) =>
+            Ok(await _guestService.GetByInviteForRsvpAsync(invite));
 
         [AllowAnonymous]
-        [HttpPatch("confirm-guest-rsvp")]
-        public async Task<IActionResult> ConfirmGuestRsvp([FromBody] List<ConfirmGuestRsvpDto> dto)
+        [HttpPatch("confirm-rsvp")]
+        public async Task<IActionResult> ConfirmRsvp([FromBody] List<ConfirmGuestRsvpDto> dto)
         {
-            await _guestService.ConfirmGuestRsvp(dto);
+            if (dto == null || !dto.Any()) return BadRequest("No data provided.");
 
+            await _guestService.ConfirmRsvpAsync(dto);
             return NoContent();
         }
     }

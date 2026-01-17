@@ -7,9 +7,14 @@ using RSVP.Core.Repositories;
 using RSVP.Core.Services;
 using RSVP.Infrastracture;
 using RSVP.Infrastracture.Repositories;
+using Serilog;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Setup Serilog
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration));
 
 // Register configuration
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
@@ -73,6 +78,8 @@ var app = builder.Build();
 app.UseHttpsRedirection();
 
 app.UseCors("rsvp-client");
+
+app.UseSerilogRequestLogging();
 
 app.UseAuthentication();
 

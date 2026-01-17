@@ -1,10 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using RSVP.Core.Contracts.Guest;
-using RSVP.Core.Contracts.User;
+using RSVP.Application.DTOs.Dashboard.Response;
 using RSVP.Core.Interfaces;
-using RSVP.Core.Models;
 
 namespace RSVP.API.Controllers
 {
@@ -23,9 +20,11 @@ namespace RSVP.API.Controllers
         }
 
         [HttpGet("guest")]
-        public async Task<ActionResult<List<GuestDashboard>>> GetGuestDashboard() => Ok(await _guestService.GetGuestDashboard());
+        public async Task<ActionResult<List<GuestDashboardResponseDto>>> GetGuestDashboard() => 
+            Ok(await _guestService.GetGuestDashboardAsync());
 
         [HttpGet("invite")]
-        public async Task<ActionResult<List<InviteDashboard>>> GetInviteDashboard() => Ok(await _inviteService.GetInviteDashboard());
+        public async Task<ActionResult<List<InviteDashboardResponseDto>>> GetInviteDashboard() => 
+            Ok(await _inviteService.GetInviteDashboardAsync());
     }
 }

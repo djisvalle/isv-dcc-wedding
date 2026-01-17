@@ -1,10 +1,6 @@
-﻿using RSVP.Core.Contracts.Auth;
-using RSVP.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using RSVP.Domain.Entities;
 
-namespace RSVP.Core.Repositories
+namespace RSVP.Domain.Repositories
 {
     public interface IUserRepository
     {
