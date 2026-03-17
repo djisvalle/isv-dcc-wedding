@@ -17,7 +17,7 @@ export default function GuestHome() {
         <div className="scroll-smooth">
             {/* <Navbar></Navbar> */}
             <Countdown></Countdown>
-            <Hero></Hero>
+            {/* <Hero></Hero> */}
             {/* <Story></Story>
             <Details></Details>
             <Gallery></Gallery> */}
