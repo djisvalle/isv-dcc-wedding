@@ -1,6 +1,6 @@
 import { useGetGuestsByInviteForRsvp } from "@/hooks/useGuest";
 import Countdown from "./Countdown";
-import Hero from "./Hero";
+// import Hero from "./Hero";
 // import Navbar from "./Navbar";
 import RSVP from "./RSVP";
 
