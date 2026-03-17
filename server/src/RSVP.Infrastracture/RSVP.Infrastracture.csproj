@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RSVP.Application\RSVP.Application.csproj" />
-    <ProjectReference Include="..\RSVP.Core\RSVP.Core.csproj" />
+    <ProjectReference Include="..\RSVP.Domain\RSVP.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

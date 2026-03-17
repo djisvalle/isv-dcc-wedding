@@ -1,7 +1,8 @@
 ﻿using AutoMapper;
+using RSVP.Application.DTOs.Dashboard.Response;
 using RSVP.Application.DTOs.Guest.Request;
 using RSVP.Application.DTOs.Guest.Response;
-using RSVP.Domain.Models;
+using RSVP.Domain.Entities;
 
 namespace RSVP.Application.Mappings
 {
@@ -16,6 +17,8 @@ namespace RSVP.Application.Mappings
             CreateMap<Guest, GuestDropdownResponseDto>();
 
             CreateMap<Guest, GuestRsvpResponseDto>();
+
+            CreateMap<Guest, GuestDashboardResponseDto>();
         }
     }
 }

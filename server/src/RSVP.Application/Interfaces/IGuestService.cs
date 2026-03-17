@@ -15,10 +15,6 @@ namespace RSVP.Application.Interfaces
         Task<List<GuestResponseDto>> GetByInviteAsync(Guid inviteId);
         Task<List<GuestRsvpResponseDto>> GetByInviteForRsvpAsync(Guid inviteId);
         Task ConfirmRsvpAsync(List<ConfirmGuestRsvpDto> dto);
-        //Task<List<GuestDashboardResponseDto>> GetGuestDashboardAsync();
-        //Task AddGuestsToInvite(List<CreateGuestDto> dto, Guid inviteId);
-        //Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId);
-        //Task RemoveGuestsFromInvite(List<Guid> guestIds, Guid inviteId);
-
+        Task<List<GuestDashboardResponseDto>> GetGuestDashboardAsync();
     }
 }

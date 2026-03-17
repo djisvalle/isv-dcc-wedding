@@ -4,7 +4,7 @@ using System.Text;
 
 namespace RSVP.Application.DTOs.Invite.Response
 {
-    public class InviteResponseDto
+    public record InviteResponseDto
     {
         public Guid InviteId { get; set; }
         public required string InviteName { get; set; }

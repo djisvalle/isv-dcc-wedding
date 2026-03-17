@@ -2,7 +2,7 @@
 
 namespace RSVP.Application.DTOs.Guest.Request
 {
-    public class ConfirmGuestRsvpDto
+    public record ConfirmGuestRsvpDto
     {
         [Required]
         public required Guid GuestId { get; set; }

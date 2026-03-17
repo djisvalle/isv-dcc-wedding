@@ -2,7 +2,7 @@
 
 namespace RSVP.Application.DTOs.Guest.Request
 {
-    public class CreateGuestDto
+    public record CreateGuestDto
     {
         [Required, MaxLength(50)]
         public required string FullName { get; set; }

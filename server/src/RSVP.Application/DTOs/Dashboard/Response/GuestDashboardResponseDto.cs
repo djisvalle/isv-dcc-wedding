@@ -1,6 +1,6 @@
 ﻿namespace RSVP.Application.DTOs.Dashboard.Response
 {
-    public class GuestDashboardResponseDto
+    public record GuestDashboardResponseDto
     {
         public Guid GuestId { get; set; }
         public string FullName { get; set; } = string.Empty;

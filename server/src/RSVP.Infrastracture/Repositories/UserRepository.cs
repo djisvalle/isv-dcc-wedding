@@ -1,10 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using RSVP.Application.DTOs.Auth;
-using RSVP.Core.Models;
-using RSVP.Core.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using RSVP.Domain.Entities;
+using RSVP.Domain.Repositories;
 
 namespace RSVP.Infrastracture.Repositories
 {

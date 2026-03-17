@@ -1,4 +1,4 @@
-﻿using RSVP.Domain.Models;
+﻿using RSVP.Domain.Entities;
 
 namespace RSVP.Application.Interfaces
 {

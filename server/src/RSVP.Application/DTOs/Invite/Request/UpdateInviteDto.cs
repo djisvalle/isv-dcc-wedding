@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RSVP.Application.DTOs.Invite.Request
 {
-    public class UpdateInviteDto
+    public record UpdateInviteDto
     {
         [Required]
         public required Guid InviteId { get; set; }

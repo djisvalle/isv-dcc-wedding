@@ -18,13 +18,25 @@ export default function Invite() {
     const [editingInvite, setEditingInvite] = useState<Invite | null>(null);
 
     const createInvite = useCreateInvite();
-    //const updateInvite = useUpdateInvite();
+    const updateInvite = useUpdateInvite();
 
-    const handleUpsertInvite = (inviteData: Omit<Invite, "inviteId" | "guests">, guests: KeyValuePair[]) => {
+    const handleUpsertInvite = async (inviteData: Omit<Invite, "inviteId" | "guests">, guests: KeyValuePair[]) => {
         if (editingInvite) {
             const newGuests = guests
                 .filter(guest => guest.key.includes("new"))
                 .map(guest => ({ fullName: guest.value }));
+
+            const existingGuests = guests
+                .filter(guest => !guest.key.includes("new"))
+                .map(guest => guest.key);
+
+            await updateInvite.mutateAsync({
+                inviteId: editingInvite.inviteId,
+                inviteName: inviteData.inviteName,
+                guests: newGuests,
+                guestIds: existingGuests
+            })
+            setEditingInvite(null);
         }
         else {
             const newGuests = guests

@@ -1,9 +1,9 @@
 ﻿using RSVP.Application.DTOs.User;
-using RSVP.Core.Interfaces;
-using RSVP.Core.Models;
-using RSVP.Core.Repositories;
+using RSVP.Application.Interfaces;
+using RSVP.Domain.Entities;
+using RSVP.Domain.Repositories;
 
-namespace RSVP.Core.Services
+namespace RSVP.Application.Services
 {
     public class UserService : IUserService
     {

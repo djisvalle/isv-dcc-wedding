@@ -2,7 +2,7 @@
 
 namespace RSVP.Application.DTOs.Auth
 {
-    public class LoginDto
+    public record LoginDto
     {
         [Required, MaxLength(50)]
         public string Username { get; set; } = string.Empty;

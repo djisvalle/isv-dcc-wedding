@@ -4,7 +4,7 @@
     {
         public Guid InviteId { get; set; }
         public required string InviteName { get; set; }
-        public List<Guest>? Guests { get; set; }
+        public List<Guest>? Guests { get; set; } = new();
         public DateTime CreatedDateTime { get; set; }
     }
 }

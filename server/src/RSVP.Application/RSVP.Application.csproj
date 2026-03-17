@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RSVP.Core\RSVP.Domain.csproj" />
+    <ProjectReference Include="..\RSVP.Domain\RSVP.Domain.csproj" />
   </ItemGroup>
 
 </Project>

@@ -2,13 +2,13 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using RSVP.Application.Configs;
-using RSVP.Core.Interfaces;
-using RSVP.Core.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using RSVP.Application.Interfaces;
+using RSVP.Domain.Entities;
 
-namespace RSVP.Core.Services
+namespace RSVP.Application.Services
 {
     public class PasswordService : IPasswordService
     {

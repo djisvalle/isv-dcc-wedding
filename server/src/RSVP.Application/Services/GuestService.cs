@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using RSVP.Application.DTOs.Dashboard.Response;
 using RSVP.Application.DTOs.Guest.Request;
 using RSVP.Application.DTOs.Guest.Response;
 using RSVP.Application.Interfaces;
@@ -98,21 +99,11 @@ namespace RSVP.Application.Services
             await _guestRepository.SaveChangesAsync();
         }
 
-        //public async Task AddGuestsToInvite(List<CreateGuestDto> dto, Guid inviteId)
-        //{
-        //    var guests = dto.Select(x => new Guest
-        //    {
-        //        FullName = x.FullName,
-        //        InviteId = inviteId
-        //    }).ToList();
+        public async Task<List<GuestDashboardResponseDto>> GetGuestDashboardAsync()
+        {
+            var guests = await _guestRepository.GetAllAsync();
 
-        //    await _guestRepository.AddGuestsToInvite(guests);
-        //}
-
-        //public async Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId) => await _guestRepository.AddExistingGuestsToInvite(guestIds, inviteId);
-
-        //public async Task RemoveGuestsFromInvite(List<Guid> guestIds, Guid inviteId) => await _guestRepository.RemoveGuestsFromInvite(guestIds, inviteId);
-
-        //public async Task<List<GuestDashboardResponseDto>> GetGuestDashboard() => await _guestRepository.GetGuestDashboard();
+            return _mapper.Map<List<GuestDashboardResponseDto>>(guests);
+        }
     }
 }

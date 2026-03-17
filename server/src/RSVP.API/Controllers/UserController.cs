@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RSVP.Application.DTOs.User;
-using RSVP.Core.Interfaces;
+using RSVP.Application.Interfaces;
 
 namespace RSVP.API.Controllers
 {

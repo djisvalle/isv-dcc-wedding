@@ -24,13 +24,18 @@ export const guestApi = {
         return res.data.map((guest: Guest): KeyValuePair => ({ key: guest.guestId, value: guest.fullName }));  
     },
 
+    deleteGuest: async (guestId: string) => {
+        const res = await http.delete(`/guest/${guestId}`);
+        return res.data;
+    },
+
     getGuestsByInviteForRsvp: async (inviteId: string | null) => {
         const res = await http.get<GuestRsvp[]>(`/guest/get-by-invite/${inviteId}`);
         return res.data;
     },
 
-    getConfirmGuestRsvp: async (comfirmedGuests: GuestRsvp[]) => {
-        const res = await http.patch("/guest/confirm-guest-rsvp", comfirmedGuests);
+    getConfirmGuestRsvp: async (confirmedGuests: GuestRsvp[]) => {
+        const res = await http.patch("/guest/confirm-guest-rsvp", confirmedGuests);
         return res.data;
     }
 }

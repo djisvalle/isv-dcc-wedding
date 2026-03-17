@@ -6,7 +6,7 @@ using RSVP.Application.Interfaces;
 
 namespace RSVP.API.Controllers
 {
-    [Authorize(Policy = "Admin")]
+    //[Authorize(Policy = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class InviteController : ControllerBase
@@ -38,7 +38,7 @@ namespace RSVP.API.Controllers
         public async Task<IActionResult> Create(CreateInviteDto invite)
         {
             var createdInvite = await _inviteService.CreateAsync(invite);
-            return CreatedAtAction(nameof(GetById), new { id = invite.InviteId });
+            return CreatedAtAction(nameof(GetById), new { id = createdInvite.InviteId });
         }
 
         [HttpPut("{id:guid}")]

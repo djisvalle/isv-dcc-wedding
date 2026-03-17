@@ -2,7 +2,7 @@
 
 namespace RSVP.Application.DTOs.User
 {
-    public class CreateUserDto
+    public record CreateUserDto
     {
         [Required, MaxLength(50)]
         public string Username { get; set; } = string.Empty;

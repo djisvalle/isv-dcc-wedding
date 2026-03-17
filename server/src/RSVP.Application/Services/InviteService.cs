@@ -1,84 +1,130 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using RSVP.Application.DTOs.Dashboard.Response;
 using RSVP.Application.DTOs.Invite.Request;
 using RSVP.Application.DTOs.Invite.Response;
 using RSVP.Application.Interfaces;
+using RSVP.Application.Services;
 using RSVP.Domain.Entities;
 using RSVP.Domain.Repositories;
 
-namespace RSVP.Core.Services
+namespace RSVP.Application.Services
 {
     public class InviteService : IInviteService
     {
         private readonly IInviteRepository _inviteRepository;
         private readonly IMapper _mapper;
-        private readonly IGuestService _guestService;
+        private readonly IGuestRepository _guestRepository;
 
-        public InviteService(IInviteRepository inviteRepository, IMapper mapper, IGuestService guestService)
+        public InviteService(IInviteRepository inviteRepository, IMapper mapper, IGuestRepository guestRepository)
         {
             _inviteRepository = inviteRepository;
             _mapper = mapper;
-            _guestService = guestService;
+            _guestRepository = guestRepository;
         }
 
-        public async Task<List<InviteResponseDto]>> GetAllAsync()
+        public async Task<List<InviteResponseDto>> GetAllAsync()
         {
             var invites = await _inviteRepository.GetAllAsync();
 
             return _mapper.Map<List<InviteResponseDto>>(invites);
         }
 
-        public async Task CreateInvite(CreateInviteDto dto)
+        public async Task<InviteResponseDto> GetByIdAsync(Guid id)
         {
-            var invite = _mapper.Map<Invite>(dto);
-            await _inviteRepository.AddAsync(invite);
+            var invite = await _inviteRepository.GetByIdAsync(id);
+            return _mapper.Map<InviteResponseDto>(invite);
+        }
 
-            if (dto.Guests != null)
+        public async Task<InviteResponseDto> CreateAsync(CreateInviteDto dto)
+        {
+            using var transaction = await _inviteRepository.BeginTransactionAsync();
+
+            try
             {
-                await _guestService.AddGuestsToInvite(dto.Guests, invite.InviteId);
+                var invite = _mapper.Map<Invite>(dto);
+                await _inviteRepository.AddAsync(invite);
+
+                await _inviteRepository.SaveChangesAsync();
+
+                if (dto.Guests != null && dto.Guests.Any())
+                {
+                    var newGuests = _mapper.Map<List<Guest>>(dto.Guests);
+                    foreach (var guest in newGuests)
+                    {
+                        guest.InviteId = invite.InviteId;
+                    }
+                    await _guestRepository.AddRangeAsync(newGuests);
+                }
+
+                if (dto.GuestIds != null && dto.GuestIds.Any())
+                {
+                    await _guestRepository.UpdateGuestsInviteAsync(dto.GuestIds, invite.InviteId);
+                }
+
+                await _inviteRepository.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return _mapper.Map<InviteResponseDto>(invite);
             }
-
-            if (dto.GuestIds != null)
+            catch
             {
-                await _guestService.AddExistingGuestsToInvite(dto.GuestIds, invite.InviteId);
+                await transaction.RollbackAsync();
+                throw;
             }
         }
         
-        public async Task UpdateInvite(UpdateInviteDto dto)
+        public async Task UpdateAsync(UpdateInviteDto dto)
         {
-            var invite = new Invite
-            {
-                InviteId = dto.InviteId,
-                InviteName = dto.InviteName
-            };
+            using var transaction = await _inviteRepository.BeginTransactionAsync();
 
-            if (dto.Guests != null)
+            try
             {
-                await _guestService.AddGuestsToInvite(dto.Guests, dto.InviteId);
+                var existingInvite = await _inviteRepository.GetByIdForUpdateAsync(dto.InviteId);
+                if (existingInvite == null) throw new KeyNotFoundException("Invite not found");
+
+                _mapper.Map(dto, existingInvite);
+
+                if (dto.Guests != null && dto.Guests.Any())
+                {
+                    var newGuestEntities = _mapper.Map<List<Guest>>(dto.Guests);
+                    foreach (var guest in newGuestEntities) guest.InviteId = dto.InviteId;
+                    await _guestRepository.AddRangeAsync(newGuestEntities);
+                }
+
+                if (dto.GuestIds != null && dto.GuestIds.Any())
+                {
+                    var currentGuestIds = existingInvite.Guests?.Select(g => g.GuestId).ToList() ?? new List<Guid>();
+
+                    var idsToAdd = dto.GuestIds.Except(currentGuestIds).ToList();
+                    if (idsToAdd.Any())
+                    {
+                        await _guestRepository.UpdateGuestsInviteAsync(idsToAdd, dto.InviteId);
+                    }
+
+                    var idsToRemove = currentGuestIds.Except(dto.GuestIds).ToList();
+                    if (idsToRemove.Any())
+                    {
+                        await _guestRepository.UpdateGuestsInviteAsync(idsToRemove, null);
+                    }
+                }
+
+                await _inviteRepository.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
-
-            if (dto.GuestIds != null)
+            catch
             {
-                var guestList = await _guestService.GetGuestsByInviteAsync(dto.InviteId);
-                
-                var newGuests = dto.GuestIds
-                    .Where(gid => guestList.All(g => g.GuestId != gid))
-                    .ToList();
-
-                await _guestService.AddExistingGuestsToInvite(newGuests, dto.InviteId);
-
-                var removedGuests = guestList
-                    .Where(g => dto.GuestIds.All(gid => gid != g.GuestId))
-                    .Select(g => g.GuestId)
-                    .ToList();
-
-                await _guestService.RemoveGuestsFromInvite(removedGuests, dto.InviteId);
+                await transaction.RollbackAsync();
+                throw;
             }
-
-            await _inviteRepository.UpdateInvite(invite);
         }
 
-        public async Task<List<InviteDashboardResponseDto>> GetInviteDashboard() => await _inviteRepository.GetInviteDashboard();
+        public async Task<List<InviteDashboardResponseDto>> GetInviteDashboardAsync()
+        {
+            var invites = await _inviteRepository.GetAllAsync();
+
+            return _mapper.Map<List<InviteDashboardResponseDto>>(invites);
+        }
     }
 }

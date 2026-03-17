@@ -1,11 +1,13 @@
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../../components/ui/table";
+import { SquarePen, Trash, Plus } from "lucide-react";
 
-import { useCreateGuest, useGetAllGuests, useUpdateGuest } from "../../hooks/useGuest";
+import { useCreateGuest, useGetAllGuests, useUpdateGuest, useDeleteGuest } from "../../hooks/useGuest";
 import { useState } from "react";
 
 import GuestModal from "./GuestModal";
+import GuestAlert from "./GuestAlert";
 
 import type { Guest } from "../../types/Guest";
 
@@ -14,9 +16,12 @@ export default function Guest() {
     const { data } = useGetAllGuests();
     const [modalOpen, setModalOpen] = useState(false);
     const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [deletingGuest, setDeletingGuest] = useState<Guest | null>(null);
 
     const createGuest = useCreateGuest();
     const updateGuest = useUpdateGuest();
+    const deleteGuest = useDeleteGuest();
 
     const handleUpsertGuest = (guestData: Omit<Guest, "guestId" | "isAttending">) => {
         if (editingGuest) {
@@ -37,15 +42,34 @@ export default function Guest() {
         }
     }
 
+    const handleDeleteGuest = () => {
+        if (deletingGuest) {
+            deleteGuest.mutateAsync(deletingGuest.guestId);
+            setDeletingGuest(null);
+        }
+    }
+
     const handleEdit = (guest: Guest) => {
         setEditingGuest(guest);
         setModalOpen(true);
+    };
+
+    const handleDelete = (guest: Guest) => {
+        setDeletingGuest(guest);
+        setAlertOpen(true);
     };
 
     const handleModalOpenChange = (open: boolean) => {
         setModalOpen(open);
         if (!open) {
             setEditingGuest(null);
+        }
+    }
+
+    const handleAlertOpenChange = (open: boolean) => {
+        setAlertOpen(open);
+        if (!open) {
+            setDeletingGuest(null);
         }
     }
 
@@ -58,7 +82,10 @@ export default function Guest() {
                             <h1 className="text-3xl font-bold text-foreground">Guest</h1>
                             <p className="text-muted-foreground mt-2">Add, update, remove guests</p>
                         </div>
-                        <Button onClick={() => setModalOpen(true)}>Create Guest</Button>
+                        <Button onClick={() => setModalOpen(true)}>
+                            <Plus />
+                            Add Guest
+                        </Button>
                     </div>
 
                     <Card>
@@ -82,7 +109,14 @@ export default function Guest() {
                                             <TableRow key={guest.guestId}>
                                                 <TableCell className="font-medium">{guest.fullName}</TableCell>
                                                 <TableCell>{guest.isAttending === null ? "Haven't responded yet" : guest.isAttending ? "Yes" : "No"}</TableCell>
-                                                <TableCell className="w-[100px] flex justify-center"><Button onClick={() => handleEdit(guest)}>Edit</Button></TableCell>
+                                                <TableCell className="w-[100px] flex justify-center">
+                                                    <Button onClick={() => handleEdit(guest)} className="mr-2">
+                                                        <SquarePen />
+                                                    </Button>
+                                                    <Button onClick={() => handleDelete(guest)}>
+                                                        <Trash />
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -92,6 +126,12 @@ export default function Guest() {
                     </Card>
                 </div>
             </div>
+            <GuestAlert 
+                open={alertOpen} 
+                onOpenChange={handleAlertOpenChange} 
+                onSubmit={handleDeleteGuest} 
+                deletingGuest={deletingGuest} 
+            />
             <GuestModal
                 open={modalOpen}
                 onOpenChange={handleModalOpenChange}

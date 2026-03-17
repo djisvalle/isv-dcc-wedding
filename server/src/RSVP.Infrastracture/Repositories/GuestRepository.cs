@@ -37,89 +37,16 @@ namespace RSVP.Infrastracture.Repositories
         public async Task<IEnumerable<Guest>> GetByInviteAsync(Guid inviteId) =>
             await _context.Guests.AsNoTracking().Where(g => g.InviteId == inviteId).ToListAsync();
 
+        public async Task AddRangeAsync(IEnumerable<Guest> guests) =>
+            await _context.Guests.AddRangeAsync(guests);
 
-
-        //public async Task AddGuestsToInvite(List<Guest> guests)
-        //{
-        //    await _context.Guests.AddRangeAsync(guests);
-        //    await _context.SaveChangesAsync();
-        //}
-
-        //public async Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId)
-        //{
-        //    await _context.Guests
-        //        .Where(g => guestIds.Contains(g.GuestId))
-        //        .ExecuteUpdateAsync(setters =>
-        //            setters.SetProperty(g => g.InviteId, inviteId)
-        //        );
-        //}
-
-        //public async Task RemoveGuestsFromInvite(List<Guid> guestIds, Guid inviteId)
-        //{
-        //    await _context.Guests
-        //        .Where(g => guestIds.Contains(g.GuestId))
-        //        .ExecuteUpdateAsync(setters =>
-        //            setters.SetProperty(g => g.InviteId, (Guid?)null)
-        //        );
-        //}
-
-        //public async Task<List<GuestDashboardResponseDto>> GetGuestDashboard()
-        //{
-        //    return await _context.Guests
-        //        .Select(g => new GuestDashboardResponseDto
-        //        {
-        //            GuestId = g.GuestId,
-        //            FullName = g.FullName,
-        //            InviteName = g.Invite != null ? g.Invite.InviteName : "",
-        //            IsAttending = g.IsAttending.HasValue ? (g.IsAttending.Value ? "Yes" : "No") : "Pending"
-        //        })
-        //        .AsNoTracking()
-        //        .ToListAsync();
-        //}
-
-
-
-        //public async Task<List<GuestResponseDto>> GetGuestsByInvite(Guid inviteId)
-        //{
-        //    return await _context.Guests
-        //        .Where(g => g.InviteId == inviteId)
-        //        .Select(g => new GuestResponseDto
-        //        {
-        //            GuestId = g.GuestId,
-        //            FullName = g.FullName,
-        //            IsAttending = g.IsAttending,
-        //            CreatedDateTime = g.CreatedDateTime
-        //        })
-        //        .AsNoTracking()
-        //        .ToListAsync();
-        //}
-
-        //public async Task<List<GuestRsvpResponseDto>> GetGuestsByInviteForRsvp(Guid inviteId)
-        //{
-        //    return await _context.Guests
-        //        .Where(g => g.InviteId == inviteId)
-        //        .Select(g => new GuestRsvpResponseDto
-        //        {
-        //            FullName = g.FullName,
-        //            GuestId = g.GuestId,
-        //            IsAttending = g.IsAttending ?? false,
-        //            InviteName = g.Invite != null ? g.Invite.InviteName : ""
-        //        })
-        //        .AsNoTracking()
-        //        .ToListAsync();
-        //}
-
-        //public async Task ConfirmGuestRsvp(List<ConfirmGuestRsvpDto> dto)
-        //{
-        //    foreach (var guestRsvp in dto)
-        //    {
-        //        await _context.Guests
-        //            .Where(g => g.GuestId == guestRsvp.GuestId)
-        //            .ExecuteUpdateAsync(setters =>
-        //                setters
-        //                    .SetProperty(g => g.IsAttending, guestRsvp.IsAttending)
-        //            );
-        //    }
-        //}
+        public async Task UpdateGuestsInviteAsync(IEnumerable<Guid> guestIds, Guid? inviteId)
+        {
+            await _context.Guests
+                .Where(g => guestIds.Contains(g.GuestId))
+                .ExecuteUpdateAsync(setters =>
+                    setters.SetProperty(g => g.InviteId, inviteId)
+                );
+        }
     }
 }

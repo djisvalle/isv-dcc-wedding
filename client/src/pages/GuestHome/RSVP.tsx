@@ -38,6 +38,18 @@ export default function RSVP({ guests }: { guests: GuestRsvp[]}) {
       ))
   }
 
+  if (loading) {
+    return (
+      <section id="rsvp" className="py-20 px-4 max-w-2xl mx-auto">
+        <Card>
+          <CardContent>
+            <p className="text-center text-3xl font-sans">Loading...</p>
+          </CardContent>
+        </Card>
+      </section>
+    )
+  }
+
   return (
     <section id="rsvp" className="py-20 px-4 max-w-2xl mx-auto">
       <Card>

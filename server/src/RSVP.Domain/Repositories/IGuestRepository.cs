@@ -13,15 +13,7 @@ namespace RSVP.Domain.Repositories
         Task<bool> SaveChangesAsync();
         Task<IEnumerable<Guest>> GetNoInviteAsync();
         Task<IEnumerable<Guest>> GetByInviteAsync(Guid inviteId);
-        //Task AddGuestsToInvite(List<Guest> guests);
-
-        //Task AddExistingGuestsToInvite(List<Guid> guestIds, Guid inviteId);
-        //Task RemoveGuestsFromInvite(List<Guid> guestIds, Guid inviteId);
-        //Task<List<Guest>> GetGuestDashboard();
-        //Task<List<Guest>> GetGuestDropdown();
-        //Task<List<Guest>> GetGuestsByInvite(Guid inviteId);
-
-        //
-        //Task ConfirmGuestRsvp(List<Guest> dto);
+        Task AddRangeAsync(IEnumerable<Guest> guests);
+        Task UpdateGuestsInviteAsync(IEnumerable<Guid> guestIds, Guid? inviteId);
     }
 }

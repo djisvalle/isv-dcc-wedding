@@ -1,15 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RSVP.Application.DTOs.Guest.Request;
 using RSVP.Application.DTOs.Guest.Response;
-using RSVP.Application.DTOs.User;
-using RSVP.Core.Interfaces;
-using RSVP.Core.Models;
+using RSVP.Application.Interfaces;
 
 namespace RSVP.API.Controllers
 {
-    [Authorize(Policy = "Admin")]
+    //[Authorize(Policy = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class GuestController : ControllerBase
@@ -36,7 +33,7 @@ namespace RSVP.API.Controllers
         public async Task<IActionResult> Create(CreateGuestDto dto)
         {
             var createdGuest = await _guestService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = createdGuest.GuestId });
+            return CreatedAtAction(nameof(GetById), new { id = createdGuest.GuestId }, createdGuest);
         }
 
         [HttpPut("{id:guid}")]

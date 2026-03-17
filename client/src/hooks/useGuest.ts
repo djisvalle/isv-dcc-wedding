@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { guestApi } from "../infrastracture/guestApi";
-import type { Guest, GuestRsvp } from "../types/Guest";
 
 export function useGetAllGuests() {
     return useQuery({
@@ -36,6 +35,17 @@ export function useGetGuestDropdown() {
     return useQuery({
         queryKey: ['guests-dropdown'],
         queryFn: guestApi.getGuestDropdown
+    })
+}
+
+export function useDeleteGuest() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: guestApi.deleteGuest,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['guests'] });
+        }
     })
 }
 

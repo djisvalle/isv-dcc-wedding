@@ -1,6 +1,6 @@
 ﻿namespace RSVP.Application.DTOs.Dashboard.Response
 {
-    public class InviteDashboardResponseDto
+    public record InviteDashboardResponseDto
     {
         public Guid InviteId { get; set; }
         public string InviteName { get; set; } = string.Empty;

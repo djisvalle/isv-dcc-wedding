@@ -12,7 +12,8 @@ export default function Login() {
         navigate('/dashboard');
     });
 
-    const handleLogin = () => {
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
         login.mutate({ username, password });
     };
 
@@ -26,27 +27,31 @@ export default function Login() {
     return (
         <div className="flex justify-center items-center h-screen">
             <div className="p-8 border rounded shadow-lg w-120">
-                <h2 className="text-2xl font-semibold mb-4">Login</h2>
-                <input 
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full p-2 mb-4 border rounded"
-                />
-                <input 
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full p-2 mb-4 border rounded"
-                />
-                <button
-                    onClick={handleLogin}
-                    className="bg-blue-500 hover:bg-blue-600 font-semibold py-2 px-4 rounded"
-                >
-                    Login
-                </button>
+                <form onSubmit={(e) => handleLogin(e)}>
+                    <h2 className="text-2xl font-semibold mb-4">Login</h2>
+                    <input
+                        id="username"
+                        type="text"
+                        placeholder="Username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full p-2 mb-4 border rounded"
+                    />
+                    <input
+                        id="password"
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full p-2 mb-4 border rounded"
+                    />
+                    <button
+                        type="submit"
+                        className="bg-blue-500 hover:bg-blue-600 font-semibold py-2 px-4 rounded"
+                    >
+                        Login
+                    </button>
+                </form>
             </div>
         </div>
     )

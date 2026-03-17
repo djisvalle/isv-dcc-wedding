@@ -1,6 +1,7 @@
 import { useGetGuestsByInviteForRsvp } from "@/hooks/useGuest";
+import Countdown from "./Countdown";
 import Hero from "./Hero";
-import Navbar from "./Navbar";
+// import Navbar from "./Navbar";
 import RSVP from "./RSVP";
 
 import { useLocation } from "react-router-dom";
@@ -14,7 +15,8 @@ export default function GuestHome() {
 
     return (
         <div className="scroll-smooth">
-            <Navbar></Navbar>
+            {/* <Navbar></Navbar> */}
+            <Countdown></Countdown>
             <Hero></Hero>
             {/* <Story></Story>
             <Details></Details>

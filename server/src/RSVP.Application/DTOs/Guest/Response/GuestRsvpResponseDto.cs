@@ -1,6 +1,6 @@
 ﻿namespace RSVP.Application.DTOs.Guest.Response
 {
-    public class GuestRsvpResponseDto
+    public record GuestRsvpResponseDto
     {
         public Guid GuestId { get; set; }
         public required string FullName { get; set; }

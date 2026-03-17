@@ -8,9 +8,8 @@ namespace RSVP.Application.Interfaces
     {
         Task<List<InviteResponseDto>> GetAllAsync();
         Task<InviteResponseDto> GetByIdAsync(Guid id);
-        Task CreateAsync(CreateInviteDto dto);
+        Task<InviteResponseDto> CreateAsync(CreateInviteDto dto);
         Task UpdateAsync(UpdateInviteDto dto);
-        
-        Task<List<InviteDashboardResponseDto>> GetInviteDashboard();
+        Task<List<InviteDashboardResponseDto>> GetInviteDashboardAsync();
     }
 }

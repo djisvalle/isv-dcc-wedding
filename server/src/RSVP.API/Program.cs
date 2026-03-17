@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using RSVP.Core.Configs;
-using RSVP.Core.Interfaces;
-using RSVP.Core.Repositories;
-using RSVP.Core.Services;
+using RSVP.Application.Configs;
+using RSVP.Application.Interfaces;
+using RSVP.Application.Mappings;
+using RSVP.Application.Services;
+using RSVP.Domain.Repositories;
 using RSVP.Infrastracture;
 using RSVP.Infrastracture.Repositories;
 using Serilog;
@@ -15,6 +17,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Setup Serilog
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
+
+// Setup AutoMapper
+builder.Services.AddAutoMapper(cfg => { }, typeof(GuestMappingProfile), typeof(InviteMappingProfile));
+
 
 // Register configuration
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
