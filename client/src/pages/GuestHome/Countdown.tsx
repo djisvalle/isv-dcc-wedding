@@ -37,12 +37,12 @@ export default function WeddingCountdown() {
         className="w-full max-w-lg text-center"
       >
         {/* Header */}
-        <header className="mb-10 space-y-3">
+        <header className="mb-5 space-y-3">
           <span className="block text-[10px] uppercase tracking-[0.4em] text-stone-400">
             Save the Date
           </span>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-6xl">
-            Israel <span className="text-stone-300">&</span> Debs
+          <h1 className="font-ballerina text-5xl font-light tracking-wide mt-5 md:text-7xl">
+            Israel <span className="text-stone-300">&</span> Deborah
           </h1>
           <div className="mx-auto h-px w-12 bg-stone-200 my-6" />
         </header>
@@ -57,7 +57,7 @@ export default function WeddingCountdown() {
 
         {/* Footer */}
         <footer className="mt-12 space-y-4">
-          <p className="font-serif text-lg italic text-stone-500">
+          <p className="uppercase text-[12px] tracking-[0.2em] text-stone-500 md:text-[15px]">
             January 8th, 2027 • Puerta Real Gardens
           </p>
           <motion.button
