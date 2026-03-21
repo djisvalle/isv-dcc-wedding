@@ -41,7 +41,7 @@ export default function WeddingCountdown() {
           <span className="block text-[10px] uppercase tracking-[0.4em] text-stone-400">
             Save the Date
           </span>
-          <h1 className="font-ballerina text-5xl font-light tracking-wide mt-5 md:text-7xl">
+          <h1 className="font-ballet text-5xl font-light tracking-wide mt-10 md:text-7xl">
             Israel <span className="text-stone-300">&</span> Deborah
           </h1>
           <div className="mx-auto h-px w-12 bg-stone-200 my-6" />
@@ -57,16 +57,16 @@ export default function WeddingCountdown() {
 
         {/* Footer */}
         <footer className="mt-12 space-y-4">
-          <p className="uppercase text-[12px] tracking-[0.2em] text-stone-500 md:text-[15px]">
+          <p className="uppercase text-[10px] tracking-[0.2em] text-stone-400">
             January 8th, 2027 • Puerta Real Gardens
           </p>
-          <motion.button
+          {/* <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="rounded-full border border-stone-800 px-8 py-2 text-[11px] uppercase tracking-widest transition-colors hover:bg-stone-800 hover:text-white"
           >
             RSVP
-          </motion.button>
+          </motion.button> */}
         </footer>
       </motion.div>
     </div>
