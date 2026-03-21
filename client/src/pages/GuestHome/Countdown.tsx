@@ -38,7 +38,7 @@ export default function WeddingCountdown() {
       >
         {/* Header */}
         <header className="mb-5 space-y-3">
-          <span className="block text-[10px] uppercase tracking-[0.4em] text-stone-400">
+          <span className="block text-[8px] uppercase tracking-[0.4em] text-stone-400 sm:text-[10px]">
             Save the Date
           </span>
           <h1 className="font-ballet text-5xl font-light tracking-wide mt-10 md:text-7xl">
@@ -57,16 +57,9 @@ export default function WeddingCountdown() {
 
         {/* Footer */}
         <footer className="mt-12 space-y-4">
-          <p className="uppercase text-[10px] tracking-[0.2em] text-stone-400">
-            January 8th, 2027 • Puerta Real Gardens
+          <p className="block text-[8px] uppercase tracking-[0.4em] text-stone-400 sm:text-[10px]">
+            January 8, 2027 • Intramuros
           </p>
-          {/* <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="rounded-full border border-stone-800 px-8 py-2 text-[11px] uppercase tracking-widest transition-colors hover:bg-stone-800 hover:text-white"
-          >
-            RSVP
-          </motion.button> */}
         </footer>
       </motion.div>
     </div>
@@ -75,7 +68,8 @@ export default function WeddingCountdown() {
 
 function TimeUnit({ value, label }: { value: number, label: string }) {
   return (
-    <div className="relative flex flex-col items-center justify-center border border-stone-100 bg-white p-6 shadow-sm sm:w-24 sm:border-none sm:bg-transparent sm:p-0 sm:shadow-none">
+    <div className="relative flex flex-col items-center justify-center border border-stone-50 bg-stone p-3 shadow-sm sm:w-24 sm:border-none sm:bg-transparent sm:p-0 sm:shadow-none">
+      {/*   */}
       <div className="overflow-hidden h-12 sm:h-14">
         <AnimatePresence mode="popLayout">
           <motion.span
@@ -84,7 +78,7 @@ function TimeUnit({ value, label }: { value: number, label: string }) {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -20, opacity: 0 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="block font-serif text-3xl font-light text-stone-800 sm:text-4xl"
+            className="block font-serif text-2xl font-light text-stone-800 sm:text-4xl"
           >
             {String(value).padStart(2, '0')}
           </motion.span>
