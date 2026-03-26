@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function WeddingCountdown() {
   const [mounted, setMounted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState({ months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   const targetDate = new Date('2027-01-08T00:00:00').getTime();
 
@@ -14,7 +14,8 @@ export default function WeddingCountdown() {
       const difference = targetDate - now;
       if (difference > 0) {
         setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          months: Math.floor(difference / (1000 * 60 * 60 * 24 * 30)),
+          days: Math.floor((difference % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24)),
           hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
           minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
           seconds: Math.floor((difference % (1000 * 60)) / 1000),
@@ -30,7 +31,7 @@ export default function WeddingCountdown() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#fdfcfb] px-6 py-12 text-stone-800">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.5 }}
@@ -47,12 +48,12 @@ export default function WeddingCountdown() {
           <div className="mx-auto h-px w-12 bg-stone-200 my-6" />
         </header>
 
-        {/* Responsive Countdown Grid */}
         <div className="grid grid-cols-2 gap-4 sm:flex sm:justify-between sm:gap-2">
+          {timeLeft.months > 0 ? <TimeUnit value={timeLeft.months} label="Months" /> : null }
           <TimeUnit value={timeLeft.days} label="Days" />
           <TimeUnit value={timeLeft.hours} label="Hours" />
           <TimeUnit value={timeLeft.minutes} label="Mins" />
-          <TimeUnit value={timeLeft.seconds} label="Secs" />
+          {timeLeft.months == 0 ? <TimeUnit value={timeLeft.seconds} label="Secs" /> : null }
         </div>
 
         {/* Footer */}
