@@ -1,31 +1,85 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+function getTimeDifference(start: Date, end: Date) {
+  if (end <= start) {
+    return { months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  let temp = new Date(start);
+
+  // --- MONTHS ---
+  let months = 0;
+  while (true) {
+    const next = new Date(temp);
+    next.setMonth(next.getMonth() + 1);
+    if (next <= end) {
+      temp = next;
+      months++;
+    } else break;
+  }
+
+  // --- DAYS ---
+  let days = 0;
+  while (true) {
+    const next = new Date(temp);
+    next.setDate(next.getDate() + 1);
+    if (next <= end) {
+      temp = next;
+      days++;
+    } else break;
+  }
+
+  // --- REMAINING TIME ---
+  let diffMs = end.getTime() - temp.getTime();
+
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  diffMs %= (1000 * 60 * 60);
+
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  diffMs %= (1000 * 60);
+
+  const seconds = Math.floor(diffMs / 1000);
+
+  return { months, days, hours, minutes, seconds };
+}
+
 export default function WeddingCountdown() {
   const [mounted, setMounted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState({ months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState({
+    months: 0,
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
 
-  const targetDate = new Date('2027-01-08T00:00:00').getTime();
+  const targetDate = new Date('2027-01-07T23:59:59')
 
   useEffect(() => {
     setMounted(true);
+
     const updateTimer = () => {
-      const now = new Date().getTime();
-      const difference = targetDate - now;
-      if (difference > 0) {
+      const now = new Date();
+
+      if (targetDate.getTime() > now.getTime()) {
+        const diff = getTimeDifference(now, targetDate);
+        setTimeLeft(diff);
+      } else {
         setTimeLeft({
-          months: Math.floor(difference / (1000 * 60 * 60 * 24 * 30)),
-          days: Math.floor((difference % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((difference % (1000 * 60)) / 1000),
+          months: 0,
+          days: 0,
+          hours: 0,
+          minutes: 0,
+          seconds: 0
         });
       }
     };
+
     updateTimer();
     const intervalId = setInterval(updateTimer, 1000);
     return () => clearInterval(intervalId);
-  }, [targetDate]);
+  }, []);
 
   if (!mounted) return null;
 
@@ -37,7 +91,6 @@ export default function WeddingCountdown() {
         transition={{ duration: 1.5 }}
         className="w-full max-w-lg text-center"
       >
-        {/* Header */}
         <header className="mb-5 space-y-3">
           <span className="block text-[8px] uppercase tracking-[0.4em] text-stone-400 sm:text-[10px]">
             Save the Date
@@ -49,14 +102,13 @@ export default function WeddingCountdown() {
         </header>
 
         <div className="grid grid-cols-2 gap-4 sm:flex sm:justify-between sm:gap-2">
-          {timeLeft.months > 0 ? <TimeUnit value={timeLeft.months} label="Months" /> : null }
+          {timeLeft.months > 0 && <TimeUnit value={timeLeft.months} label="Months" />}
           <TimeUnit value={timeLeft.days} label="Days" />
           <TimeUnit value={timeLeft.hours} label="Hours" />
           <TimeUnit value={timeLeft.minutes} label="Mins" />
-          {timeLeft.months == 0 ? <TimeUnit value={timeLeft.seconds} label="Secs" /> : null }
+          {timeLeft.months === 0 && <TimeUnit value={timeLeft.seconds} label="Secs" />}
         </div>
 
-        {/* Footer */}
         <footer className="mt-12 space-y-4">
           <p className="block text-[8px] uppercase tracking-[0.4em] text-stone-400 sm:text-[10px]">
             January 8, 2027 • Intramuros
@@ -67,10 +119,9 @@ export default function WeddingCountdown() {
   );
 }
 
-function TimeUnit({ value, label }: { value: number, label: string }) {
+function TimeUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="relative flex flex-col items-center justify-center border border-stone-50 bg-stone p-3 shadow-sm sm:w-24 sm:border-none sm:bg-transparent sm:p-0 sm:shadow-none">
-      {/*   */}
       <div className="overflow-hidden h-12 sm:h-14">
         <AnimatePresence mode="popLayout">
           <motion.span
