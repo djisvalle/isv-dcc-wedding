@@ -58,7 +58,7 @@ service cloud.firestore {
       // List guests for a specific invite ID
       allow list: if isAdmin() || (
         request.query.limit <= 50 &&
-        resource.data.invite_id == request.query.invite_id // Enforced query
+        resource.data.invite_id != null
       );
       
       allow get: if isAdmin() || (isSignedIn() && existing().invite_id != null);

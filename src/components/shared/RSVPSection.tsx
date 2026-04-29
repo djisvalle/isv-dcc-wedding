@@ -71,7 +71,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
           ...doc.data()
         } as Guest)));
       } catch (err) {
-        console.error(err);
+        handleFirestoreError(err, OperationType.GET, `invite/${inviteId}`);
         toast.error("Could not find your invitation. Please check the link.");
       } finally {
         setLoading(false);
