@@ -4,7 +4,7 @@ import { ChevronDown, X, ZoomIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import locationGuide from '@/assets/location-guide.png';
+import locationGuide from '@/assets/map-data.png';
 
 interface FAQItemProps {
   question: string;
@@ -49,8 +49,10 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer, image, onImageClick
             >
               <img 
                 src={image} 
-                alt="Venue guide info" 
+                alt="Overview" 
                 className="w-full h-auto transition-transform duration-500 group-hover/image:scale-105"
+                loading="eager"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover/image:opacity-100">
                 <div className="bg-white/80 p-2 rounded-full shadow-lg">
@@ -115,7 +117,7 @@ export default function FAQSection() {
   ];
 
   return (
-    <section className="py-20 px-4 md:px-6 bg-wedding-cream/30 relative">
+    <section className="py-20 px-4 md:px-6 bg-wedding-cream/30 relative" id="faq-section">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -168,7 +170,7 @@ export default function FAQSection() {
             >
               <img 
                 src={zoomedImage} 
-                alt="Zoomed" 
+                alt="Overview" 
                 className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
               />
               <button 
