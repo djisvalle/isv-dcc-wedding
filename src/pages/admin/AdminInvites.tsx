@@ -34,6 +34,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
+import { generateInviteId } from '@/lib/utils';
 import * as xlsx from 'xlsx';
 
 interface Invite {
@@ -104,7 +105,7 @@ export default function AdminInvites() {
         const rows = xlsx.utils.sheet_to_json(sheet) as any[];
 
         for (const row of rows) {
-          const inviteId = row.inviteId || Math.random().toString(36).substring(2, 9);
+          const inviteId = row.inviteId || generateInviteId();
           const name = row.inviteName || row.name;
           if (!name) continue;
 
@@ -156,12 +157,13 @@ export default function AdminInvites() {
   const handleAddInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const inviteId = newInvite.id || Math.random().toString(36).substring(2, 9);
+      const inviteId = newInvite.id || generateInviteId();
       await setDoc(doc(db, 'invites', inviteId), {
         name: newInvite.name,
         max_guests: newInvite.max_guests,
         created_at: serverTimestamp()
       });
+
       toast.success('Invitation created successfully');
       setIsAddOpen(false);
       setNewInvite({ id: '', name: '', max_guests: 2 });
