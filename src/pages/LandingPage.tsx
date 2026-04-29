@@ -1,15 +1,18 @@
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import Countdown from '@/components/shared/Countdown';
+import VenueSection from '@/components/shared/VenueSection';
+import DressCodeSection from '@/components/shared/DressCodeSection';
 import FAQSection from '@/components/shared/FAQSection';
 import RSVPSection from '@/components/shared/RSVPSection';
-import { MapPin, Calendar, Heart, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 export default function LandingPage() {
   const [searchParams] = useSearchParams();
   const inviteId = searchParams.get('inviteUrl') || searchParams.get('invite') || searchParams.get('id');
   const rsvpRef = useRef<HTMLDivElement>(null);
+  const venueRef = useRef<HTMLDivElement>(null);
 
   const weddingDate = "2027-01-08T00:00:00";
 
@@ -69,25 +72,37 @@ export default function LandingPage() {
           </div>
         </motion.div>
 
-        {inviteId && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="absolute bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-wedding-gold/60 cursor-pointer"
+          onClick={() => {
+            if (inviteId) {
+              rsvpRef.current?.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              venueRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        >
+          <span className="text-[10px] uppercase tracking-[0.3em] font-sans">
+            {inviteId ? 'Scroll to RSVP' : 'Discover More'}
+          </span>
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="absolute bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-wedding-gold/60 cursor-pointer"
-            onClick={() => rsvpRef.current?.scrollIntoView({ behavior: 'smooth' })}
+            animate={{ y: [0, 5, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
           >
-            <span className="text-[10px] uppercase tracking-[0.3em] font-sans">Scroll to RSVP</span>
-            <motion.div
-              animate={{ y: [0, 5, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <ChevronDown className="w-5 h-5" />
-            </motion.div>
+            <ChevronDown className="w-5 h-5" />
           </motion.div>
-        )}
+        </motion.div>
       </div>
 
+      <div ref={venueRef}>
+        <VenueSection />
+      </div>
+      
+      <DressCodeSection />
+      
       <FAQSection />
 
       {inviteId && (
@@ -101,3 +116,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

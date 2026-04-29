@@ -50,7 +50,6 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer, image, onImageClick
                 src={image} 
                 alt={question} 
                 className="w-full h-auto transition-transform duration-500 group-hover/image:scale-105"
-                referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover/image:opacity-100">
                 <div className="bg-white/80 p-2 rounded-full shadow-lg">
@@ -94,17 +93,9 @@ export default function FAQSection() {
 
   const faqs = [
     {
-      question: "What is the dress code?",
-      answer: "We would love to see all our guests in Formal Attire. Gentlemen may wear a Barong Tagalog or a Suit, and Ladies in long or cocktail gowns. We kindly ask to avoid wearing white to keep the tradition for the bride."
-    },
-    {
-      question: "Where is the venue?",
-      answer: "Our celebration will be held in the heart of Intramuros, Manila. Specific details regarding the ceremony and reception halls will be provided in your digital invitation."
-    },
-    {
       question: "Is there parking available?",
       answer: "While there is limited available parking at the venue, we will be reserving this for family, friends, and suppliers.\n\nHowever, there is parking managed by Intramuros, as shown in the image below, colored in gray.",
-      image: "/IA-MANAGED-PARKING-AREAS-scaled.png"
+      image: "/parking.png"
     },
     {
       question: "Can I bring a plus one?",
