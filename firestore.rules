@@ -16,7 +16,9 @@ service cloud.firestore {
     }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isValidId(id) { 
+      return id is string && id.size() > 0 && id.size() <= 128; 
+    }
 
     // --- Entity Validations ---
     function isValidInvite(data) {
@@ -28,7 +30,6 @@ service cloud.firestore {
     function isValidGuest(data) {
       return data.keys().hasAll(['name']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             (!data.keys().hasAny(['role']) || (data.role is string && data.role.size() <= 100)) &&
              (!data.keys().hasAny(['invite_id']) || (data.invite_id == null || isValidId(data.invite_id))) &&
              (!data.keys().hasAny(['is_coming']) || data.is_coming == null || data.is_coming is bool);
     }
@@ -47,7 +48,7 @@ service cloud.firestore {
     }
 
     match /invites/{inviteId} {
-      allow get: if isValidId(inviteId); // Public can get an invite by ID for RSVP
+      allow get: if true; // Open read for invites by ID
       allow list: if isAdmin();
       allow create: if isAdmin() && isValidInvite(incoming());
       allow update: if isAdmin() && isValidInvite(incoming());
@@ -55,20 +56,18 @@ service cloud.firestore {
     }
 
     match /guests/{guestId} {
-      // List guests for a specific invite ID
+      // Allow listing guests if filtered by invite_id
       allow list: if isAdmin() || (
-        request.query.limit <= 50 &&
         resource.data.invite_id != null
       );
       
-      allow get: if isAdmin() || (isSignedIn() && existing().invite_id != null);
+      allow get: if isAdmin() || resource.data.invite_id != null;
 
       allow create: if isAdmin() && isValidGuest(incoming());
       
       allow update: if isAdmin() 
         || (
           // RSVP Action: only allow 'is_coming' and 'updated_at' to be changed
-          isValidGuest(incoming()) &&
           incoming().diff(existing()).affectedKeys().hasOnly(['is_coming', 'updated_at']) &&
           incoming().updated_at == request.time
         );

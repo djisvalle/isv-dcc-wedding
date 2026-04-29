@@ -40,7 +40,11 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
       try {
         // Fetch deadline
         const deadlineRef = doc(db, 'settings', 'rsvp_deadline');
-        const deadlineSnap = await getDoc(deadlineRef);
+        const deadlineSnap = await getDoc(deadlineRef).catch(err => {
+          handleFirestoreError(err, OperationType.GET, 'settings/rsvp_deadline');
+          throw err;
+        });
+
         if (deadlineSnap.exists()) {
           const deadlineStr = deadlineSnap.data().value;
           if (deadlineStr) {
@@ -53,7 +57,10 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
         }
 
         const inviteRef = doc(db, 'invites', inviteId);
-        const inviteSnap = await getDoc(inviteRef);
+        const inviteSnap = await getDoc(inviteRef).catch(err => {
+          handleFirestoreError(err, OperationType.GET, `invites/${inviteId}`);
+          throw err;
+        });
         
         if (!inviteSnap.exists()) {
           throw new Error('Invite not found');
@@ -64,14 +71,17 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
 
         const guestsRef = collection(db, 'guests');
         const q = query(guestsRef, where('invite_id', '==', inviteId));
-        const guestSnap = await getDocs(q);
+        const guestSnap = await getDocs(q).catch(err => {
+          handleFirestoreError(err, OperationType.LIST, 'guests (filtered)');
+          throw err;
+        });
         
         setGuests(guestSnap.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         } as Guest)));
       } catch (err) {
-        handleFirestoreError(err, OperationType.GET, `invite/${inviteId}`);
+        console.error("RSVP fetch error:", err);
         toast.error("Could not find your invitation. Please check the link.");
       } finally {
         setLoading(false);
@@ -125,7 +135,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
       >
         <div className="bg-wedding-cream border border-wedding-gold/20 rounded-3xl p-12 max-w-lg mx-auto shadow-xl">
           <Heart className="w-12 h-12 text-wedding-gold mx-auto mb-6 fill-wedding-gold/10" />
-          <h2 className="text-3xl font-serif mb-4 text-wedding-dark">Thank You!</h2>
+          <h2 className="text-3xl font-serif mb-4 text-wedding-dark">Thank you!</h2>
           <p className="font-serif italic text-lg text-wedding-dark/60">
             Your RSVP has been confirmed. We can't wait to celebrate with you!
           </p>
@@ -145,7 +155,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
         <Card className="border-wedding-gold/20 shadow-2xl overflow-hidden bg-white/50 backdrop-blur-sm">
           <CardHeader className="bg-wedding-gold/5 text-center py-8 md:py-12 px-6 md:px-8 border-b border-wedding-gold/10">
             <CardTitle className="text-2xl md:text-4xl font-serif mb-2 md:mb-6 leading-tight">
-              Hello, <span className="font-ballet text-3xl md:text-5xl text-wedding-gold ml-1">{invite.name}</span>! <br /> We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you!
+              Hello, <span className="font-ballet text-3xl md:text-5xl text-wedding-gold ml-1">{invite.name}</span> <br /> We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you!
             </CardTitle>
             <CardDescription className="text-sm md:text-lg font-serif italic text-wedding-dark/70">
               {isPastDeadline 
@@ -194,7 +204,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
               {!isPastDeadline && (
                 <div className="pt-6 space-y-6">
                   <p className="text-center text-xs md:text-sm font-serif text-wedding-dark/70 leading-relaxed">
-                    For any questions or issues, please contact either <strong>Israel</strong> at <strong>0919 067 9165</strong> or <strong>Debs</strong> at <strong>0969 519 2733</strong>.
+                    For any questions, please contact either <strong>Israel</strong> at <strong>0919 067 9165</strong> or <strong>Debs</strong> at <strong>0969 519 2733</strong>.
                   </p>
                   
                   <Button

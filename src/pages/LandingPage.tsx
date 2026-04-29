@@ -51,7 +51,7 @@ export default function LandingPage() {
 
           <div className="space-y-4 md:space-y-6 mb-8 md:mb-16">
             <p className="text-base md:text-xl font-serif italic text-wedding-dark/80 max-w-xl mx-auto px-4">
-              Sa basbas ng Diyos at ng kanilang mga pamilya, malugod silang nag-aanyaya sa inyong pagdalo sa pagdiriwang ng kanilang pag-iisang dibdib.
+              Sa basbas ng Diyos at ng aming mga pamilya, malugod kaming nag-aanyaya sa inyong pagdalo sa pagdiriwang ng aming pag-iisang dibdib.
             </p>
           </div>
 
