@@ -4,6 +4,7 @@ import { ChevronDown, X, ZoomIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import locationGuide from '@/assets/location-guide.png';
 
 interface FAQItemProps {
   question: string;
@@ -95,7 +96,7 @@ export default function FAQSection() {
     {
       question: "Is there parking available?",
       answer: "While there is limited available parking at the venue, we will be reserving this for family, friends, and suppliers.\n\nHowever, there is parking managed by Intramuros, as shown in the image below, colored in gray.",
-      image: "/v-guide.png"
+      image: locationGuide
     },
     {
       question: "Can I bring a plus one?",
