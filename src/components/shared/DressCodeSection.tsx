@@ -20,11 +20,11 @@ export default function DressCodeSection() {
             <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Gentlemen</h4>
             <div className="p-8 bg-white/60 backdrop-blur-sm border border-wedding-gold/20 rounded-3xl shadow-sm">
               <p className="font-serif italic text-wedding-dark/70 text-lg leading-relaxed">
-                Barong Tagalog or a Suit
+                Classic Polo
               </p>
               <div className="mt-4 h-px w-12 bg-wedding-gold/30 mx-auto" />
               <p className="mt-4 text-sm font-sans text-wedding-dark/40 uppercase tracking-widest leading-relaxed">
-                Classic elegance for a formal celebration
+                Long-sleeve, any color
               </p>
             </div>
           </div>
@@ -33,11 +33,11 @@ export default function DressCodeSection() {
             <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Ladies</h4>
             <div className="p-8 bg-white/60 backdrop-blur-sm border border-wedding-gold/20 rounded-3xl shadow-sm">
               <p className="font-serif italic text-wedding-dark/70 text-lg leading-relaxed">
-                Long Gowns or Cocktail Gowns
+                Soft, Airy Long Gown
               </p>
               <div className="mt-4 h-px w-12 bg-wedding-gold/30 mx-auto" />
               <p className="mt-4 text-sm font-sans text-wedding-dark/40 uppercase tracking-widest leading-relaxed">
-                We kindly ask to avoid wearing white to keep the tradition for the bride.
+                Any color except white
               </p>
             </div>
           </div>

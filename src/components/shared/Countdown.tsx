@@ -47,19 +47,19 @@ export default function Countdown({ targetDate }: CountdownProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:flex md:flex-row items-center justify-center gap-4 md:gap-20 max-w-2xl mx-auto md:max-w-none">
+    <div className="flex flex-row items-center justify-center gap-4 md:gap-20 max-w-2xl mx-auto md:max-w-none px-2">
       {items.map((item, index) => (
         <motion.div
           key={item.label}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
-          className="bg-white/60 backdrop-blur-sm border border-wedding-gold/10 p-4 md:p-0 md:bg-transparent md:backdrop-blur-none md:border-none md:shadow-none flex flex-col items-center justify-center shadow-sm"
+          className="flex flex-col items-center justify-center min-w-[50px] md:min-w-0"
         >
-          <div className="text-2xl md:text-4xl font-light tracking-tighter text-wedding-dark mb-1 md:mb-3">
+          <div className="text-2xl md:text-4xl font-light tracking-tighter text-wedding-dark mb-0.5 md:mb-3">
             {item.value.toString().padStart(2, '0')}
           </div>
-          <div className="text-[10px] md:text-[10px] uppercase tracking-[0.4em] font-sans text-wedding-dark/50 md:text-wedding-dark/40 font-medium">
+          <div className="text-[9px] md:text-[10px] uppercase tracking-[0.2em] md:tracking-[0.4em] font-sans text-wedding-dark/50 md:text-wedding-dark/40 font-medium">
             {item.label}
           </div>
         </motion.div>

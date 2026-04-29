@@ -111,7 +111,7 @@ export default function FAQSection() {
     },
     {
       question: "Are children allowed?",
-      answer: "While we love your little ones, we have decided to have an adults-only celebration to allow all our guests to fully enjoy the evening. We appreciate your understanding."
+      answer: "While we love your little ones, we have decided to have an adults-only celebration to allow all our guests to fully enjoy the evening. We appreciate your understanding (babies and relatives are exempted)."
     }
   ];
 
