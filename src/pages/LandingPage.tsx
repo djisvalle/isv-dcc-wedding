@@ -24,7 +24,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-wedding-cream relative">
-      <div className="h-[100dvh] relative overflow-hidden flex flex-col items-center justify-center p-4 md:p-6 text-center">
+      <div className="h-[100dvh] relative overflow-hidden flex flex-col items-center justify-center p-4 md:p-6 pb-32 md:pb-6 text-center">
         {/* Background Decor */}
         <div className="absolute top-0 left-0 w-full h-full -z-10 opacity-5 pointer-events-none">
           <div className="absolute top-10 left-10 w-64 h-64 border-2 border-wedding-gold rounded-full blur-3xl animate-pulse" />
@@ -41,17 +41,19 @@ export default function LandingPage() {
             Ang kasalan ni
           </h2>
           
-          <h1 className="flex flex-col md:flex-row items-center justify-center font-ballet text-wedding-dark mb-4 md:mb-8 mt-6 md:mt-24 tracking-wide overflow-visible">
-            <span className="text-6xl md:text-8xl md:whitespace-nowrap">Israel</span>
-            <span className="italic text-4xl md:text-8xl text-wedding-gold/60 my-1 md:my-0 md:mx-12 leading-none">&</span>
-            <span className="text-6xl md:text-8xl md:whitespace-nowrap">Deborah</span>
+          <h1 className="flex flex-col md:flex-row items-center justify-center font-ballet text-wedding-dark mb-4 md:mb-8 mt-4 md:mt-24 tracking-wide overflow-visible">
+            <span className="text-5xl md:text-8xl md:whitespace-nowrap">Israel</span>
+            <span className="italic text-3xl md:text-8xl text-wedding-gold/60 my-1 md:my-0 md:mx-12 leading-none">&</span>
+            <span className="text-5xl md:text-8xl md:whitespace-nowrap">Deborah</span>
           </h1>
 
           <div className="h-[1px] w-24 bg-wedding-gold mx-auto mb-6 md:mb-10 opacity-30" />
 
           <div className="space-y-4 md:space-y-6 mb-8 md:mb-16">
             <p className="text-base md:text-xl font-serif italic text-wedding-dark/80 max-w-xl mx-auto px-4">
-              Sa basbas ng Diyos at ng aming mga pamilya, malugod kaming nag-aanyaya sa inyong pagdalo sa pagdiriwang ng aming pag-iisang dibdib.
+              Sa basbas ng Diyos at ng aming mga pamilya, <br />
+              malugod kaming nag-aanyaya sa inyong pagdalo sa <br />
+              pagdiriwang ng aming pag-iisang dibdib.
             </p>
           </div>
 
@@ -71,7 +73,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1 }}
-            className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-wedding-gold/60 cursor-pointer"
+            className="absolute bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-wedding-gold/60 cursor-pointer"
             onClick={() => rsvpRef.current?.scrollIntoView({ behavior: 'smooth' })}
           >
             <span className="text-[10px] uppercase tracking-[0.3em] font-sans">Scroll to RSVP</span>

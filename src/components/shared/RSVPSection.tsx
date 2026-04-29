@@ -193,7 +193,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
                             : "bg-transparent border-wedding-gold/20 text-wedding-dark hover:border-wedding-gold/50"
                           } ${isPastDeadline ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          Declined
+                          Not Attending
                         </button>
                       </div>
                     </div>
@@ -203,8 +203,8 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
 
               {!isPastDeadline && (
                 <div className="pt-6 space-y-6">
-                  <p className="text-center text-xs md:text-sm font-serif text-wedding-dark/70 leading-relaxed">
-                    For any questions, please contact either <strong>Israel</strong> at <strong>0919 067 9165</strong> or <strong>Debs</strong> at <strong>0969 519 2733</strong>.
+                  <p className="text-center text-xs md:text-sm font-serif text-wedding-dark/70 leading-relaxed max-w-sm mx-auto">
+                    For any questions, please contact either <span className="inline-block"><strong>Israel</strong> at <strong>0919 067 9165</strong></span> or <span className="inline-block"><strong>Debs</strong> at <strong>0969 519 2733</strong></span>.
                   </p>
                   
                   <Button
