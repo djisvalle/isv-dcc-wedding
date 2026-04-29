@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Circular Frame -->
+  <circle cx="50" cy="50" r="48" fill="#FDFCF9" stroke="#C5A059" stroke-width="0.5"/>
+  
+  <!-- Stylized Initials -->
+  <text x="50" y="58" font-family="serif" font-size="24" font-weight="500" text-anchor="middle" fill="#2D3436" style="letter-spacing: 2px;">I &amp; D</text>
+  
+  <!-- Subtle Floral Accents (Simplified for SVG) -->
+  <path d="M20 50 Q 20 20 50 20" fill="none" stroke="#C5A059" stroke-width="0.5" opacity="0.3"/>
+  <path d="M80 50 Q 80 80 50 80" fill="none" stroke="#C5A059" stroke-width="0.5" opacity="0.3"/>
+</svg>
