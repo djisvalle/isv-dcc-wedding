@@ -19,6 +19,14 @@ export default function DressCodeSection() {
           <div className="space-y-4">
             <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Gentlemen</h4>
             <div className="p-8 bg-white/60 backdrop-blur-sm border border-wedding-gold/20 rounded-3xl shadow-sm">
+              <div className="mb-6 overflow-hidden rounded-2xl aspect-[3/4] max-w-[180px] mx-auto border border-wedding-gold/10 shadow-sm">
+                <img 
+                  src="/men-attire.jpg" 
+                  alt="Men's formal attire suggestion" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
               <p className="font-serif italic text-wedding-dark/70 text-lg leading-relaxed">
                 Classic Polo
               </p>
@@ -32,6 +40,14 @@ export default function DressCodeSection() {
           <div className="space-y-4">
             <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Ladies</h4>
             <div className="p-8 bg-white/60 backdrop-blur-sm border border-wedding-gold/20 rounded-3xl shadow-sm">
+              <div className="mb-6 overflow-hidden rounded-2xl aspect-[3/4] max-w-[180px] mx-auto border border-wedding-gold/10 shadow-sm">
+                <img 
+                  src="/women-attire.jpg" 
+                  alt="Women's formal attire suggestion" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
               <p className="font-serif italic text-wedding-dark/70 text-lg leading-relaxed">
                 Soft, Airy Long Gown
               </p>

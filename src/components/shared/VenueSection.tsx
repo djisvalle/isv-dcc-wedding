@@ -32,8 +32,8 @@ export default function VenueSection() {
                     General Luna St, Intramuros, Manila, 1002 Metro Manila
                   </p>
                   <div className="pt-6 border-t border-wedding-gold/10">
-                    <p className="text-sm md:text-base font-serif italic text-wedding-gold/60 max-w-md mx-auto">
-                      Dating to 1663, Puerta Real was an official gate of Intramuros reserved for the Governor-General's state use.
+                    <p className="text-sm md:text-base font-serif italic text-wedding-dark/70 max-w-md mx-auto">
+                      Dating to 1663, the original Puerta Real gate was constructed as one of the official entrances to Intramuros. This gate had a special ceremonial role. It was used exclusively by the Spanish Governor-General for state occasions.
                     </p>
                   </div>
                 </div>
