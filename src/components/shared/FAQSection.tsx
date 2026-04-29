@@ -48,7 +48,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer, image, onImageClick
             >
               <img 
                 src={image} 
-                alt={question} 
+                alt="Venue guide info" 
                 className="w-full h-auto transition-transform duration-500 group-hover/image:scale-105"
               />
               <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover/image:opacity-100">
@@ -95,7 +95,7 @@ export default function FAQSection() {
     {
       question: "Is there parking available?",
       answer: "While there is limited available parking at the venue, we will be reserving this for family, friends, and suppliers.\n\nHowever, there is parking managed by Intramuros, as shown in the image below, colored in gray.",
-      image: "/map-info.png"
+      image: "/v-guide.png"
     },
     {
       question: "Can I bring a plus one?",
