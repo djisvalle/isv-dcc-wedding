@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "Invite": {
+      "title": "Invite",
+      "description": "Information about an invitation group",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "max_guests": { "type": "integer" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "Guest": {
+      "title": "Guest",
+      "description": "Individual guest information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invite_id": { "type": "string" },
+        "name": { "type": "string" },
+        "is_coming": { "type": "boolean" },
+        "role": { "type": "string" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Authorized administrator emails",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" }
+      },
+      "required": ["email"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "string" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["key", "value"]
+    }
+  },
+  "firestore": {
+    "/invites/{inviteId}": {
+      "schema": "Invite",
+      "description": "Collection of wedding invitations"
+    },
+    "/guests/{guestId}": {
+      "schema": "Guest",
+      "description": "Collection of individual guests"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Collection of admin users"
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "Collection of application settings"
+    }
+  }
+}

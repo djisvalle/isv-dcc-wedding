@@ -1,0 +1,118 @@
+import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+import { Users, Ticket, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { collection, getCountFromServer, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+interface Stats {
+  totalInvites: number;
+  totalGuests: number;
+  attendingGuests: number;
+  pendingGuests: number;
+  declinedGuests: number;
+}
+
+export default function AdminDashboard() {
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const guestsRef = collection(db, 'guests');
+        const invitesRef = collection(db, 'invites');
+
+        const [
+          totalInvites,
+          totalGuests,
+          attendingGuests,
+          declinedGuests,
+          pendingGuests
+        ] = await Promise.all([
+          getCountFromServer(invitesRef),
+          getCountFromServer(guestsRef),
+          getCountFromServer(query(guestsRef, where('is_coming', '==', true))),
+          getCountFromServer(query(guestsRef, where('is_coming', '==', false))),
+          getCountFromServer(query(guestsRef, where('is_coming', '==', null)))
+        ]);
+
+        setStats({
+          totalInvites: totalInvites.data().count,
+          totalGuests: totalGuests.data().count,
+          attendingGuests: attendingGuests.data().count,
+          declinedGuests: declinedGuests.data().count,
+          pendingGuests: pendingGuests.data().count
+        });
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      }
+    }
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!stats) return null;
+
+  const cards = [
+    { label: 'Total Guests', value: stats.totalGuests, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
+    { label: 'Attending', value: stats.attendingGuests, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    { label: 'Declined', value: stats.declinedGuests, icon: XCircle, color: 'text-rose-500', bg: 'bg-rose-50' },
+    { label: 'No RSVP Yet', value: stats.pendingGuests, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50' },
+    { label: 'Invites Sent', value: stats.totalInvites, icon: Ticket, color: 'text-purple-500', bg: 'bg-purple-50' },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-4xl font-serif mb-2">Overview</h1>
+        <p className="text-slate-500">Real-time tracking of Israel & Deborah's wedding guest list.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        {cards.map((card, index) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="border-none shadow-sm overflow-hidden group hover:shadow-md transition-all">
+              <CardContent className="p-6">
+                <div className={`w-12 h-12 ${card.bg} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <card.icon className={`w-6 h-6 ${card.color}`} />
+                </div>
+                <div className="text-3xl font-bold text-slate-800">{card.value}</div>
+                <div className="text-sm font-medium text-slate-400 uppercase tracking-wider mt-1">{card.label}</div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="font-serif">RSVP Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex">
+              <div 
+                className="h-full bg-emerald-500" 
+                style={{ width: `${(stats.attendingGuests / stats.totalGuests) * 100}%` }} 
+              />
+              <div 
+                className="h-full bg-rose-500" 
+                style={{ width: `${(stats.declinedGuests / stats.totalGuests) * 100}%` }} 
+              />
+            </div>
+            <div className="flex justify-between mt-4 text-xs font-semibold text-slate-400">
+              <span>{Math.round((stats.attendingGuests / stats.totalGuests) * 100)}% Attending</span>
+              <span>{Math.round((stats.declinedGuests / stats.totalGuests) * 100)}% Declined</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
