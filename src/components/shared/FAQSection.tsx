@@ -174,9 +174,10 @@ export default function FAQSection() {
               />
               <button 
                 onClick={() => setZoomedImage(null)}
-                className="absolute top-0 right-0 -mt-12 text-white/70 hover:text-white transition-colors"
+                className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm p-2 rounded-full text-white/90 hover:text-white transition-all shadow-lg border border-white/10"
+                aria-label="Close image"
               >
-                <X className="w-8 h-8" />
+                <X className="w-6 h-6" />
               </button>
             </motion.div>
           </motion.div>
