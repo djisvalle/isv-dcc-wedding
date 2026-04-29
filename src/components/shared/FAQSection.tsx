@@ -95,7 +95,7 @@ export default function FAQSection() {
     {
       question: "Is there parking available?",
       answer: "While there is limited available parking at the venue, we will be reserving this for family, friends, and suppliers.\n\nHowever, there is parking managed by Intramuros, as shown in the image below, colored in gray.",
-      image: "/parking.png"
+      image: "/map-info.png"
     },
     {
       question: "Can I bring a plus one?",
