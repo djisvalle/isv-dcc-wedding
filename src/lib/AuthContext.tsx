@@ -22,7 +22,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         const adminRef = doc(db, 'admins', user.uid);
         const adminSnap = await getDoc(adminRef);
-        setIsAdmin(adminSnap.exists() || user.email === 'israelvalle48@gmail.com');
+        const adminEmails = ['israelvalle48@gmail.com', 'debcarumba@gmail.com', 'joshj.alzate77@gmail.com'];
+        setIsAdmin(adminSnap.exists() || (user.email ? adminEmails.includes(user.email) : false));
       } else {
         setIsAdmin(false);
       }

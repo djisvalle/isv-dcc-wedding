@@ -21,7 +21,8 @@ export default function AdminLogin() {
       // Check if user is admin or should be bootstrapped
       const adminRef = doc(db, 'admins', user.uid);
       const adminSnap = await getDoc(adminRef);
-      const isBootstrappedAdmin = user.email === 'israelvalle48@gmail.com';
+      const adminEmails = ['israelvalle48@gmail.com', 'debcarumba@gmail.com', 'joshj.alzate77@gmail.com'];
+      const isBootstrappedAdmin = user.email && adminEmails.includes(user.email);
 
       if (!adminSnap.exists()) {
         if (isBootstrappedAdmin) {
