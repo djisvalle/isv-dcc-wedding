@@ -6,10 +6,10 @@ export default function DressCodeSection() {
     <section className="py-24 px-4 md:px-6 bg-wedding-cream/30 relative overflow-hidden">
       <SectionDecors.DressCode />
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
+        viewport={{ once: true, margin: "0px 0px -50px 0px" }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
         className="max-w-4xl mx-auto text-center"
       >
         <h2 className="text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-4 opacity-80">

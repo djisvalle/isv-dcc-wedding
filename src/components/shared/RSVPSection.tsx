@@ -149,9 +149,10 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
     <div id="rsvp" className="py-10 md:py-20 px-4 md:px-6 relative overflow-hidden">
       <SectionDecors.RSVP />
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+        viewport={{ once: true, margin: "0px 0px -50px 0px" }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
         className="max-w-2xl mx-auto"
       >
         <Card className="border-wedding-gold/20 shadow-2xl overflow-hidden bg-white/50 backdrop-blur-sm">

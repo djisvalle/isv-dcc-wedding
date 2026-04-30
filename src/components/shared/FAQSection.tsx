@@ -120,10 +120,10 @@ export default function FAQSection() {
     <section className="py-20 px-4 md:px-6 bg-wedding-cream/30 relative overflow-hidden" id="faq-section">
       <SectionDecors.FAQ />
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
+        viewport={{ once: true, margin: "0px 0px -50px 0px" }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
         className="max-w-3xl mx-auto"
       >
         <div className="text-center mb-12">
