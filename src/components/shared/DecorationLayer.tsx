@@ -1,5 +1,4 @@
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
 
 interface DecorationProps {
   type?: 'orchid' | 'petal';
@@ -9,16 +8,10 @@ interface DecorationProps {
   rotate?: number;
   scale?: number;
   opacity?: number;
-  animate?: any;
+  style?: React.CSSProperties;
 }
 
-const Decoration = ({ src, className = '', delay = 0, rotate = 0, scale = 1, opacity = 0.4, animate }: DecorationProps) => {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-  }, []);
-
+const Decoration = ({ src, className = '', delay = 0, rotate = 0, scale = 1, opacity = 0.4, style }: DecorationProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: scale * 0.8, rotate: rotate - 10 }}
@@ -26,19 +19,11 @@ const Decoration = ({ src, className = '', delay = 0, rotate = 0, scale = 1, opa
       viewport={{ once: true }}
       transition={{ duration: 1.5, delay, ease: "easeOut" }}
       className={`absolute pointer-events-none select-none ${className}`}
+      style={style}
     >
-      <motion.img
+      <img
         src={src}
         className="w-full h-full object-contain"
-        animate={animate || {
-          y: isMobile ? [0, 4, 0] : [0, 8, 0], // Smaller movement on mobile
-          rotate: [rotate, rotate + (isMobile ? 1.5 : 3), rotate],
-        }}
-        transition={{
-          duration: isMobile ? 6 : 4 + Math.random() * 2, // Slower on mobile
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
         style={{
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
@@ -89,10 +74,22 @@ export const SectionDecors = {
         opacity={0.15}
       />
       <Decoration 
+        src="/orchid-white.svg" 
+        className="top-[15%] left-[5%] w-32 md:w-[350px] mix-blend-multiply opacity-20" 
+        rotate={40} 
+        style={{ filter: 'hue-rotate(90deg) brightness(0.8) saturate(1.5)' }} 
+      />
+      <Decoration 
         src="/orchid-pink-2.svg" 
         className="top-[50%] right-[-10%] w-36 md:w-[350px]" 
         rotate={210} 
         opacity={0.12}
+      />
+      <Decoration 
+        src="/orchid-pink-2.svg" 
+        className="bottom-[15%] left-[20%] w-36 md:w-[300px] opacity-15" 
+        rotate={10} 
+        style={{ filter: 'hue-rotate(-30deg) saturate(1.2)' }} 
       />
       {/* Petals */}
       <Decoration 
@@ -120,11 +117,17 @@ export const SectionDecors = {
         opacity={0.3}
       />
       <Decoration 
-        src="/orchid-pink-2.svg" 
+        src="/orchid-white.svg" 
         className="bottom-[-12%] left-[-15%] w-80 md:w-[750px] lg:w-[900px]" 
         rotate={185} 
         delay={0.3}
         opacity={0.28}
+      />
+      <Decoration 
+        src="/orchid-white.svg" 
+        className="top-[10%] left-[10%] w-48 md:w-[450px] opacity-10" 
+        rotate={-45} 
+        style={{ filter: 'hue-rotate(120deg) saturate(1.2)' }} 
       />
       <Decoration 
         src="/orchid-purple.svg" 
@@ -278,6 +281,12 @@ export const SectionDecors = {
         className="top-[35%] left-[-20%] w-64 md:w-[650px]" 
         rotate={45} 
         opacity={0.2}
+      />
+      <Decoration 
+        src="/orchid-white.svg" 
+        className="top-[5%] left-[40%] w-40 md:w-[450px] opacity-10" 
+        rotate={160} 
+        style={{ filter: 'hue-rotate(110deg) saturate(1.3)' }} 
       />
       <Decoration 
         src="/orchid-purple.svg" 
