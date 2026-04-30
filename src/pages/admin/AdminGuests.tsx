@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import { 
   collection, 
   onSnapshot, 
@@ -39,13 +39,22 @@ import ExcelJS from 'exceljs';
 
 interface Guest {
   id: string;
-  invite_id: string | null;
   name: string;
-  is_coming: boolean | null;
+  nickname?: string;
   role: string | null;
-  updated_at: any;
+  invite_id: string | null;
+  is_coming: boolean | null;
   invite_name?: string | null;
+  updated_at: any;
+  table_type?: 'bridal' | 'vip' | 'regular';
+  table_number?: string;
 }
+
+const TABLE_TYPES = [
+  { id: 'bridal', label: 'Bridal Table' },
+  { id: 'vip', label: 'VIP Table' },
+  { id: 'regular', label: 'Regular Table' }
+];
 
 interface Invite {
   id: string;
@@ -79,15 +88,25 @@ export default function AdminGuests() {
   const [uploading, setUploading] = useState(false);
 
   // Sorting state
-  const [sortField, setSortField] = useState<keyof Guest | 'invite_name'>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<keyof Guest | 'invite_name'>('updated_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<'all' | 'attending' | 'declined' | 'pending'>('all');
 
   // New guest state
-  const [newGuest, setNewGuest] = useState({ name: '', role: '', invite_id: '' });
+  const [newGuest, setNewGuest] = useState({ 
+    name: '', 
+    nickname: '', 
+    role: '', 
+    invite_id: '',
+    table_type: '' as any,
+    table_number: ''
+  });
 
   useEffect(() => {
     const unsubInvites = onSnapshot(collection(db, 'invites'), (snap) => {
@@ -111,10 +130,14 @@ export default function AdminGuests() {
     try {
       const data = guests.map(g => ({
         Name: g.name,
+        Nickname: g.nickname || '',
         Role: g.role || 'Standard',
         Group: invites.find(i => i.id === g.invite_id)?.name || 'Unassigned',
+        InviteID: g.invite_id || g.id,
+        TableType: g.table_type || 'N/A',
+        TableNumber: g.table_number || 'N/A',
         Response: g.is_coming === true ? 'Attending' : g.is_coming === false ? 'Declined' : 'Pending',
-        LastUpdated: g.updated_at ? new Date(g.updated_at?.seconds * 1000).toLocaleString() : 'N/A'
+        LastUpdated: g.updated_at ? (g.updated_at.seconds ? new Date(g.updated_at.seconds * 1000).toLocaleString() : new Date(g.updated_at).toLocaleString()) : 'N/A'
       }));
 
       const worksheet = xlsx.utils.json_to_sheet(data);
@@ -132,13 +155,16 @@ export default function AdminGuests() {
     try {
       await addDoc(collection(db, 'guests'), {
         name: newGuest.name,
+        nickname: newGuest.nickname || null,
         role: newGuest.role || null,
         invite_id: newGuest.invite_id || null,
+        table_type: newGuest.table_type || null,
+        table_number: newGuest.table_number || null,
         is_coming: null,
         updated_at: serverTimestamp()
       });
       toast.success('Guest added successfully');
-      setNewGuest({ name: '', role: '', invite_id: '' });
+      setNewGuest({ name: '', nickname: '', role: '', invite_id: '', table_type: '' as any, table_number: '' });
       setIsAddOpen(false);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'guests');
@@ -152,8 +178,12 @@ export default function AdminGuests() {
     try {
       await updateDoc(doc(db, 'guests', editingGuest.id), {
         name: editingGuest.name,
+        nickname: editingGuest.nickname || null,
         role: editingGuest.role || null,
-        invite_id: editingGuest.invite_id || null
+        invite_id: editingGuest.invite_id || null,
+        table_type: editingGuest.table_type || null,
+        table_number: editingGuest.table_number || null,
+        updated_at: serverTimestamp()
       });
       toast.success('Guest updated successfully');
       setIsEditOpen(false);
@@ -251,18 +281,30 @@ export default function AdminGuests() {
     invite_name: invites.find(i => i.id === g.invite_id)?.name
   }));
 
-  const filteredGuests = guestsWithInviteName.filter(g => 
-    g.name.toLowerCase().includes(search.toLowerCase()) || 
-    (g.invite_name && g.invite_name.toLowerCase().includes(search.toLowerCase())) ||
-    (g.role && g.role.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredGuests = guestsWithInviteName.filter(g => {
+    const searchMatch = (g.name?.toLowerCase() || '').includes(search.toLowerCase()) || 
+      (g.nickname?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (g.invite_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (g.role?.toLowerCase() || '').includes(search.toLowerCase());
+    
+    const statusMatch = statusFilter === 'all' || 
+      (statusFilter === 'attending' && g.is_coming === true) ||
+      (statusFilter === 'declined' && g.is_coming === false) ||
+      (statusFilter === 'pending' && g.is_coming === null);
+      
+    return searchMatch && statusMatch;
+  });
 
   const sortedGuests = [...filteredGuests].sort((a, b) => {
-    let aValue = a[sortField];
-    let bValue = b[sortField];
+    const getSortValue = (val: any) => {
+      if (val === null || val === undefined) return -Infinity;
+      if (val?.seconds) return val.seconds;
+      if (val instanceof Date) return val.getTime();
+      return val;
+    };
 
-    if (aValue === null || aValue === undefined) aValue = '';
-    if (bValue === null || bValue === undefined) bValue = '';
+    let aValue = getSortValue(a[sortField]);
+    let bValue = getSortValue(b[sortField]);
 
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       return sortDirection === 'asc' 
@@ -337,24 +379,37 @@ export default function AdminGuests() {
           )}
           
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-wedding-gold hover:bg-wedding-gold/80">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Guest
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger 
+              render={
+                <Button className="bg-wedding-gold hover:bg-wedding-gold/80">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Guest
+                </Button>
+              }
+            />
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Add New Guest</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAddGuest} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input 
-                    required 
-                    value={newGuest.name} 
-                    onChange={e => setNewGuest(prev => ({ ...prev, name: e.target.value }))} 
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Full Name</Label>
+                    <Input 
+                      required 
+                      value={newGuest.name} 
+                      onChange={e => setNewGuest(prev => ({ ...prev, name: e.target.value }))} 
+                      placeholder="e.g., John Doe"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nickname</Label>
+                    <Input 
+                      value={newGuest.nickname} 
+                      onChange={e => setNewGuest(prev => ({ ...prev, nickname: e.target.value }))} 
+                      placeholder="e.g., JD"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Role</Label>
@@ -382,18 +437,43 @@ export default function AdminGuests() {
                     ))}
                   </select>
                 </div>
+                <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                  <div className="space-y-2">
+                    <Label>Table Category</Label>
+                    <select 
+                      className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={newGuest.table_type || ''} 
+                      onChange={e => setNewGuest(prev => ({ ...prev, table_type: e.target.value as any }))}
+                    >
+                      <option value="">No Table Assigned</option>
+                      {TABLE_TYPES.map(type => (
+                        <option key={type.id} value={type.id}>{type.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Table Number/Identifier</Label>
+                    <Input 
+                      value={newGuest.table_number || ''} 
+                      onChange={e => setNewGuest(prev => ({ ...prev, table_number: e.target.value }))} 
+                      placeholder="e.g., 1 or A"
+                    />
+                  </div>
+                </div>
                 <Button type="submit" className="w-full bg-wedding-gold">Create Guest</Button>
               </form>
             </DialogContent>
           </Dialog>
 
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-slate-200">
-                <Upload className="w-4 h-4 mr-2" />
-                Bulk Upload
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger 
+              render={
+                <Button variant="outline" className="border-slate-200">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Bulk Upload
+                </Button>
+              }
+            />
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Import Guests from Excel</DialogTitle>
@@ -479,14 +559,46 @@ export default function AdminGuests() {
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <Input 
-          className="pl-11 h-12 bg-white border-none shadow-sm rounded-2xl" 
-          placeholder="Search by name, role, or group..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex-1 min-w-[300px] relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input 
+            className="pl-11 h-12 bg-white border-none shadow-sm rounded-2xl" 
+            placeholder="Search by name, nickname, role, or group..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+        <div className="flex gap-2">
+          <select
+            className="h-12 px-4 rounded-2xl border-none shadow-sm bg-white text-sm"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as any);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="all">All RSVP Status</option>
+            <option value="attending">Attending</option>
+            <option value="declined">Declined</option>
+            <option value="pending">Pending</option>
+          </select>
+          <select
+            className="h-12 px-4 rounded-2xl border-none shadow-sm bg-white text-sm focus:ring-2 focus:ring-wedding-gold"
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(parseInt(e.target.value));
+              setCurrentPage(1);
+            }}
+          >
+            <option value={10}>10 per page</option>
+            <option value={50}>50 per page</option>
+            <option value={100}>100 per page</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
@@ -504,10 +616,11 @@ export default function AdminGuests() {
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-2">
-                  Guest Name
+                  Guest
                   <ArrowUpDown className="w-3 h-3" />
                 </div>
               </TableHead>
+              <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400">Invite Link</TableHead>
               <TableHead 
                 className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
                 onClick={() => handleSort('role')}
@@ -561,11 +674,41 @@ export default function AdminGuests() {
                 </TableCell>
                 <TableCell className="py-6 px-8">
                   <div className="font-semibold text-slate-700">{guest.name}</div>
+                  {guest.nickname && (
+                    <div className="text-[10px] text-slate-400 italic">"{guest.nickname}"</div>
+                  )}
+                  {(guest.table_type || guest.table_number) && (
+                    <div className="mt-1 flex gap-1">
+                      <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded uppercase font-bold">
+                        {guest.table_type === 'bridal' ? 'Bridal Table' : guest.table_type === 'vip' ? `VIP ${guest.table_number || ''}` : `Reg ${guest.table_number || ''}`}
+                      </span>
+                    </div>
+                  )}
                   {guest.updated_at && (
                     <div className="text-[10px] text-slate-400 mt-1 uppercase tracking-tighter">
                       Updated {guest.updated_at.seconds ? new Date(guest.updated_at.seconds * 1000).toLocaleDateString() : new Date(guest.updated_at).toLocaleDateString()}
                     </div>
                   )}
+                </TableCell>
+                <TableCell className="py-6 px-8">
+                  <div className="flex items-center gap-2">
+                    <code className="text-[10px] px-1.5 py-0.5 bg-wedding-gold/10 text-wedding-gold rounded">
+                      {guest.invite_id || `ind-${guest.id.substring(0, 5)}`}
+                    </code>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => {
+                        const link = `${window.location.origin}/rsvp/${guest.invite_id || guest.id}`;
+                        navigator.clipboard.writeText(link);
+                        toast.success('Link copied');
+                      }}
+                      title="Copy RSVP Link"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </TableCell>
                 <TableCell className="py-6 px-8">
                   {guest.role ? (
@@ -705,13 +848,22 @@ export default function AdminGuests() {
             <DialogTitle>Edit Guest</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEditGuest} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input 
-                required 
-                value={editingGuest?.name || ''} 
-                onChange={e => setEditingGuest(prev => prev ? ({ ...prev, name: e.target.value }) : null)} 
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Full Name</Label>
+                <Input 
+                  required 
+                  value={editingGuest?.name || ''} 
+                  onChange={e => setEditingGuest(prev => prev ? ({ ...prev, name: e.target.value }) : null)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nickname</Label>
+                <Input 
+                  value={editingGuest?.nickname || ''} 
+                  onChange={e => setEditingGuest(prev => prev ? ({ ...prev, nickname: e.target.value }) : null)} 
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
@@ -738,6 +890,29 @@ export default function AdminGuests() {
                   <option key={invite.id} value={invite.id}>{invite.name}</option>
                 ))}
               </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4 border-t pt-4">
+              <div className="space-y-2">
+                <Label>Table Category</Label>
+                <select 
+                  className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  value={editingGuest?.table_type || ''} 
+                  onChange={e => setEditingGuest(prev => prev ? ({ ...prev, table_type: e.target.value as any }) : null)}
+                >
+                  <option value="">No Table Assigned</option>
+                  {TABLE_TYPES.map(type => (
+                    <option key={type.id} value={type.id}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Table Number/Identifier</Label>
+                <Input 
+                  value={editingGuest?.table_number || ''} 
+                  onChange={e => setEditingGuest(prev => ({ ...prev, table_number: e.target.value }))} 
+                  placeholder="e.g., 1 or A"
+                />
+              </div>
             </div>
             <Button type="submit" className="w-full bg-wedding-gold">Save Changes</Button>
           </form>

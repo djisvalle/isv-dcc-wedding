@@ -12,12 +12,14 @@ import { SectionDecors } from './DecorationLayer';
 interface Guest {
   id: string;
   name: string;
+  nickname?: string;
   is_coming: boolean | null;
 }
 
 interface Invite {
   id: string;
   name: string;
+  nickname?: string;
 }
 
 interface RSVPSectionProps {
@@ -62,24 +64,44 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
           throw err;
         });
         
-        if (!inviteSnap.exists()) {
-          throw new Error('Invite not found');
+        if (inviteSnap.exists()) {
+          const inviteData = { id: inviteSnap.id, ...inviteSnap.data() } as Invite;
+          setInvite(inviteData);
+
+          const guestsRef = collection(db, 'guests');
+          const q = query(guestsRef, where('invite_id', '==', inviteId));
+          const guestSnap = await getDocs(q).catch(err => {
+            handleFirestoreError(err, OperationType.LIST, 'guests (filtered)');
+            throw err;
+          });
+          
+          setGuests(guestSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Guest)));
+        } else {
+          // Check if it's an individual guest ID
+          const guestRef = doc(db, 'guests', inviteId);
+          const guestSnap = await getDoc(guestRef).catch(err => {
+            handleFirestoreError(err, OperationType.GET, `guests/${inviteId}`);
+            throw err;
+          });
+
+          if (guestSnap.exists()) {
+            const guestData = guestSnap.data();
+            setInvite({ 
+              id: guestSnap.id, 
+              name: guestData.name,
+              nickname: guestData.nickname 
+            } as Invite);
+            setGuests([{
+              id: guestSnap.id,
+              ...guestData
+            } as Guest]);
+          } else {
+            throw new Error('Invite not found');
+          }
         }
-
-        const inviteData = { id: inviteSnap.id, ...inviteSnap.data() } as Invite;
-        setInvite(inviteData);
-
-        const guestsRef = collection(db, 'guests');
-        const q = query(guestsRef, where('invite_id', '==', inviteId));
-        const guestSnap = await getDocs(q).catch(err => {
-          handleFirestoreError(err, OperationType.LIST, 'guests (filtered)');
-          throw err;
-        });
-        
-        setGuests(guestSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Guest)));
       } catch (err) {
         console.error("RSVP fetch error:", err);
         toast.error("Could not find your invitation. Please check the link.");
@@ -157,7 +179,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
         <Card className="border-wedding-gold/20 shadow-2xl overflow-hidden bg-white/50 backdrop-blur-sm">
           <CardHeader className="bg-wedding-gold/5 text-center py-8 md:py-12 px-6 md:px-8 border-b border-wedding-gold/10">
             <CardTitle className="text-2xl md:text-4xl font-serif mb-2 md:mb-6 leading-tight">
-              Hello, <span className="font-ballet text-3xl md:text-5xl text-wedding-gold ml-1">{invite.name}</span> <br /> We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you!
+              Hello, <span className="font-ballet text-3xl md:text-5xl text-wedding-gold ml-1">{invite.nickname || (guests.length === 1 && guests[0].nickname) || invite.name}</span> <br /> We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you!
             </CardTitle>
             <CardDescription className="text-sm md:text-lg font-serif italic text-wedding-dark/70">
               {isPastDeadline 

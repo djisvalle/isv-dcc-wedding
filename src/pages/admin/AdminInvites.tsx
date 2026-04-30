@@ -30,6 +30,7 @@ import {
   query, 
   where, 
   getDocs,
+  getDoc,
   serverTimestamp,
   addDoc
 } from 'firebase/firestore';
@@ -40,6 +41,7 @@ import * as xlsx from 'xlsx';
 interface Invite {
   id: string;
   name: string;
+  created_at?: any;
   guest_count?: number;
   attending_count?: number;
 }
@@ -62,12 +64,12 @@ export default function AdminInvites() {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   // Sorting state
-  const [sortField, setSortField] = useState<keyof Invite | 'guest_count' | 'attending_count'>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<keyof Invite | 'guest_count' | 'attending_count'>('created_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [newInvite, setNewInvite] = useState({ id: '', name: '' });
   const [editingInvite, setEditingInvite] = useState<Invite | null>(null);
@@ -164,6 +166,17 @@ export default function AdminInvites() {
     e.preventDefault();
     try {
       const inviteId = newInvite.id || generateInviteId();
+      
+      // Check if ID already exists if manually provided
+      if (newInvite.id) {
+        const docRef = doc(db, 'invites', inviteId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          toast.error('An invitation with this ID already exists');
+          return;
+        }
+      }
+
       await setDoc(doc(db, 'invites', inviteId), {
         name: newInvite.name,
         created_at: serverTimestamp()
@@ -252,11 +265,15 @@ export default function AdminInvites() {
   );
 
   const sortedInvites = [...filteredInvites].sort((a, b) => {
-    let aValue = a[sortField as keyof typeof a];
-    let bValue = b[sortField as keyof typeof b];
+    const getSortValue = (val: any) => {
+      if (val === null || val === undefined) return -Infinity;
+      if (val?.seconds) return val.seconds;
+      if (val instanceof Date) return val.getTime();
+      return val;
+    };
 
-    if (aValue === null || aValue === undefined) aValue = '';
-    if (bValue === null || bValue === undefined) bValue = '';
+    let aValue = getSortValue(a[sortField as keyof typeof a]);
+    let bValue = getSortValue(b[sortField as keyof typeof b]);
 
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       return sortDirection === 'asc' 
@@ -296,12 +313,14 @@ export default function AdminInvites() {
 
         <div className="flex flex-wrap gap-2">
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-wedding-gold hover:bg-wedding-gold/80">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Invite
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger 
+              render={
+                <Button className="bg-wedding-gold hover:bg-wedding-gold/80">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Invite
+                </Button>
+              }
+            />
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New Invitation</DialogTitle>
@@ -330,12 +349,14 @@ export default function AdminInvites() {
           </Dialog>
 
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-slate-200">
-                <Upload className="w-4 h-4 mr-2" />
-                Bulk Upload
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger 
+              render={
+                <Button variant="outline" className="border-slate-200">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Bulk Upload
+                </Button>
+              }
+            />
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Import from Excel</DialogTitle>
@@ -384,14 +405,33 @@ export default function AdminInvites() {
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <Input 
-          className="pl-11 h-12 bg-white border-none shadow-sm rounded-2xl" 
-          placeholder="Search by name or invite ID..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex-1 min-w-[300px] relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input 
+            className="pl-11 h-12 bg-white border-none shadow-sm rounded-2xl" 
+            placeholder="Search by name or invite ID..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+        <div>
+          <select
+            className="h-12 px-4 rounded-2xl border-none shadow-sm bg-white text-sm focus:ring-2 focus:ring-wedding-gold"
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(parseInt(e.target.value));
+              setCurrentPage(1);
+            }}
+          >
+            <option value={10}>10 per page</option>
+            <option value={50}>50 per page</option>
+            <option value={100}>100 per page</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">

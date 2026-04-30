@@ -19,8 +19,12 @@
         "id": { "type": "string" },
         "invite_id": { "type": "string" },
         "name": { "type": "string" },
+        "nickname": { "type": "string" },
         "is_coming": { "type": "boolean" },
         "role": { "type": "string" },
+        "table_type": { "type": "string", "enum": ["bridal", "vip", "regular"] },
+        "table_number": { "type": "string" },
+        "table_order": { "type": "number" },
         "updated_at": { "type": "string", "format": "date-time" }
       },
       "required": ["name"]

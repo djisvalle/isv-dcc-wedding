@@ -5,6 +5,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import AdminInvites from '@/pages/admin/AdminInvites';
 import AdminGuests from '@/pages/admin/AdminGuests';
+import AdminTables from '@/pages/admin/AdminTables';
 import AdminSettings from '@/pages/admin/AdminSettings';
 import AdminLogin from '@/pages/admin/AdminLogin';
 
@@ -27,6 +28,7 @@ export default function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="invites" element={<AdminInvites />} />
           <Route path="guests" element={<AdminGuests />} />
+          <Route path="tables" element={<AdminTables />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
         

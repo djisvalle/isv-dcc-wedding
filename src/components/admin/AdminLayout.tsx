@@ -7,7 +7,8 @@ import {
   LogOut, 
   Menu, 
   Loader2,
-  Settings
+  Settings,
+  LayoutGrid
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -37,6 +38,7 @@ export default function AdminLayout() {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
     { label: 'Invitations', icon: Ticket, path: '/admin/invites' },
     { label: 'Guest List', icon: Users, path: '/admin/guests' },
+    { label: 'Tables', icon: LayoutGrid, path: '/admin/tables' },
     { label: 'Settings', icon: Settings, path: '/admin/settings' },
   ];
 
@@ -100,11 +102,13 @@ export default function AdminLayout() {
         <div className="lg:hidden flex items-center justify-between mb-8 px-4">
           <h2 className="font-serif text-2xl text-wedding-gold">Admin</h2>
           <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="w-6 h-6" />
-              </Button>
-            </SheetTrigger>
+            <SheetTrigger
+              render={
+                <Button variant="ghost" size="icon">
+                  <Menu className="w-6 h-6" />
+                </Button>
+              }
+            />
             <SheetContent side="left" className="w-72 p-0">
                <div className="p-8">
                 <h2 className="font-serif text-2xl text-wedding-gold">Admin Panel</h2>
