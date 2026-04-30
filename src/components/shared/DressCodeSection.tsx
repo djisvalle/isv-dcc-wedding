@@ -23,7 +23,7 @@ export default function DressCodeSection() {
             <div className="p-8 bg-white/60 backdrop-blur-sm border border-wedding-gold/20 rounded-3xl shadow-sm">
               <div className="mb-6 overflow-hidden rounded-2xl aspect-[3/4] max-w-[180px] mx-auto border border-wedding-gold/10 shadow-sm">
                 <img 
-                  src="/men-attire.jpg" 
+                  src="/men-attire.svg" 
                   alt="Men's formal attire suggestion" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -44,7 +44,7 @@ export default function DressCodeSection() {
             <div className="p-8 bg-white/60 backdrop-blur-sm border border-wedding-gold/20 rounded-3xl shadow-sm">
               <div className="mb-6 overflow-hidden rounded-2xl aspect-[3/4] max-w-[180px] mx-auto border border-wedding-gold/10 shadow-sm">
                 <img 
-                  src="/women-attire.jpg" 
+                  src="/women-attire.svg" 
                   alt="Women's formal attire suggestion" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"

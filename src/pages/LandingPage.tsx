@@ -32,8 +32,16 @@ export default function LandingPage() {
       <div className="h-[100dvh] relative overflow-hidden flex flex-col items-center justify-center pt-16 pb-24 px-4 md:p-6 text-center">
         {/* Background Decor */}
         <div className="absolute top-0 left-0 w-full h-full -z-10 opacity-5 pointer-events-none">
-          <div className="absolute top-10 left-10 w-64 h-64 border-2 border-wedding-gold rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 border-2 border-wedding-gold rounded-full blur-3xl animate-pulse delay-1000" />
+          <motion.div 
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-10 left-10 w-64 h-64 border-2 border-wedding-gold rounded-full blur-3xl hidden md:block" 
+          />
+          <motion.div 
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute bottom-10 right-10 w-96 h-96 border-2 border-wedding-gold rounded-full blur-3xl hidden md:block" 
+          />
         </div>
 
         <SectionDecors.Hero />

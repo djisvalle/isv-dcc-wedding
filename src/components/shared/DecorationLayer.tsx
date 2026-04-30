@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
 
 interface DecorationProps {
   type?: 'orchid' | 'petal';
@@ -11,30 +12,44 @@ interface DecorationProps {
   animate?: any;
 }
 
-const Decoration = ({ src, className = '', delay = 0, rotate = 0, scale = 1, opacity = 0.4, animate }: DecorationProps) => (
-  <motion.div
-    initial={{ opacity: 0, scale: scale * 0.8, rotate: rotate - 10 }}
-    whileInView={{ opacity, scale, rotate }}
-    viewport={{ once: true }}
-    transition={{ duration: 1.5, delay, ease: "easeOut" }}
-    className={`absolute pointer-events-none select-none ${className}`}
-  >
-    <motion.img
-      src={src}
-      className="w-full h-full object-contain"
-      animate={animate || {
-        y: [0, 8, 0],
-        rotate: [rotate, rotate + 3, rotate],
-      }}
-      transition={{
-        duration: 4 + Math.random() * 2,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-      referrerPolicy="no-referrer"
-    />
-  </motion.div>
-);
+const Decoration = ({ src, className = '', delay = 0, rotate = 0, scale = 1, opacity = 0.4, animate }: DecorationProps) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: scale * 0.8, rotate: rotate - 10 }}
+      whileInView={{ opacity, scale, rotate }}
+      viewport={{ once: true }}
+      transition={{ duration: 1.5, delay, ease: "easeOut" }}
+      className={`absolute pointer-events-none select-none ${className}`}
+    >
+      <motion.img
+        src={src}
+        className="w-full h-full object-contain"
+        animate={animate || {
+          y: isMobile ? [0, 4, 0] : [0, 8, 0], // Smaller movement on mobile
+          rotate: [rotate, rotate + (isMobile ? 1.5 : 3), rotate],
+        }}
+        transition={{
+          duration: isMobile ? 6 : 4 + Math.random() * 2, // Slower on mobile
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        style={{
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          willChange: 'transform',
+          transform: 'translateZ(0)'
+        }}
+        referrerPolicy="no-referrer"
+      />
+    </motion.div>
+  );
+};
 
 export const SectionDecors = {
   Hero: () => (
