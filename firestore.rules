@@ -22,9 +22,8 @@ service cloud.firestore {
 
     // --- Entity Validations ---
     function isValidInvite(data) {
-      return data.keys().hasAll(['name', 'max_guests']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             data.max_guests is int && data.max_guests >= 0 && data.max_guests <= 50;
+      return data.keys().hasAll(['name']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100;
     }
 
     function isValidGuest(data) {

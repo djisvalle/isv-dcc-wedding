@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet } from 'lucide-react';
+import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   collection, 
   onSnapshot, 
@@ -53,6 +53,8 @@ interface Invite {
 }
 
 const GUEST_ROLES = [
+  'Groom',
+  'Bride',
   'Father of the Bride',
   'Mother of the Bride',
   'Mother of the Groom',
@@ -75,6 +77,14 @@ export default function AdminGuests() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<keyof Guest | 'invite_name'>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // New guest state
   const [newGuest, setNewGuest] = useState({ name: '', role: '', invite_id: '' });
@@ -177,6 +187,21 @@ export default function AdminGuests() {
     }
   };
 
+  const handleUpdateStatus = async (ids: string[], status: boolean | null) => {
+    try {
+      for (const id of ids) {
+        await updateDoc(doc(db, 'guests', id), {
+          is_coming: status,
+          updated_at: serverTimestamp()
+        });
+      }
+      toast.success('Status updated successfully');
+      if (ids.length > 1) setSelectedIds([]);
+    } catch (err) {
+      toast.error('Failed to update status');
+    }
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
@@ -232,11 +257,46 @@ export default function AdminGuests() {
     (g.role && g.role.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const sortedGuests = [...filteredGuests].sort((a, b) => {
+    let aValue = a[sortField];
+    let bValue = b[sortField];
+
+    if (aValue === null || aValue === undefined) aValue = '';
+    if (bValue === null || bValue === undefined) bValue = '';
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+
+    if (sortDirection === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+
+  const totalPages = Math.ceil(sortedGuests.length / itemsPerPage);
+  const paginatedGuests = sortedGuests.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleSort = (field: keyof Guest | 'invite_name') => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const toggleSelectAll = () => {
-    if (selectedIds.length === filteredGuests.length) {
+    if (selectedIds.length === paginatedGuests.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(filteredGuests.map(g => g.id));
+      setSelectedIds(paginatedGuests.map(g => g.id));
     }
   };
 
@@ -256,10 +316,24 @@ export default function AdminGuests() {
 
         <div className="flex flex-wrap gap-2">
           {selectedIds.length > 0 && (
-            <Button onClick={handleBulkDelete} variant="destructive">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete ({selectedIds.length})
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => handleUpdateStatus(selectedIds, true)} variant="outline" className="text-emerald-600 border-emerald-100 hover:bg-emerald-50">
+                <UserCheck className="w-4 h-4 mr-2" />
+                Attend ({selectedIds.length})
+              </Button>
+              <Button onClick={() => handleUpdateStatus(selectedIds, false)} variant="outline" className="text-rose-500 border-rose-100 hover:bg-rose-50">
+                <UserX className="w-4 h-4 mr-2" />
+                Decline ({selectedIds.length})
+              </Button>
+              <Button onClick={() => handleUpdateStatus(selectedIds, null)} variant="outline" className="text-slate-400 border-slate-100 hover:bg-slate-50">
+                <UserMinus className="w-4 h-4 mr-2" />
+                Clear
+              </Button>
+              <Button onClick={handleBulkDelete} variant="destructive">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            </div>
           )}
           
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -421,14 +495,46 @@ export default function AdminGuests() {
             <TableRow>
               <TableHead className="w-12 px-8">
                 <Checkbox 
-                  checked={selectedIds.length === filteredGuests.length && filteredGuests.length > 0}
+                  checked={selectedIds.length === paginatedGuests.length && paginatedGuests.length > 0}
                   onCheckedChange={toggleSelectAll}
                 />
               </TableHead>
-              <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400">Guest Name</TableHead>
-              <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400">Role</TableHead>
-              <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400">Group</TableHead>
-              <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400">Response</TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center gap-2">
+                  Guest Name
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('role')}
+              >
+                <div className="flex items-center gap-2">
+                  Role
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('invite_name')}
+              >
+                <div className="flex items-center gap-2">
+                  Group
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('is_coming')}
+              >
+                <div className="flex items-center gap-2">
+                  Response
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
               <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -439,13 +545,13 @@ export default function AdminGuests() {
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-wedding-gold opacity-20" />
                 </TableCell>
               </TableRow>
-            ) : filteredGuests.length === 0 ? (
+            ) : paginatedGuests.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-20 text-center text-slate-400">
                   No guests found.
                 </TableCell>
               </TableRow>
-            ) : filteredGuests.map((guest) => (
+            ) : paginatedGuests.map((guest) => (
               <TableRow key={guest.id} className="group hover:bg-slate-50/50 transition-colors">
                 <TableCell className="px-8">
                   <Checkbox 
@@ -474,20 +580,51 @@ export default function AdminGuests() {
                   {guest.invite_name || <span className="text-slate-300 opacity-50">Unassigned</span>}
                 </TableCell>
                 <TableCell className="py-6 px-8">
-                  <div className="flex items-center gap-2">
-                    {guest.is_coming === true ? (
-                      <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-sm">
-                        <UserCheck className="w-4 h-4" /> Attending
-                      </div>
-                    ) : guest.is_coming === false ? (
-                      <div className="flex items-center gap-1.5 text-rose-500 font-semibold text-sm">
-                        <UserX className="w-4 h-4" /> Declined
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-slate-400 font-medium text-sm italic">
-                        <UserMinus className="w-4 h-4" /> Pending
-                      </div>
-                    )}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-[100px]">
+                      {guest.is_coming === true ? (
+                        <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-sm">
+                          <UserCheck className="w-4 h-4" /> Attending
+                        </div>
+                      ) : guest.is_coming === false ? (
+                        <div className="flex items-center gap-1.5 text-rose-500 font-semibold text-sm">
+                          <UserX className="w-4 h-4" /> Declined
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-slate-400 font-medium text-sm italic">
+                          <UserMinus className="w-4 h-4" /> Pending
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`h-7 w-7 rounded-full ${guest.is_coming === true ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-emerald-600'}`}
+                        onClick={() => handleUpdateStatus([guest.id], true)}
+                        title="Mark as Attending"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`h-7 w-7 rounded-full ${guest.is_coming === false ? 'text-rose-500 bg-rose-50' : 'text-slate-400 hover:text-rose-500'}`}
+                        onClick={() => handleUpdateStatus([guest.id], false)}
+                        title="Mark as Declined"
+                      >
+                        <UserX className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`h-7 w-7 rounded-full ${guest.is_coming === null ? 'text-slate-600 bg-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                        onClick={() => handleUpdateStatus([guest.id], null)}
+                        title="Mark as Pending"
+                      >
+                        <UserMinus className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="py-6 px-8 text-right">
@@ -518,6 +655,49 @@ export default function AdminGuests() {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-2">
+          <p className="text-sm text-slate-500">
+            Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, sortedGuests.length)}</span> of <span className="font-medium">{sortedGuests.length}</span> guests
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="bg-white"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-1 overflow-x-auto max-w-[200px] md:max-w-none">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                  className={currentPage === page ? "bg-wedding-gold hover:bg-wedding-gold/80" : "bg-white"}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="bg-white"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-md">

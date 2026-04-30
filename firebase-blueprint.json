@@ -7,7 +7,6 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "max_guests": { "type": "integer" },
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["name"]

@@ -15,7 +15,7 @@
 4. **Admin Escalation**: Attempt to add own email to `/admins/` collection.
 5. **ID Poisoning**: Attempt to create an invite with a 2MB string ID.
 6. **Cross-Invite Update**: Attempt to update a guest belonging to invite A using invite B's session.
-7. **Negative Max Guests**: Attempt to set `max_guests` to -1.
+7. **Resource Exhaustion**: Attempt to create 1000 guests in a single batch.
 8. **PII Leak**: Attempt to list all guests without being an admin.
 9. **Role Modification**: Attempt to change own 'role' field (e.g., to 'Groomsman') as a guest.
 10. **Timestamp Fraud**: Attempt to set a past `updated_at` date.

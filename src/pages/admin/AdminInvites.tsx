@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Copy, Upload, Download, FileSpreadsheet, Loader2, Search, Plus, Edit2, Trash2, UserPlus, X } from 'lucide-react';
+import { Copy, Upload, Download, FileSpreadsheet, Loader2, Search, Plus, Edit2, Trash2, UserPlus, X, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   collection, 
   onSnapshot, 
@@ -40,7 +40,6 @@ import * as xlsx from 'xlsx';
 interface Invite {
   id: string;
   name: string;
-  max_guests: number;
   guest_count?: number;
   attending_count?: number;
 }
@@ -62,7 +61,15 @@ export default function AdminInvites() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const [newInvite, setNewInvite] = useState({ id: '', name: '', max_guests: 2 });
+  // Sorting state
+  const [sortField, setSortField] = useState<keyof Invite | 'guest_count' | 'attending_count'>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  const [newInvite, setNewInvite] = useState({ id: '', name: '' });
   const [editingInvite, setEditingInvite] = useState<Invite | null>(null);
   const [inviteGuests, setInviteGuests] = useState<Guest[]>([]);
   const [selectedGuestId, setSelectedGuestId] = useState<string>('');
@@ -111,7 +118,6 @@ export default function AdminInvites() {
 
           await setDoc(doc(db, 'invites', inviteId), {
             name,
-            max_guests: row.maxGuests || 2,
             created_at: serverTimestamp()
           }, { merge: true });
 
@@ -160,13 +166,12 @@ export default function AdminInvites() {
       const inviteId = newInvite.id || generateInviteId();
       await setDoc(doc(db, 'invites', inviteId), {
         name: newInvite.name,
-        max_guests: newInvite.max_guests,
         created_at: serverTimestamp()
       });
 
       toast.success('Invitation created successfully');
       setIsAddOpen(false);
-      setNewInvite({ id: '', name: '', max_guests: 2 });
+      setNewInvite({ id: '', name: '' });
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'invites');
       toast.error('Failed to create invitation');
@@ -178,8 +183,7 @@ export default function AdminInvites() {
     if (!editingInvite) return;
     try {
       await updateDoc(doc(db, 'invites', editingInvite.id), {
-        name: editingInvite.name,
-        max_guests: editingInvite.max_guests
+        name: editingInvite.name
       });
       toast.success('Invitation updated successfully');
       setIsEditOpen(false);
@@ -247,6 +251,41 @@ export default function AdminInvites() {
     i.id.toLowerCase().includes(search.toLowerCase())
   );
 
+  const sortedInvites = [...filteredInvites].sort((a, b) => {
+    let aValue = a[sortField as keyof typeof a];
+    let bValue = b[sortField as keyof typeof b];
+
+    if (aValue === null || aValue === undefined) aValue = '';
+    if (bValue === null || bValue === undefined) bValue = '';
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+
+    if (sortDirection === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+
+  const totalPages = Math.ceil(sortedInvites.length / itemsPerPage);
+  const paginatedInvites = sortedInvites.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleSort = (field: keyof Invite | 'guest_count' | 'attending_count') => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   return (
     <div className="space-y-8 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -283,16 +322,6 @@ export default function AdminInvites() {
                     placeholder="e.g. smith-fam"
                     value={newInvite.id} 
                     onChange={e => setNewInvite(prev => ({ ...prev, id: e.target.value }))} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Max Guests</Label>
-                  <Input 
-                    type="number" 
-                    required 
-                    min={1}
-                    value={newInvite.max_guests} 
-                    onChange={e => setNewInvite(prev => ({ ...prev, max_guests: parseInt(e.target.value) }))} 
                   />
                 </div>
                 <Button type="submit" className="w-full bg-wedding-gold">Create Invitation</Button>
@@ -336,8 +365,8 @@ export default function AdminInvites() {
                   size="sm" 
                   onClick={() => {
                     const data = [
-                      { inviteName: "The Smith Family", maxGuests: 4, guests: "John Smith, Jane Smith, Alice Smith", inviteId: "smith-family" },
-                      { inviteName: "Mr. Israel Valle", maxGuests: 2, guests: "Israel Valle", inviteId: "israel-valle" }
+                      { inviteName: "The Smith Family", guests: "John Smith, Jane Smith, Alice Smith", inviteId: "smith-family" },
+                      { inviteName: "Mr. Israel Valle", guests: "Israel Valle", inviteId: "israel-valle" }
                     ];
                     const worksheet = xlsx.utils.json_to_sheet(data);
                     const workbook = xlsx.utils.book_new();
@@ -369,10 +398,42 @@ export default function AdminInvites() {
         <Table>
           <TableHeader className="bg-slate-50/50">
             <TableRow>
-              <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400">Invite Group</TableHead>
-              <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400">Guests</TableHead>
-              <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400">Status</TableHead>
-              <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400">ID / Link</TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center gap-2">
+                  Invite Group
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('guest_count')}
+              >
+                <div className="flex items-center gap-2">
+                  Guests
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('attending_count')}
+              >
+                <div className="flex items-center gap-2">
+                  Status
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('id')}
+              >
+                <div className="flex items-center gap-2">
+                  ID / Link
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
               <TableHead className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -383,13 +444,13 @@ export default function AdminInvites() {
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-wedding-gold opacity-20" />
                 </TableCell>
               </TableRow>
-            ) : filteredInvites.length === 0 ? (
+            ) : paginatedInvites.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-20 text-center text-slate-400">
                   No invitations found.
                 </TableCell>
               </TableRow>
-            ) : filteredInvites.map((invite) => (
+            ) : paginatedInvites.map((invite) => (
               <TableRow key={invite.id} className="group hover:bg-slate-50/50 transition-colors">
                 <TableCell className="py-6 px-8 font-semibold text-slate-700">{invite.name}</TableCell>
                 <TableCell className="py-6 px-8 text-slate-500">{invite.guest_count} Guests</TableCell>
@@ -453,6 +514,49 @@ export default function AdminInvites() {
         </Table>
       </div>
 
+      {totalPages > 1 && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-2">
+          <p className="text-sm text-slate-500">
+            Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, sortedInvites.length)}</span> of <span className="font-medium">{sortedInvites.length}</span> invitations
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="bg-white"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-1 overflow-x-auto max-w-[200px] md:max-w-none">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                  className={currentPage === page ? "bg-wedding-gold hover:bg-wedding-gold/80" : "bg-white"}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="bg-white"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -460,22 +564,12 @@ export default function AdminInvites() {
           </DialogHeader>
           <div className="space-y-6">
             <form onSubmit={handleEditInvite} className="space-y-4 pb-6 border-b border-slate-100">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Group Name</Label>
-                  <Input 
-                    value={editingInvite?.name || ''} 
-                    onChange={e => setEditingInvite(prev => prev ? ({ ...prev, name: e.target.value }) : null)} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Max Guests</Label>
-                  <Input 
-                    type="number"
-                    value={editingInvite?.max_guests || 0} 
-                    onChange={e => setEditingInvite(prev => prev ? ({ ...prev, max_guests: parseInt(e.target.value) }) : null)} 
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>Group Name</Label>
+                <Input 
+                  value={editingInvite?.name || ''} 
+                  onChange={e => setEditingInvite(prev => prev ? ({ ...prev, name: e.target.value }) : null)} 
+                />
               </div>
               <Button type="submit" className="w-full bg-wedding-gold">Update Settings</Button>
             </form>

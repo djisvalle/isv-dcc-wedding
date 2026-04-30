@@ -18,7 +18,6 @@ interface Guest {
 interface Invite {
   id: string;
   name: string;
-  max_guests: number;
 }
 
 interface RSVPSectionProps {
