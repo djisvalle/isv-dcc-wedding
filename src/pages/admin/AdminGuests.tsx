@@ -35,6 +35,7 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import * as xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 
 interface Guest {
   id: string;
@@ -346,15 +347,47 @@ export default function AdminGuests() {
                 <Button 
                   variant="link" 
                   size="sm" 
-                  onClick={() => {
-                    const data = [
+                  onClick={async () => {
+                    const workbook = new ExcelJS.Workbook();
+                    const worksheet = workbook.addWorksheet('Template');
+
+                    // Define columns
+                    worksheet.columns = [
+                      { header: 'name', key: 'name', width: 25 },
+                      { header: 'role', key: 'role', width: 20 },
+                      { header: 'inviteId', key: 'inviteId', width: 20 },
+                    ];
+
+                    // Add some sample data
+                    const sampleData = [
                       { name: "John Smith", role: "Groomsman", inviteId: "smith-family" },
                       { name: "Jane Smith", role: "Bridesmaid", inviteId: "smith-family" }
                     ];
-                    const worksheet = xlsx.utils.json_to_sheet(data);
-                    const workbook = xlsx.utils.book_new();
-                    xlsx.utils.book_append_sheet(workbook, worksheet, 'Template');
-                    xlsx.writeFile(workbook, 'guests_template.xlsx');
+                    worksheet.addRows(sampleData);
+
+                    // Add data validation for the role column (Column B)
+                    // Apply to a reasonable number of rows
+                    for (let i = 2; i <= 200; i++) {
+                      worksheet.getCell(`B${i}`).dataValidation = {
+                        type: 'list',
+                        allowBlank: true,
+                        formulae: [`"${GUEST_ROLES.join(',')}"`],
+                        showErrorMessage: true,
+                        errorStyle: 'error',
+                        errorTitle: 'Invalid Role',
+                        error: 'Please select a role from the list.'
+                      };
+                    }
+
+                    // Generate buffer and download
+                    const buffer = await workbook.xlsx.writeBuffer();
+                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const anchor = document.createElement('a');
+                    anchor.href = url;
+                    anchor.download = 'guests_template.xlsx';
+                    anchor.click();
+                    window.URL.revokeObjectURL(url);
                   }}
                   className="text-wedding-gold"
                 >
