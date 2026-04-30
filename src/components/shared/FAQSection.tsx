@@ -4,6 +4,7 @@ import { ChevronDown, X, ZoomIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { SectionDecors } from './DecorationLayer';
 
 interface FAQItemProps {
   question: string;
@@ -116,7 +117,8 @@ export default function FAQSection() {
   ];
 
   return (
-    <section className="py-20 px-4 md:px-6 bg-wedding-cream/30 relative" id="faq-section">
+    <section className="py-20 px-4 md:px-6 bg-wedding-cream/30 relative overflow-hidden" id="faq-section">
+      <SectionDecors.FAQ />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -126,7 +128,7 @@ export default function FAQSection() {
       >
         <div className="text-center mb-12">
           <h2 className="text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-4 opacity-80">
-            Common Questions
+            Mga Katanungan
           </h2>
           <h3 className="text-4xl md:text-5xl font-ballet text-wedding-dark">Frequently Asked Questions</h3>
         </div>

@@ -1,8 +1,10 @@
 import { motion } from 'motion/react';
+import { SectionDecors } from './DecorationLayer';
 
 export default function DressCodeSection() {
   return (
-    <section className="py-24 px-4 md:px-6 bg-wedding-cream/30">
+    <section className="py-24 px-4 md:px-6 bg-wedding-cream/30 relative overflow-hidden">
+      <SectionDecors.DressCode />
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -11,7 +13,7 @@ export default function DressCodeSection() {
         className="max-w-4xl mx-auto text-center"
       >
         <h2 className="text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-4 opacity-80">
-          What to wear
+          Kasuotan
         </h2>
         <h3 className="text-4xl md:text-5xl font-ballet text-wedding-dark mb-12">Dress Code</h3>
         
@@ -59,16 +61,7 @@ export default function DressCodeSection() {
           </div>
         </div>
 
-        <div className="mt-16">
-          <p className="font-serif text-wedding-dark/60 italic text-xl">
-            "Formal Attire"
-          </p>
-          <div className="mt-4 flex justify-center gap-2">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="w-1.5 h-1.5 rounded-full bg-wedding-gold/20" />
-            ))}
-          </div>
-        </div>
+
       </motion.div>
     </section>
   );

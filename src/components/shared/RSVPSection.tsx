@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Loader2, Heart } from 'lucide-react';
 import { doc, getDoc, getDocs, collection, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from '@/lib/firebase';
+import { SectionDecors } from './DecorationLayer';
 
 interface Guest {
   id: string;
@@ -145,7 +146,8 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
   }
 
   return (
-    <div id="rsvp" className="py-10 md:py-20 px-4 md:px-6">
+    <div id="rsvp" className="py-10 md:py-20 px-4 md:px-6 relative overflow-hidden">
+      <SectionDecors.RSVP />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}

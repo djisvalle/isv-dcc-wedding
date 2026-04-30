@@ -1,9 +1,11 @@
 import { motion } from 'motion/react';
 import { MapPin } from 'lucide-react';
+import { SectionDecors } from './DecorationLayer';
 
 export default function VenueSection() {
   return (
-    <section className="py-24 px-4 md:px-6 bg-white overflow-hidden">
+    <section className="py-24 px-4 md:px-6 bg-white overflow-hidden relative">
+      <SectionDecors.Venue />
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-center">
           <motion.div
@@ -14,7 +16,7 @@ export default function VenueSection() {
             className="text-center"
           >
             <h2 className="text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-4 opacity-80">
-              The Location
+              Tagpuan
             </h2>
             <h3 className="text-4xl md:text-5xl font-ballet text-wedding-dark mb-6">Venue</h3>
             <div className="space-y-8">
@@ -32,7 +34,7 @@ export default function VenueSection() {
                     General Luna St, Intramuros, Manila, 1002 Metro Manila
                   </p>
                   <div className="pt-6 border-t border-wedding-gold/10">
-                    <p className="text-sm md:text-base font-serif italic text-wedding-dark/70 max-w-md mx-auto">
+                    <p className="text-sm md:text-base font-serif italic text-wedding-gold max-w-md mx-auto">
                       Dating to 1663, the original Puerta Real gate was constructed as one of the official entrances to Intramuros. This gate had a special ceremonial role. It was used exclusively by the Spanish Governor-General for state occasions.
                     </p>
                   </div>
