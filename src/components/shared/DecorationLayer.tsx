@@ -13,29 +13,7 @@ interface DecorationProps {
 }
 
 const Decoration = ({ src, className = '', delay = 0, rotate = 0, scale = 1, opacity = 0.4, style }: DecorationProps) => {
-  if (src.includes('orchid')) return null;
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: scale * 0.8, rotate: rotate - 10 }}
-      whileInView={{ opacity, scale, rotate }}
-      viewport={{ once: true }}
-      transition={{ duration: 1.5, delay, ease: "easeOut" }}
-      className={`absolute pointer-events-none select-none ${className}`}
-      style={style}
-    >
-      <img
-        src={src}
-        className="w-full h-full object-contain"
-        style={{
-          backfaceVisibility: 'hidden',
-          WebkitBackfaceVisibility: 'hidden',
-          willChange: 'transform',
-          transform: 'translateZ(0)'
-        }}
-        referrerPolicy="no-referrer"
-      />
-    </motion.div>
-  );
+  return null;
 };
 
 export const SectionDecors = {

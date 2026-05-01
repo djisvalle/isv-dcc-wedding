@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, Copy, X } from 'lucide-react';
 import { 
   collection, 
   onSnapshot, 
@@ -83,10 +83,10 @@ const GUEST_ROLES = [
   'Mother of the Groom',
   'Father of the Bride',
   'Mother of the Bride',
-  'Principal',
-  'Secondary',
+  'Principal Sponsor',
+  'Secondary Sponsor',
   'Best Man',
-  'MOH',
+  'Maid of Honor',
   'Groomsman',
   'Bridesmaid'
 ];
@@ -97,13 +97,13 @@ const ROLE_PRIORITY: Record<string, number> = {
   'Mother of the Groom': 3,
   'Father of the Bride': 4,
   'Mother of the Bride': 4,
-  'Principal': 5,
   'Principal Sponsor': 5,
-  'Secondary': 6,
+  'Principal': 5,
   'Secondary Sponsor': 6,
+  'Secondary': 6,
   'Best Man': 7,
-  'MOH': 8,
   'Maid of Honor': 8,
+  'MOH': 8,
   'Groomsman': 9,
   'Bridesmaid': 10,
   'Guest': 11
@@ -754,6 +754,26 @@ export default function AdminGuests() {
                 <option value={100}>100</option>
               </select>
           </div>
+
+          {(search || statusFilter !== 'all' || roleFilter !== 'all' || tableFilter !== 'all') && (
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1 invisible">Clear</Label>
+              <Button 
+                variant="ghost" 
+                onClick={() => {
+                  setSearch('');
+                  setStatusFilter('all');
+                  setRoleFilter('all');
+                  setTableFilter('all');
+                  setCurrentPage(1);
+                }}
+                className="h-11 px-4 rounded-xl text-slate-500"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Clear
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

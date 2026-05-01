@@ -117,23 +117,23 @@ export default function FAQSection() {
   ];
 
   return (
-    <section className="py-20 px-4 md:px-6 bg-wedding-cream/30 relative overflow-hidden" id="faq-section">
+    <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden" id="faq-section">
       <SectionDecors.FAQ />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "0px 0px -50px 0px" }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
         className="max-w-3xl mx-auto"
       >
-        <div className="text-center mb-12">
-          <h2 className="text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-4 opacity-80">
+        <div className="text-center mb-10 md:mb-16">
+          <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-6 opacity-60">
             Mga Katanungan
           </h2>
-          <h3 className="text-4xl md:text-5xl font-ballet text-wedding-dark">Frequently Asked Questions</h3>
+          <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark">Frequently Asked Questions</h3>
         </div>
 
-        <div className="bg-white/50 backdrop-blur-sm border border-wedding-gold/20 rounded-3xl p-6 md:p-10 shadow-xl">
+        <div className="bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] p-8 md:p-12 shadow-sm">
           {faqs.map((faq, index) => (
             <FAQItem 
               key={index} 

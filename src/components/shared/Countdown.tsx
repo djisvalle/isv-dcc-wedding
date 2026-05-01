@@ -59,7 +59,7 @@ export default function Countdown({ targetDate }: CountdownProps) {
           <div className="text-2xl md:text-4xl font-light tracking-tighter text-wedding-dark mb-0.5 md:mb-3">
             {item.value.toString().padStart(2, '0')}
           </div>
-          <div className="text-[9px] md:text-[10px] uppercase tracking-[0.2em] md:tracking-[0.4em] font-sans text-wedding-dark/50 md:text-wedding-dark/40 font-medium">
+          <div className="text-xs md:text-sm uppercase tracking-[0.2em] md:tracking-[0.4em] font-sans text-wedding-dark/50 md:text-wedding-dark/40 font-medium">
             {item.label}
           </div>
         </motion.div>

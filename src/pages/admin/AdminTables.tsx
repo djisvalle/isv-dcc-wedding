@@ -382,7 +382,7 @@ export default function AdminTables() {
     const unsub = onSnapshot(collection(db, 'guests'), (snap) => {
       const guestData = snap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as Guest))
-        .filter(g => g.is_coming !== false);
+        .filter(g => g.is_coming === true);
       setGuests(guestData);
 
       // Derive initial tables from guest assignments

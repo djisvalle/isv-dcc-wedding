@@ -185,57 +185,58 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
   }
 
   return (
-    <div id="rsvp" className="py-10 md:py-20 px-4 md:px-6 relative overflow-hidden">
+    <div id="rsvp" className="py-12 md:py-20 px-6 md:px-8 relative overflow-hidden">
       <SectionDecors.RSVP />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "0px 0px -50px 0px" }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
         className="max-w-2xl mx-auto"
       >
-        <Card className="border-wedding-gold/20 shadow-2xl overflow-hidden bg-white/50 backdrop-blur-sm">
-          <CardHeader className="bg-wedding-gold/5 text-center py-8 md:py-12 px-6 md:px-8 border-b border-wedding-gold/10">
-            <CardTitle className="text-2xl md:text-4xl font-serif mb-2 md:mb-6 leading-tight">
-              Hello, <span className="font-ballet text-3xl md:text-5xl text-wedding-gold ml-1">{invite.nickname || (guests.length === 1 && guests[0].nickname) || invite.name}</span> <br /> We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you!
+        <Card className="border-none shadow-xl overflow-hidden bg-white/60 backdrop-blur-md rounded-[2.5rem]">
+          <CardHeader className="bg-wedding-gold/5 text-center py-10 md:py-16 px-8 md:px-12 border-b border-wedding-gold/5">
+            <CardTitle className="text-2xl md:text-5xl font-serif mb-6 md:mb-10 leading-snug">
+              Hello, <span className="font-ballet text-4xl md:text-6xl text-wedding-gold block mt-2">{invite.nickname || (guests.length === 1 && guests[0].nickname) || invite.name}</span>
             </CardTitle>
-            <CardDescription className="text-sm md:text-lg font-serif italic text-wedding-dark/70">
+            <CardDescription className="text-sm md:text-lg font-serif italic text-wedding-dark/60 leading-relaxed max-w-[280px] md:max-w-md mx-auto">
+              We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you. <br className="hidden md:block" />
               {isPastDeadline 
-                ? "The deadline for RSVP updates has passed. Below is your recorded status." 
-                : "Kindly confirming who will be attending."}
+                ? "The deadline for RSVP updates has passed." 
+                : "Kindly confirm your attendance."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 md:p-12">
-            <div className="space-y-8 md:space-y-12">
-              <div className="space-y-4 md:space-y-6">
+          <CardContent className="p-8 md:p-14">
+            <div className="space-y-10 md:space-y-16">
+              <div className="space-y-6">
                 {guests.map((guest) => (
-                  <div key={guest.id} className="p-4 md:p-6 border border-wedding-gold/10 rounded-2xl bg-white/30 space-y-4 hover:border-wedding-gold/30 transition-colors">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <span className="font-serif text-lg md:text-xl text-wedding-dark text-center md:text-left">{guest.name}</span>
-                      <div className="flex gap-2 md:gap-4">
+                  <div key={guest.id} className="p-6 md:p-8 border border-wedding-gold/5 rounded-3xl bg-white/40 space-y-6 hover:border-wedding-gold/20 transition-all shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <span className="font-serif text-lg md:text-2xl text-wedding-dark text-center md:text-left">{guest.name}</span>
+                      <div className="flex gap-3 w-full md:w-auto">
                         <button
                           type="button"
                           disabled={isPastDeadline}
                           onClick={() => handleToggleGuest(guest.id, true)}
-                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-full border transition-all text-xs md:text-sm font-sans tracking-wide ${
+                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 md:py-4 rounded-full border transition-all text-xs md:text-sm font-sans tracking-[0.1em] font-bold uppercase ${
                             guest.is_coming === true 
-                            ? "bg-wedding-gold border-wedding-gold text-white shadow-md" 
-                            : "bg-transparent border-wedding-gold/20 text-wedding-dark hover:border-wedding-gold/50"
+                            ? "bg-wedding-gold border-wedding-gold text-white shadow-lg scale-105" 
+                            : "bg-transparent border-wedding-gold/10 text-wedding-dark/40 hover:border-wedding-gold/30"
                           } ${isPastDeadline ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          Attending
+                          Going
                         </button>
                         <button
                           type="button"
                           disabled={isPastDeadline}
                           onClick={() => handleToggleGuest(guest.id, false)}
-                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-full border transition-all text-xs md:text-sm font-sans tracking-wide ${
+                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 md:py-4 rounded-full border transition-all text-xs md:text-sm font-sans tracking-[0.1em] font-bold uppercase ${
                             guest.is_coming === false 
-                            ? "bg-rose-500 border-rose-500 text-white shadow-md" 
-                            : "bg-transparent border-wedding-gold/20 text-wedding-dark hover:border-wedding-gold/50"
+                            ? "bg-rose-400 border-rose-400 text-white shadow-lg scale-105" 
+                            : "bg-transparent border-wedding-gold/10 text-wedding-dark/40 hover:border-wedding-gold/30"
                           } ${isPastDeadline ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          Not Attending
+                          No
                         </button>
                       </div>
                     </div>
@@ -244,27 +245,28 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
               </div>
 
               {!isPastDeadline && (
-                <div className="pt-6 space-y-6">
-                  <p className="text-center text-xs md:text-sm font-serif text-wedding-dark/70 leading-relaxed max-w-sm mx-auto">
-                    For any questions, please contact either <span className="inline-block"><strong>Israel</strong> at <strong>0919 067 9165</strong></span> or <span className="inline-block"><strong>Debs</strong> at <strong>0969 519 2733</strong></span>.
-                  </p>
+                <div className="pt-8 space-y-8">
+                  <div className="text-center space-y-2">
+                    <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-wedding-dark/30 font-sans font-bold">Contact Person</p>
+                    <p className="text-sm md:text-base font-serif text-wedding-dark/50 italic leading-relaxed">
+                      Israel <span className="font-sans font-bold not-italic mx-1">0919 067 9165</span> <br className="md:hidden" />
+                      & Debs <span className="font-sans font-bold not-italic mx-1">0969 519 2733</span>
+                    </p>
+                  </div>
                   
                   <Button
                     size="lg"
                     disabled={submitting || guests.every(g => g.is_coming === null)}
                     onClick={handleSubmit}
-                    className="w-full bg-wedding-dark hover:bg-wedding-dark/90 text-white rounded-full py-6 md:py-8 text-base md:text-lg font-serif tracking-[0.2em] transition-all shadow-xl disabled:opacity-30"
+                    className="w-full bg-wedding-dark hover:bg-wedding-dark/95 text-white rounded-full py-7 md:py-9 text-lg md:text-xl font-serif tracking-[0.2em] transition-all shadow-xl disabled:opacity-20 active:scale-95"
                   >
                     {submitting ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="animate-spin w-4 h-4 md:w-5 md:h-5" />
-                        <span>Processing...</span>
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="animate-spin w-5 h-5" />
+                        <span>Confirming...</span>
                       </div>
                     ) : "Confirm RSVP"}
                   </Button>
-                  <p className="text-center mt-4 text-[10px] uppercase tracking-[0.2em] text-wedding-dark/40 font-sans">
-                    We look forward to seeing you
-                  </p>
                 </div>
               )}
             </div>

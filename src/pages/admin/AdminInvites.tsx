@@ -75,6 +75,7 @@ export default function AdminInvites() {
   const [unassignedGuests, setUnassignedGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'partial' | 'empty'>('all');
   const [uploading, setUploading] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isClearOpen, setIsClearOpen] = useState(false);
@@ -319,10 +320,18 @@ export default function AdminInvites() {
     };
   });
 
-  const filteredInvites = invitesWithCounts.filter(i => 
-    i.name.toLowerCase().includes(search.toLowerCase()) || 
-    i.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredInvites = invitesWithCounts.filter(i => {
+    const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase()) || 
+                         i.id.toLowerCase().includes(search.toLowerCase());
+    
+    if (!matchesSearch) return false;
+
+    if (statusFilter === 'completed') return i.attending_count === i.guest_count && i.guest_count > 0;
+    if (statusFilter === 'partial') return i.attending_count > 0 && i.attending_count < i.guest_count;
+    if (statusFilter === 'empty') return i.attending_count === 0;
+    
+    return true;
+  });
 
   const sortedInvites = [...filteredInvites].sort((a, b) => {
     const getSortValue = (val: any) => {
@@ -550,7 +559,21 @@ export default function AdminInvites() {
             }}
           />
         </div>
-        <div>
+        <div className="flex gap-2">
+          <select
+            className="h-12 px-4 rounded-2xl border-none shadow-sm bg-white text-sm focus:ring-2 focus:ring-wedding-gold"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as any);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="all">All Status</option>
+            <option value="completed">Fully Joined</option>
+            <option value="partial">Partially Joined</option>
+            <option value="empty">No Response</option>
+          </select>
+
           <select
             className="h-12 px-4 rounded-2xl border-none shadow-sm bg-white text-sm focus:ring-2 focus:ring-wedding-gold"
             value={itemsPerPage}
@@ -563,6 +586,21 @@ export default function AdminInvites() {
             <option value={50}>50 per page</option>
             <option value={100}>100 per page</option>
           </select>
+
+          {(search || statusFilter !== 'all') && (
+            <Button 
+              variant="ghost" 
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('all');
+                setCurrentPage(1);
+              }}
+              className="h-12 px-4 rounded-2xl text-slate-500"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 
