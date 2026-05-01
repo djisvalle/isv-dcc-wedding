@@ -327,17 +327,17 @@ export default function AdminInvites() {
     let aValue = getSortValue(a[sortField as keyof typeof a]);
     let bValue = getSortValue(b[sortField as keyof typeof b]);
 
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+    let comparison = 0;
+    
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      comparison = aValue - bValue;
+    } else {
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      comparison = aStr.localeCompare(bStr);
     }
 
-    if (sortDirection === 'asc') {
-      return aValue > bValue ? 1 : -1;
-    } else {
-      return aValue < bValue ? 1 : -1;
-    }
+    return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const totalPages = Math.ceil(sortedInvites.length / itemsPerPage);
@@ -564,6 +564,15 @@ export default function AdminInvites() {
             <TableRow>
               <TableHead 
                 className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('import_order')}
+              >
+                <div className="flex items-center gap-2">
+                  #
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-2">
@@ -616,6 +625,9 @@ export default function AdminInvites() {
               </TableRow>
             ) : paginatedInvites.map((invite) => (
               <TableRow key={invite.id} className="group hover:bg-slate-50/50 transition-colors">
+                <TableCell className="py-6 px-8 text-xs font-mono text-slate-400">
+                  {invite.import_order !== undefined ? invite.import_order + 1 : '-'}
+                </TableCell>
                 <TableCell className="py-6 px-8 font-semibold text-slate-700">{invite.name}</TableCell>
                 <TableCell className="py-6 px-8 text-slate-500">{invite.guest_count} Guests</TableCell>
                 <TableCell className="py-6 px-8">

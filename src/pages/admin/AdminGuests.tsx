@@ -769,6 +769,15 @@ export default function AdminGuests() {
               </TableHead>
               <TableHead 
                 className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
+                onClick={() => handleSort('import_order')}
+              >
+                <div className="flex items-center gap-2">
+                  #
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="py-6 px-8 tracking-wider uppercase text-[10px] font-bold text-slate-400 cursor-pointer hover:text-wedding-gold transition-colors"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-2">
@@ -827,6 +836,9 @@ export default function AdminGuests() {
                     checked={selectedIds.includes(guest.id)}
                     onCheckedChange={() => toggleSelect(guest.id)}
                   />
+                </TableCell>
+                <TableCell className="py-6 px-8 text-xs font-mono text-slate-400">
+                  {guest.import_order !== undefined ? guest.import_order + 1 : '-'}
                 </TableCell>
                 <TableCell className="py-6 px-8">
                   <div className="font-semibold text-slate-700">{guest.name}</div>
