@@ -31,6 +31,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
   const [submitting, setSubmitting] = useState(false);
   const [invite, setInvite] = useState<Invite | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [initialGuests, setInitialGuests] = useState<Guest[]>([]);
   const [completed, setCompleted] = useState(false);
   const [isPastDeadline, setIsPastDeadline] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState<Date | null>(null);
@@ -75,10 +76,13 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
             throw err;
           });
           
-          setGuests(guestSnap.docs.map(doc => ({
+          const guestData = guestSnap.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-          } as Guest)));
+          } as Guest));
+          
+          setGuests(guestData);
+          setInitialGuests(JSON.parse(JSON.stringify(guestData)));
         } else {
           // Check if it's an individual guest ID
           const guestRef = doc(db, 'guests', inviteId);
@@ -88,16 +92,19 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
           });
 
           if (guestSnap.exists()) {
-            const guestData = guestSnap.data();
+            const guestData = {
+              id: guestSnap.id,
+              ...guestSnap.data()
+            } as Guest;
+            
             setInvite({ 
               id: guestSnap.id, 
               name: guestData.name,
               nickname: guestData.nickname 
             } as Invite);
-            setGuests([{
-              id: guestSnap.id,
-              ...guestData
-            } as Guest]);
+            
+            setGuests([guestData]);
+            setInitialGuests([JSON.parse(JSON.stringify(guestData))]);
           } else {
             throw new Error('Invite not found');
           }
@@ -120,7 +127,18 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
     if (!inviteId) return;
     setSubmitting(true);
     try {
-      for (const guest of guests) {
+      const changedGuests = guests.filter(guest => {
+        const initial = initialGuests.find(ig => ig.id === guest.id);
+        return initial && initial.is_coming !== guest.is_coming;
+      });
+
+      if (changedGuests.length === 0) {
+        toast.info("No changes to save.");
+        setCompleted(true);
+        return;
+      }
+
+      for (const guest of changedGuests) {
         const guestRef = doc(db, 'guests', guest.id);
         await updateDoc(guestRef, {
           is_coming: guest.is_coming,

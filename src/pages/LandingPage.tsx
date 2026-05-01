@@ -17,16 +17,6 @@ export default function LandingPage() {
 
   const weddingDate = "2027-01-08T00:00:00";
 
-  useEffect(() => {
-    if (inviteId && rsvpRef.current) {
-      // Optional: Add a slight delay to allow the hero animation to breathe
-      const timer = setTimeout(() => {
-        rsvpRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [inviteId]);
-
   return (
     <div className="min-h-screen bg-wedding-cream relative">
       <div className="h-[100dvh] relative overflow-hidden flex flex-col items-center justify-center pt-16 pb-24 px-4 md:p-6 text-center">
