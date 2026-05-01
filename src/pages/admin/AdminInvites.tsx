@@ -93,7 +93,7 @@ export default function AdminInvites() {
   const [newInvite, setNewInvite] = useState({ id: '', name: '' });
   const [editingInvite, setEditingInvite] = useState<Invite | null>(null);
   const [inviteGuests, setInviteGuests] = useState<Guest[]>([]);
-  const [selectedGuestId, setSelectedGuestId] = useState<string>('');
+  const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
   const [guestPopoverOpen, setGuestPopoverOpen] = useState(false);
 
   useEffect(() => {
@@ -116,7 +116,11 @@ export default function AdminInvites() {
 
   useEffect(() => {
     if (editingInvite) {
-      setInviteGuests(guests.filter(g => g.invite_id === editingInvite.id));
+      setInviteGuests(
+        guests
+          .filter(g => g.invite_id === editingInvite.id)
+          .sort((a, b) => (a.import_order || 0) - (b.import_order || 0))
+      );
     }
   }, [guests, editingInvite]);
 
@@ -276,24 +280,28 @@ export default function AdminInvites() {
     }
   };
 
-  const addGuestToInvite = async () => {
-    if (!selectedGuestId || !editingInvite) return;
+  const addGuestsToInvite = async () => {
+    if (selectedGuestIds.length === 0 || !editingInvite) return;
     try {
-      await updateDoc(doc(db, 'guests', selectedGuestId), {
-        invite_id: editingInvite.id
-      });
-      toast.success('Guest added to invite');
-      setSelectedGuestId('');
+      const promises = selectedGuestIds.map(id => 
+        updateDoc(doc(db, 'guests', id), {
+          invite_id: editingInvite.id,
+          updated_at: serverTimestamp()
+        })
+      );
+      await Promise.all(promises);
+      toast.success(`${selectedGuestIds.length} guest(s) added to invite`);
+      setSelectedGuestIds([]);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `guests/${selectedGuestId}`);
-      toast.error('Failed to add guest');
+      toast.error('Failed to add guests');
     }
   };
 
   const removeGuestFromInvite = async (guest: Guest) => {
     try {
       await updateDoc(doc(db, 'guests', guest.id), {
-        invite_id: null
+        invite_id: null,
+        updated_at: serverTimestamp()
       });
       toast.success('Guest removed from invite');
     } catch (err) {
@@ -738,77 +746,98 @@ export default function AdminInvites() {
           <DialogHeader>
             <DialogTitle>Edit Invite: {editingInvite?.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
+          <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
             <form onSubmit={handleEditInvite} className="space-y-4 pb-6 border-b border-slate-100">
               <div className="space-y-2">
-                <Label>Group Name</Label>
+                <Label className="text-sm font-medium">Group Name</Label>
                 <Input 
                   value={editingInvite?.name || ''} 
                   onChange={e => setEditingInvite(prev => prev ? ({ ...prev, name: e.target.value }) : null)} 
+                  className="bg-slate-50/50 border-slate-200"
                 />
               </div>
-              <Button type="submit" className="w-full bg-wedding-gold">Update Settings</Button>
+              <Button type="submit" className="w-full bg-wedding-gold hover:bg-wedding-gold/90 text-white font-medium">
+                Update Settings
+              </Button>
             </form>
 
             <div className="space-y-4">
               <Label className="text-lg font-serif">Assigned Guests</Label>
               <div className="space-y-2">
-                {inviteGuests.map(guest => (
-                  <div key={guest.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="font-medium text-slate-700">{guest.name}</span>
+                {inviteGuests.map((guest, index) => (
+                  <div key={guest.id} className="flex items-center justify-between p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <span className="text-[10px] font-mono text-slate-400 w-4 flex-shrink-0">{index + 1}</span>
+                      <span className="font-medium text-slate-700 truncate">{guest.name}</span>
+                    </div>
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       onClick={() => removeGuestFromInvite(guest)}
-                      className="text-slate-400 hover:text-rose-500 h-8 w-8"
+                      className="text-slate-400 hover:text-rose-500 h-8 w-8 flex-shrink-0"
                     >
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
                 {inviteGuests.length === 0 && (
-                  <p className="text-sm text-slate-400 italic py-4 text-center">No guests assigned yet.</p>
+                  <p className="text-sm text-slate-400 italic py-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                    No guests assigned yet.
+                  </p>
                 )}
               </div>
 
-              <div className="pt-4 space-y-2 flex flex-col">
-                <Label>Add from existing pool</Label>
-                <div className="flex gap-2">
+              <div className="pt-4 space-y-3">
+                <Label className="text-sm font-medium">Add from existing pool</Label>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Popover open={guestPopoverOpen} onOpenChange={setGuestPopoverOpen}>
-                    <PopoverTrigger 
-                      render={
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={guestPopoverOpen}
-                          className="flex-1 justify-between font-normal h-10 px-3 bg-white border-slate-200"
-                        >
-                          {selectedGuestId
-                            ? unassignedGuests.find((g) => g.id === selectedGuestId)?.name
-                            : "Select a guest..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      }
-                    />
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search guest..." />
-                        <CommandList>
-                          <CommandEmpty>No guest found.</CommandEmpty>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={guestPopoverOpen}
+                        className="flex-1 justify-between font-normal h-11 px-4 bg-white border-slate-200 hover:border-wedding-gold/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          {selectedGuestIds.length > 0 ? (
+                            <span className="bg-wedding-gold/10 text-wedding-gold px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap">
+                              {selectedGuestIds.length} Selected
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">Select guests...</span>
+                          )}
+                          <span className="text-slate-500 truncate text-xs">
+                            {selectedGuestIds.length > 0 && 
+                              unassignedGuests.filter(g => selectedGuestIds.includes(g.id)).map(g => g.name).join(', ')
+                            }
+                          </span>
+                        </div>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0" align="start">
+                      <Command className="border-none">
+                        <CommandInput placeholder="Search pool..." className="h-10" />
+                        <CommandList className="max-h-64">
+                          <CommandEmpty>No guests found in pool.</CommandEmpty>
                           <CommandGroup>
                             {unassignedGuests.map((g) => (
                               <CommandItem
                                 key={g.id}
                                 value={g.name}
                                 onSelect={() => {
-                                  setSelectedGuestId(g.id);
-                                  setGuestPopoverOpen(false);
+                                  setSelectedGuestIds(prev => 
+                                    prev.includes(g.id) 
+                                      ? prev.filter(id => id !== g.id) 
+                                      : [...prev, g.id]
+                                  );
                                 }}
+                                className="cursor-pointer"
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    selectedGuestId === g.id ? "opacity-100" : "opacity-0"
+                                    selectedGuestIds.includes(g.id) ? "opacity-100" : "opacity-0"
                                   )}
                                 />
                                 {g.name}
@@ -816,16 +845,30 @@ export default function AdminInvites() {
                             ))}
                           </CommandGroup>
                         </CommandList>
+                        {selectedGuestIds.length > 0 && (
+                          <div className="p-2 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase">{selectedGuestIds.length} Selected</span>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 text-[10px] text-rose-500 hover:text-rose-600 hover:bg-rose-50 px-2"
+                              onClick={() => setSelectedGuestIds([])}
+                            >
+                              Clear
+                            </Button>
+                          </div>
+                        )}
                       </Command>
                     </PopoverContent>
                   </Popover>
                   <Button 
                     type="button" 
-                    onClick={addGuestToInvite}
-                    disabled={!selectedGuestId}
-                    className="bg-emerald-600 hover:bg-emerald-700"
+                    onClick={addGuestsToInvite}
+                    disabled={selectedGuestIds.length === 0}
+                    className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm sm:min-w-[120px]"
                   >
-                    <UserPlus className="w-4 h-4" />
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Add {selectedGuestIds.length > 0 ? `(${selectedGuestIds.length})` : ''}
                   </Button>
                 </div>
               </div>

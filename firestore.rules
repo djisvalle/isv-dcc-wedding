@@ -24,8 +24,7 @@ service cloud.firestore {
     function isValidInvite(data) {
       return data.keys().hasAll(['name']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             (!data.keys().hasAny(['import_order']) || data.import_order == null || data.import_order is number) &&
-             (!data.keys().hasAny(['created_at']) || data.created_at == request.time || data.created_at == null);
+             (!data.keys().hasAny(['import_order']) || data.import_order == null || data.import_order is number);
     }
 
     function isValidGuest(data) {
@@ -38,8 +37,7 @@ service cloud.firestore {
              (!data.keys().hasAny(['table_number']) || data.table_number == null || (data.table_number is string && data.table_number.size() <= 50)) &&
              (!data.keys().hasAny(['table_order']) || data.table_order == null || data.table_order is number) &&
              (!data.keys().hasAny(['import_order']) || data.import_order == null || data.import_order is number) &&
-             (!data.keys().hasAny(['is_coming']) || data.is_coming == null || data.is_coming is bool) &&
-             (!data.keys().hasAny(['updated_at']) || data.updated_at == request.time || data.updated_at == null);
+             (!data.keys().hasAny(['is_coming']) || data.is_coming == null || data.is_coming is bool);
     }
 
     function isValidSetting(data) {
@@ -58,8 +56,10 @@ service cloud.firestore {
     match /invites/{inviteId} {
       allow get: if true; // Open read for invites by ID
       allow list: if isAdmin();
-      allow create: if isAdmin() && isValidInvite(incoming());
-      allow update: if isAdmin() && isValidInvite(incoming());
+      allow create: if isAdmin() && isValidInvite(incoming()) && 
+                    (!incoming().keys().hasAny(['created_at']) || incoming().created_at == request.time);
+      allow update: if isAdmin() && isValidInvite(incoming()) && 
+                    (incoming().created_at == existing().created_at || incoming().created_at == request.time);
       allow delete: if isAdmin();
     }
 
@@ -71,9 +71,10 @@ service cloud.firestore {
       
       allow get: if isAdmin() || resource.data.invite_id != null;
 
-      allow create: if isAdmin() && isValidGuest(incoming());
+      allow create: if isAdmin() && isValidGuest(incoming()) && 
+                    (!incoming().keys().hasAny(['updated_at']) || incoming().updated_at == request.time);
       
-      allow update: if isAdmin() 
+      allow update: if (isAdmin() && isValidGuest(incoming()) && incoming().updated_at == request.time)
         || (
           // RSVP Action: only allow 'is_coming' and 'updated_at' to be changed
           incoming().diff(existing()).affectedKeys().hasOnly(['is_coming', 'updated_at']) &&
