@@ -37,10 +37,26 @@ import {
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { generateInviteId } from '@/lib/utils';
 import * as xlsx from 'xlsx';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Invite {
   id: string;
   name: string;
+  import_order?: number;
   created_at?: any;
   guest_count?: number;
   attending_count?: number;
@@ -50,6 +66,7 @@ interface Guest {
   id: string;
   name: string;
   invite_id: string | null;
+  import_order?: number;
 }
 
 export default function AdminInvites() {
@@ -60,12 +77,14 @@ export default function AdminInvites() {
   const [search, setSearch] = useState('');
   const [uploading, setUploading] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [isClearOpen, setIsClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   // Sorting state
-  const [sortField, setSortField] = useState<keyof Invite | 'guest_count' | 'attending_count'>('created_at');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortField, setSortField] = useState<keyof Invite | 'guest_count' | 'attending_count'>('import_order');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,6 +94,7 @@ export default function AdminInvites() {
   const [editingInvite, setEditingInvite] = useState<Invite | null>(null);
   const [inviteGuests, setInviteGuests] = useState<Guest[]>([]);
   const [selectedGuestId, setSelectedGuestId] = useState<string>('');
+  const [guestPopoverOpen, setGuestPopoverOpen] = useState(false);
 
   useEffect(() => {
     const unsubInvites = onSnapshot(collection(db, 'invites'), (snap) => {
@@ -100,6 +120,29 @@ export default function AdminInvites() {
     }
   }, [guests, editingInvite]);
 
+  const handleClearAllData = async () => {
+    setClearing(true);
+    try {
+      // Delete all guests
+      const guestSnap = await getDocs(collection(db, 'guests'));
+      const deleteGuestPromises = guestSnap.docs.map(d => deleteDoc(doc(db, 'guests', d.id)));
+      
+      // Delete all invites
+      const inviteSnap = await getDocs(collection(db, 'invites'));
+      const deleteInvitePromises = inviteSnap.docs.map(d => deleteDoc(doc(db, 'invites', d.id)));
+      
+      await Promise.all([...deleteGuestPromises, ...deleteInvitePromises]);
+      
+      toast.success('All data has been cleared successfully');
+      setIsClearOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to clear data');
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
@@ -113,6 +156,7 @@ export default function AdminInvites() {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = xlsx.utils.sheet_to_json(sheet) as any[];
 
+        let rowIndex = 0;
         for (const row of rows) {
           const inviteId = row.inviteId || generateInviteId();
           const name = row.inviteName || row.name;
@@ -120,10 +164,12 @@ export default function AdminInvites() {
 
           await setDoc(doc(db, 'invites', inviteId), {
             name,
+            import_order: rowIndex++,
             created_at: serverTimestamp()
           }, { merge: true });
 
           const guestNames = row.guests ? String(row.guests).split(',').map((s: string) => s.trim()) : [row.name];
+          let guestIndex = 0;
           for (const guestName of guestNames) {
             if (guestName) {
               await addDoc(collection(db, 'guests'), {
@@ -131,6 +177,7 @@ export default function AdminInvites() {
                 invite_id: inviteId,
                 role: row.role || null,
                 is_coming: null,
+                import_order: guestIndex++,
                 updated_at: serverTimestamp()
               });
             }
@@ -167,6 +214,10 @@ export default function AdminInvites() {
     try {
       const inviteId = newInvite.id || generateInviteId();
       
+      const maxOrder = invites.length > 0 
+        ? Math.max(...invites.map(i => i.import_order || 0)) 
+        : -1;
+
       // Check if ID already exists if manually provided
       if (newInvite.id) {
         const docRef = doc(db, 'invites', inviteId);
@@ -179,6 +230,7 @@ export default function AdminInvites() {
 
       await setDoc(doc(db, 'invites', inviteId), {
         name: newInvite.name,
+        import_order: maxOrder + 1,
         created_at: serverTimestamp()
       });
 
@@ -380,7 +432,7 @@ export default function AdminInvites() {
                   <p className="text-xs text-slate-400 mt-2">Required columns: inviteName, guests (comma separated)</p>
                 </div>
               </div>
-              <div className="flex justify-center">
+              <div className="flex justify-center gap-2">
                 <Button 
                   variant="link" 
                   size="sm" 
@@ -397,7 +449,79 @@ export default function AdminInvites() {
                   className="text-wedding-gold"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Download Excel Template
+                  Download Template
+                </Button>
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  onClick={() => {
+                    const data = invites.map(i => {
+                      const inviteGuests = guests.filter(g => g.invite_id === i.id);
+                      return {
+                        inviteId: i.id,
+                        inviteName: i.name,
+                        guests: inviteGuests.map(g => g.name).join(', '),
+                        guestCount: inviteGuests.length
+                      };
+                    });
+                    const worksheet = xlsx.utils.json_to_sheet(data);
+                    const workbook = xlsx.utils.book_new();
+                    xlsx.utils.book_append_sheet(workbook, worksheet, 'Invitations');
+                    xlsx.writeFile(workbook, 'wedding_invitations_backup.xlsx');
+                  }}
+                  className="text-slate-500"
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Export All
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isClearOpen} onOpenChange={setIsClearOpen}>
+            <DialogTrigger 
+              render={
+                <Button variant="ghost" className="text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear All Data
+                </Button>
+              }
+            />
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-rose-600">Danger Zone: Clear All Data</DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <p className="text-sm text-slate-600 mb-4">
+                  This action will <strong className="text-rose-600">permanently delete all Invitations and Guests</strong> from the database. This cannot be undone.
+                </p>
+                <p className="text-xs text-slate-400 italic">
+                  Tip: You might want to export your data to Excel before clearing.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => setIsClearOpen(false)}
+                  disabled={clearing}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white" 
+                  onClick={handleClearAllData}
+                  disabled={clearing}
+                >
+                  {clearing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Clearing...
+                    </>
+                  ) : (
+                    'Yes, Clear All'
+                  )}
                 </Button>
               </div>
             </DialogContent>
@@ -635,19 +759,54 @@ export default function AdminInvites() {
                 )}
               </div>
 
-              <div className="pt-4 space-y-2">
+              <div className="pt-4 space-y-2 flex flex-col">
                 <Label>Add from existing pool</Label>
                 <div className="flex gap-2">
-                  <select 
-                    className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                    value={selectedGuestId}
-                    onChange={e => setSelectedGuestId(e.target.value)}
-                  >
-                    <option value="">Select a guest...</option>
-                    {unassignedGuests.map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
+                  <Popover open={guestPopoverOpen} onOpenChange={setGuestPopoverOpen}>
+                    <PopoverTrigger 
+                      render={
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={guestPopoverOpen}
+                          className="flex-1 justify-between font-normal h-10 px-3 bg-white border-slate-200"
+                        >
+                          {selectedGuestId
+                            ? unassignedGuests.find((g) => g.id === selectedGuestId)?.name
+                            : "Select a guest..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      }
+                    />
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search guest..." />
+                        <CommandList>
+                          <CommandEmpty>No guest found.</CommandEmpty>
+                          <CommandGroup>
+                            {unassignedGuests.map((g) => (
+                              <CommandItem
+                                key={g.id}
+                                value={g.name}
+                                onSelect={() => {
+                                  setSelectedGuestId(g.id);
+                                  setGuestPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedGuestId === g.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {g.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <Button 
                     type="button" 
                     onClick={addGuestToInvite}

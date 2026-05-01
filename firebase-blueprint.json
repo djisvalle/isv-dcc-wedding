@@ -7,6 +7,7 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "import_order": { "type": "number" },
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["name"]
@@ -25,6 +26,7 @@
         "table_type": { "type": "string", "enum": ["bridal", "vip", "regular"] },
         "table_number": { "type": "string" },
         "table_order": { "type": "number" },
+        "import_order": { "type": "number" },
         "updated_at": { "type": "string", "format": "date-time" }
       },
       "required": ["name"]

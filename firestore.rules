@@ -24,6 +24,7 @@ service cloud.firestore {
     function isValidInvite(data) {
       return data.keys().hasAll(['name']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             (!data.keys().hasAny(['import_order']) || data.import_order == null || data.import_order is number) &&
              (!data.keys().hasAny(['created_at']) || data.created_at == request.time || data.created_at == null);
     }
 
@@ -36,6 +37,7 @@ service cloud.firestore {
              (!data.keys().hasAny(['table_type']) || data.table_type == null || data.table_type in ['bridal', 'vip', 'regular']) &&
              (!data.keys().hasAny(['table_number']) || data.table_number == null || (data.table_number is string && data.table_number.size() <= 50)) &&
              (!data.keys().hasAny(['table_order']) || data.table_order == null || data.table_order is number) &&
+             (!data.keys().hasAny(['import_order']) || data.import_order == null || data.import_order is number) &&
              (!data.keys().hasAny(['is_coming']) || data.is_coming == null || data.is_coming is bool) &&
              (!data.keys().hasAny(['updated_at']) || data.updated_at == request.time || data.updated_at == null);
     }

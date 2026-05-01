@@ -42,6 +42,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle, 
+  SheetTrigger 
+} from '@/components/ui/sheet';
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -356,6 +363,9 @@ export default function AdminTables() {
   const [isAddTableOpen, setIsAddTableOpen] = useState(false);
   const [newTable, setNewTable] = useState<{ type: 'bridal' | 'vip' | 'regular', number: string }>({ type: 'regular', number: '' });
   
+  // Mobile unassigned sheet
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+
   // Search state for unassigned guests
   const [guestSearch, setGuestSearch] = useState('');
 
@@ -668,8 +678,8 @@ export default function AdminTables() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-          {/* Sidebar: Unassigned Guests */}
-          <div className="lg:col-span-1 sticky top-6">
+          {/* Sidebar: Unassigned Guests (Desktop) */}
+          <div className="hidden lg:block lg:col-span-1 sticky top-6">
             <UnassignedContainer 
               guests={filteredUnassigned} 
               onQuickMove={handleQuickMove}
@@ -677,6 +687,41 @@ export default function AdminTables() {
               search={guestSearch}
               onSearchChange={setGuestSearch}
             />
+          </div>
+
+          {/* Floating Action Button for Unassigned on Mobile */}
+          <div className="lg:hidden fixed bottom-6 right-6 z-40">
+             <Sheet open={isMobileSheetOpen} onOpenChange={setIsMobileSheetOpen}>
+                <SheetTrigger 
+                  render={
+                    <Button className="h-14 w-14 rounded-full shadow-2xl bg-wedding-gold hover:bg-wedding-gold/90 flex items-center justify-center p-0">
+                      <div className="relative">
+                        <Users className="w-6 h-6 text-white" />
+                        {unassignedGuests.length > 0 && (
+                          <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center ring-2 ring-white">
+                            {unassignedGuests.length}
+                          </span>
+                        )}
+                      </div>
+                    </Button>
+                  }
+                />
+                <SheetContent side="right" className="w-[85vw] sm:max-w-md p-0 rounded-l-3xl overflow-hidden border-none shadow-2xl">
+                  <div className="h-full bg-slate-50">
+                    <UnassignedContainer 
+                      guests={filteredUnassigned} 
+                      onQuickMove={(guestId, tableId) => {
+                        handleQuickMove(guestId, tableId);
+                        setIsMobileSheetOpen(false);
+                      }}
+                      availableTables={activeTables}
+                      search={guestSearch}
+                      onSearchChange={setGuestSearch}
+                      isMobile
+                    />
+                  </div>
+                </SheetContent>
+             </Sheet>
           </div>
 
           {/* Main Area: Tables */}
@@ -735,7 +780,8 @@ const UnassignedContainer: React.FC<{
   availableTables: Table[];
   search: string;
   onSearchChange: (val: string) => void;
-}> = ({ guests, onQuickMove, availableTables, search, onSearchChange }) => {
+  isMobile?: boolean;
+}> = ({ guests, onQuickMove, availableTables, search, onSearchChange, isMobile = false }) => {
   const { setNodeRef, isOver } = useSortable({
     id: 'unassigned-container',
     data: {
@@ -748,8 +794,9 @@ const UnassignedContainer: React.FC<{
     <div 
       ref={setNodeRef}
       className={`
-        bg-slate-50/50 rounded-3xl p-6 border transition-all h-[calc(100vh-200px)] flex flex-col
-        ${isOver ? 'border-wedding-gold bg-wedding-gold/5 ring-1 ring-wedding-gold shadow-lg scale-[1.02]' : 'border-slate-100'}
+        bg-white lg:bg-slate-50/50 lg:rounded-3xl p-6 border transition-all flex flex-col
+        ${isMobile ? 'h-full border-none' : 'h-[calc(100vh-200px)] border-slate-100 rounded-3xl'}
+        ${!isMobile && isOver ? 'border-wedding-gold bg-wedding-gold/5 ring-1 ring-wedding-gold shadow-lg scale-[1.02]' : ''}
       `}
     >
       <div className="flex items-center justify-between mb-4">

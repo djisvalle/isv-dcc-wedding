@@ -36,6 +36,21 @@ import {
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import * as xlsx from 'xlsx';
 import ExcelJS from 'exceljs';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Guest {
   id: string;
@@ -48,6 +63,7 @@ interface Guest {
   updated_at: any;
   table_type?: 'bridal' | 'vip' | 'regular';
   table_number?: string;
+  import_order?: number;
 }
 
 const TABLE_TYPES = [
@@ -64,16 +80,34 @@ interface Invite {
 const GUEST_ROLES = [
   'Groom',
   'Bride',
+  'Mother of the Groom',
   'Father of the Bride',
   'Mother of the Bride',
-  'Mother of the Groom',
-  'Principal Sponsor',
-  'Secondary Sponsor',
-  'Groomsman',
-  'Bridesmaid',
+  'Principal',
+  'Secondary',
   'Best Man',
-  'Maid of Honor'
+  'MOH',
+  'Groomsman',
+  'Bridesmaid'
 ];
+
+const ROLE_PRIORITY: Record<string, number> = {
+  'Groom': 1,
+  'Bride': 2,
+  'Mother of the Groom': 3,
+  'Father of the Bride': 4,
+  'Mother of the Bride': 4,
+  'Principal': 5,
+  'Principal Sponsor': 5,
+  'Secondary': 6,
+  'Secondary Sponsor': 6,
+  'Best Man': 7,
+  'MOH': 8,
+  'Maid of Honor': 8,
+  'Groomsman': 9,
+  'Bridesmaid': 10,
+  'Guest': 11
+};
 
 export default function AdminGuests() {
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -88,8 +122,8 @@ export default function AdminGuests() {
   const [uploading, setUploading] = useState(false);
 
   // Sorting state
-  const [sortField, setSortField] = useState<keyof Guest | 'invite_name'>('updated_at');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortField, setSortField] = useState<keyof Guest | 'invite_name'>('import_order');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,6 +131,12 @@ export default function AdminGuests() {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'attending' | 'declined' | 'pending'>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [tableFilter, setTableFilter] = useState<string>('all');
+
+  // Searchable dropdown states
+  const [invitePopoverOpen, setInvitePopoverOpen] = useState(false);
+  const [editInvitePopoverOpen, setEditInvitePopoverOpen] = useState(false);
 
   // New guest state
   const [newGuest, setNewGuest] = useState({ 
@@ -131,7 +171,7 @@ export default function AdminGuests() {
       const data = guests.map(g => ({
         Name: g.name,
         Nickname: g.nickname || '',
-        Role: g.role || 'Standard',
+        Role: g.role || 'Guest',
         Group: invites.find(i => i.id === g.invite_id)?.name || 'Unassigned',
         InviteID: g.invite_id || g.id,
         TableType: g.table_type || 'N/A',
@@ -153,6 +193,10 @@ export default function AdminGuests() {
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const maxOrder = guests.length > 0 
+        ? Math.max(...guests.map(g => g.import_order || 0)) 
+        : -1;
+
       await addDoc(collection(db, 'guests'), {
         name: newGuest.name,
         nickname: newGuest.nickname || null,
@@ -161,6 +205,7 @@ export default function AdminGuests() {
         table_type: newGuest.table_type || null,
         table_number: newGuest.table_number || null,
         is_coming: null,
+        import_order: maxOrder + 1,
         updated_at: serverTimestamp()
       });
       toast.success('Guest added successfully');
@@ -245,6 +290,7 @@ export default function AdminGuests() {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = xlsx.utils.sheet_to_json(sheet) as any[];
 
+        let index = 0;
         for (const row of rows) {
           if (row.name) {
             await addDoc(collection(db, 'guests'), {
@@ -252,6 +298,7 @@ export default function AdminGuests() {
               role: row.role || null,
               invite_id: row.inviteId || null,
               is_coming: null,
+              import_order: index++,
               updated_at: serverTimestamp()
             });
           }
@@ -291,32 +338,47 @@ export default function AdminGuests() {
       (statusFilter === 'attending' && g.is_coming === true) ||
       (statusFilter === 'declined' && g.is_coming === false) ||
       (statusFilter === 'pending' && g.is_coming === null);
+
+    const roleMatch = roleFilter === 'all' || g.role === roleFilter || (roleFilter === 'guest' && !g.role);
+    
+    const tableMatch = tableFilter === 'all' || 
+      (tableFilter === 'assigned' && g.table_type) ||
+      (tableFilter === 'unassigned' && !g.table_type) ||
+      g.table_type === tableFilter;
       
-    return searchMatch && statusMatch;
+    return searchMatch && statusMatch && roleMatch && tableMatch;
   });
 
   const sortedGuests = [...filteredGuests].sort((a, b) => {
-    const getSortValue = (val: any) => {
-      if (val === null || val === undefined) return -Infinity;
-      if (val?.seconds) return val.seconds;
-      if (val instanceof Date) return val.getTime();
-      return val;
-    };
-
-    let aValue = getSortValue(a[sortField]);
-    let bValue = getSortValue(b[sortField]);
-
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+    if (sortField === 'role') {
+      const aPriority = a.role ? (ROLE_PRIORITY[a.role] || 99) : 11;
+      const bPriority = b.role ? (ROLE_PRIORITY[b.role] || 99) : 11;
+      
+      if (aPriority !== bPriority) {
+        return sortDirection === 'asc' ? aPriority - bPriority : bPriority - aPriority;
+      }
+      // If same priority, alphabetize by name
+      return a.name.localeCompare(b.name);
     }
 
-    if (sortDirection === 'asc') {
-      return aValue > bValue ? 1 : -1;
+    const aVal = a[sortField] || '';
+    const bVal = b[sortField] || '';
+
+    let comparison = 0;
+    
+    if (sortField === 'updated_at') {
+      const aTime = a.updated_at?.seconds || 0;
+      const bTime = b.updated_at?.seconds || 0;
+      comparison = aTime - bTime;
+    } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+      comparison = aVal - bVal;
     } else {
-      return aValue < bValue ? 1 : -1;
+      const aStr = String(aVal).toLowerCase();
+      const bStr = String(bVal).toLowerCase();
+      comparison = aStr.localeCompare(bStr);
     }
+
+    return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const totalPages = Math.ceil(sortedGuests.length / itemsPerPage);
@@ -424,18 +486,68 @@ export default function AdminGuests() {
                     ))}
                   </select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 flex flex-col">
                   <Label>Invitation Group (Optional)</Label>
-                  <select 
-                    className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                    value={newGuest.invite_id} 
-                    onChange={e => setNewGuest(prev => ({ ...prev, invite_id: e.target.value }))}
-                  >
-                    <option value="">Unassigned</option>
-                    {invites.map(invite => (
-                      <option key={invite.id} value={invite.id}>{invite.name}</option>
-                    ))}
-                  </select>
+                  <Popover open={invitePopoverOpen} onOpenChange={setInvitePopoverOpen}>
+                    <PopoverTrigger 
+                      render={
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={invitePopoverOpen}
+                          className="w-full justify-between font-normal h-10 px-3 bg-white border-slate-200"
+                        >
+                          {newGuest.invite_id
+                            ? invites.find((invite) => invite.id === newGuest.invite_id)?.name
+                            : "Select invitation group..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      }
+                    />
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search group..." />
+                        <CommandList>
+                          <CommandEmpty>No group found.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="unassigned"
+                              onSelect={() => {
+                                setNewGuest(prev => ({ ...prev, invite_id: '' }));
+                                setInvitePopoverOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  newGuest.invite_id === "" ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              Unassigned
+                            </CommandItem>
+                            {invites.map((invite) => (
+                              <CommandItem
+                                key={invite.id}
+                                value={invite.name}
+                                onSelect={() => {
+                                  setNewGuest(prev => ({ ...prev, invite_id: invite.id }));
+                                  setInvitePopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    newGuest.invite_id === invite.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {invite.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="grid grid-cols-2 gap-4 border-t pt-4">
                   <div className="space-y-2">
@@ -572,32 +684,76 @@ export default function AdminGuests() {
             }}
           />
         </div>
-        <div className="flex gap-2">
-          <select
-            className="h-12 px-4 rounded-2xl border-none shadow-sm bg-white text-sm"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value as any);
-              setCurrentPage(1);
-            }}
-          >
-            <option value="all">All RSVP Status</option>
-            <option value="attending">Attending</option>
-            <option value="declined">Declined</option>
-            <option value="pending">Pending</option>
-          </select>
-          <select
-            className="h-12 px-4 rounded-2xl border-none shadow-sm bg-white text-sm focus:ring-2 focus:ring-wedding-gold"
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(parseInt(e.target.value));
-              setCurrentPage(1);
-            }}
-          >
-            <option value={10}>10 per page</option>
-            <option value={50}>50 per page</option>
-            <option value={100}>100 per page</option>
-          </select>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-1.5 min-w-[150px]">
+             <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">RSVP Status</Label>
+              <select
+                className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All Responses</option>
+                <option value="attending">Attending</option>
+                <option value="declined">Declined</option>
+                <option value="pending">Pending</option>
+              </select>
+          </div>
+          
+          <div className="flex flex-col gap-1.5 min-w-[150px]">
+             <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Role</Label>
+              <select
+                className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm"
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All Roles</option>
+                <option value="guest">Guest</option>
+                {GUEST_ROLES.map(role => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5 min-w-[150px]">
+             <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Table</Label>
+              <select
+                className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm"
+                value={tableFilter}
+                onChange={(e) => {
+                  setTableFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All Tables</option>
+                <option value="assigned">Has Table</option>
+                <option value="unassigned">No Table</option>
+                <option value="bridal">Bridal Table</option>
+                <option value="vip">VIP Tables</option>
+                <option value="regular">Regular Tables</option>
+              </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+             <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Page Size</Label>
+              <select
+                className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm focus:ring-2 focus:ring-wedding-gold"
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(parseInt(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+          </div>
         </div>
       </div>
 
@@ -716,7 +872,7 @@ export default function AdminGuests() {
                       {guest.role}
                     </span>
                   ) : (
-                    <span className="text-slate-300 italic text-xs">Standard</span>
+                    <span className="text-slate-300 italic text-xs">Guest</span>
                   )}
                 </TableCell>
                 <TableCell className="py-6 px-8 text-slate-500 italic font-serif">
@@ -878,18 +1034,68 @@ export default function AdminGuests() {
                 ))}
               </select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
               <Label>Invitation Group</Label>
-              <select 
-                className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                value={editingGuest?.invite_id || ''} 
-                onChange={e => setEditingGuest(prev => prev ? ({ ...prev, invite_id: e.target.value }) : null)}
-              >
-                <option value="">Unassigned</option>
-                {invites.map(invite => (
-                  <option key={invite.id} value={invite.id}>{invite.name}</option>
-                ))}
-              </select>
+              <Popover open={editInvitePopoverOpen} onOpenChange={setEditInvitePopoverOpen}>
+                <PopoverTrigger 
+                  render={
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={editInvitePopoverOpen}
+                      className="w-full justify-between font-normal h-10 px-3 bg-white border-slate-200"
+                    >
+                      {editingGuest?.invite_id
+                        ? invites.find((invite) => invite.id === editingGuest.invite_id)?.name
+                        : "Select invitation group..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  }
+                />
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search group..." />
+                    <CommandList>
+                      <CommandEmpty>No group found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="unassigned"
+                          onSelect={() => {
+                            setEditingGuest(prev => prev ? ({ ...prev, invite_id: '' }) : null);
+                            setEditInvitePopoverOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              editingGuest?.invite_id === "" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Unassigned
+                        </CommandItem>
+                        {invites.map((invite) => (
+                          <CommandItem
+                            key={invite.id}
+                            value={invite.name}
+                            onSelect={() => {
+                              setEditingGuest(prev => prev ? ({ ...prev, invite_id: invite.id }) : null);
+                              setEditInvitePopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                editingGuest?.invite_id === invite.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {invite.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="grid grid-cols-2 gap-4 border-t pt-4">
               <div className="space-y-2">
