@@ -288,5 +288,7 @@ export const SectionDecors = {
         opacity={0.35}
       />
     </>
-  )
+  ),
+  Program: () => null,
+  Gifts: () => null
 };

@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import Countdown from '@/components/shared/Countdown';
 import VenueSection from '@/components/shared/VenueSection';
 import DressCodeSection from '@/components/shared/DressCodeSection';
+import ProgramSection from '@/components/shared/ProgramSection';
+import GiftsSection from '@/components/shared/GiftsSection';
 import FAQSection from '@/components/shared/FAQSection';
 import RSVPSection from '@/components/shared/RSVPSection';
 import { useEffect, useRef } from 'react';
@@ -80,6 +82,10 @@ export default function LandingPage() {
       </div>
       
       <DressCodeSection />
+
+      <ProgramSection />
+
+      <GiftsSection />
       
       <FAQSection />
 
