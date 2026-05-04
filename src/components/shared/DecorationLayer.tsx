@@ -289,6 +289,6 @@ export const SectionDecors = {
       />
     </>
   ),
-  Program: () => null,
+  Programme: () => null,
   Gifts: () => null
 };

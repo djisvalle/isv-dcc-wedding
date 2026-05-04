@@ -50,6 +50,48 @@
         "updated_at": { "type": "string", "format": "date-time" }
       },
       "required": ["key", "value"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Wedding supplier information and budget",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "budget": { "type": "number" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "type"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment record for a supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "supplier_id": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "remarks": { "type": "string" },
+        "status": { "type": "string", "enum": ["paid", "scheduled"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["supplier_id", "amount", "date", "status"]
+    },
+    "WaitingGuest": {
+      "title": "Waiting Guest",
+      "description": "Guest on the waiting list",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "notes": { "type": "string" },
+        "priority": { "type": "number" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
     }
   },
   "firestore": {
@@ -68,6 +110,18 @@
     "/settings/{settingId}": {
       "schema": "Setting",
       "description": "Collection of application settings"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Wedding suppliers and their budgets"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Record of payments made to suppliers"
+    },
+    "/waiting_list/{waitingId}": {
+      "schema": "WaitingGuest",
+      "description": "Guests waiting for an available spot"
     }
   }
 }

@@ -8,7 +8,10 @@ import {
   Menu, 
   Loader2,
   Settings,
-  LayoutGrid
+  LayoutGrid,
+  Wallet,
+  BarChart3,
+  Hourglass
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -38,7 +41,10 @@ export default function AdminLayout() {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
     { label: 'Invitations', icon: Ticket, path: '/admin/invites' },
     { label: 'Guest List', icon: Users, path: '/admin/guests' },
+    { label: 'Waiting List', icon: Hourglass, path: '/admin/waiting-list' },
     { label: 'Tables', icon: LayoutGrid, path: '/admin/tables' },
+    { label: 'Budget & Payments', icon: Wallet, path: '/admin/budget' },
+    { label: 'Reports', icon: BarChart3, path: '/admin/reports' },
     { label: 'Settings', icon: Settings, path: '/admin/settings' },
   ];
 

@@ -1,38 +1,50 @@
 import { motion } from 'motion/react';
 import { SectionDecors } from './DecorationLayer';
-import { Calendar, Heart, Music, Utensils, Camera } from 'lucide-react';
+import { Heart, Music, Utensils, Camera, Film, Sparkles } from 'lucide-react';
 
 const programItems = [
   {
-    time: "3:30 PM",
+    time: "4:00 PM",
     event: "Ceremony",
     description: "The exchange of vows",
     icon: Heart
   },
   {
-    time: "5:00 PM",
-    event: "Cocktails",
+    time: "5:30 PM",
+    event: "Cocktail Hour",
     description: "Drinks and appetizers",
     icon: Music
   },
   {
-    time: "6:00 PM",
-    event: "Dinner & Reception",
-    description: "Celebration and feast",
+    time: "7:00 PM",
+    event: "Reception",
+    description: "Grand entrance and festivities",
+    icon: Sparkles
+  },
+  {
+    time: "7:30 PM",
+    event: "Dinner",
+    description: "A celebration feast",
     icon: Utensils
   },
   {
-    time: "8:00 PM",
-    event: "Party",
-    description: "Dancing and memories",
-    icon: Camera
+    time: "9:00 PM",
+    event: "SDE",
+    description: "Same Day Edit screening",
+    icon: Film
+  },
+  {
+    time: "9:30 PM",
+    event: "End",
+    description: "Thank you for celebrating with us",
+    icon: Heart
   }
 ];
 
 export default function ProgramSection() {
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-white relative overflow-hidden">
-      <SectionDecors.Program />
+      <SectionDecors.Programme />
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -43,7 +55,7 @@ export default function ProgramSection() {
         <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-6 opacity-60">
           Daloy ng Pagdiriwang
         </h2>
-        <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-16">Program</h3>
+        <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-16">Programme</h3>
 
         <div className="relative max-w-lg mx-auto">
           {/* Timeline Line */}

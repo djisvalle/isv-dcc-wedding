@@ -46,6 +46,30 @@ service cloud.firestore {
              data.value is string && data.value.size() >= 0;
     }
 
+    function isValidSupplier(data) {
+      return data.keys().hasAll(['name', 'type']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.type is string && data.type.size() > 0 && data.type.size() <= 100 &&
+             (!data.keys().hasAny(['budget']) || data.budget == null || data.budget is number);
+    }
+
+    function isValidPayment(data) {
+      return data.keys().hasAll(['supplier_id', 'amount', 'date', 'status']) &&
+             isValidId(data.supplier_id) &&
+             data.amount is number &&
+             data.date is string &&
+             data.status in ['paid', 'scheduled'] &&
+             (!data.keys().hasAny(['remarks']) || data.remarks == null || (data.remarks is string && data.remarks.size() <= 1000));
+    }
+
+    function isValidWaitingGuest(data) {
+      return data.keys().hasAll(['name']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             (!data.keys().hasAny(['role']) || data.role == null || (data.role is string && data.role.size() <= 100)) &&
+             (!data.keys().hasAny(['notes']) || data.notes == null || (data.notes is string && data.notes.size() <= 500)) &&
+             (!data.keys().hasAny(['priority']) || data.priority == null || data.priority is number);
+    }
+
     // --- Collection Rules ---
 
     match /admins/{adminId} {
@@ -87,6 +111,21 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin() && isValidSetting(incoming());
+    }
+
+    match /suppliers/{supplierId} {
+      allow read, write: if isAdmin() && isValidSupplier(incoming());
+      allow list, get, delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read, write: if isAdmin() && isValidPayment(incoming());
+      allow list, get, delete: if isAdmin();
+    }
+
+    match /waiting_list/{waitingId} {
+      allow read, write: if isAdmin() && isValidWaitingGuest(incoming());
+      allow list, get, delete: if isAdmin();
     }
   }
 }
