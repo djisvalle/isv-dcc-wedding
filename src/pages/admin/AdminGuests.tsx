@@ -31,7 +31,8 @@ import {
   serverTimestamp, 
   query, 
   where, 
-  getDocs 
+  getDocs,
+  writeBatch
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import * as xlsx from 'xlsx';
@@ -49,7 +50,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Guest {
@@ -239,7 +240,6 @@ export default function AdminGuests() {
   };
 
   const handleDeleteGuest = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this guest?')) return;
     try {
       await deleteDoc(doc(db, 'guests', id));
       toast.success('Guest deleted successfully');
@@ -250,7 +250,6 @@ export default function AdminGuests() {
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedIds.length} guests?`)) return;
     try {
       for (const id of selectedIds) {
         await deleteDoc(doc(db, 'guests', id));
@@ -274,6 +273,36 @@ export default function AdminGuests() {
       if (ids.length > 1) setSelectedIds([]);
     } catch (err) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleMoveToWaitingList = async (ids: string[]) => {
+    try {
+      const batch = writeBatch(db);
+      for (const id of ids) {
+        const guest = guests.find(g => g.id === id);
+        if (!guest) continue;
+
+        // 1. Add to Waiting List
+        const waitingRef = doc(collection(db, 'waiting_list'));
+        batch.set(waitingRef, {
+          name: guest.name,
+          role: guest.role || 'Guest',
+          notes: 'Moved from guest list',
+          priority: 3,
+          created_at: serverTimestamp()
+        });
+
+        // 2. Delete from Guests
+        batch.delete(doc(db, 'guests', id));
+      }
+      await batch.commit();
+      toast.success('Guests moved to waiting list');
+      setSelectedIds([]);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'guests/move_to_waiting');
+      toast.error('Failed to move guests');
+      console.error(err);
     }
   };
 
@@ -361,20 +390,20 @@ export default function AdminGuests() {
       return a.name.localeCompare(b.name);
     }
 
-    const aVal = a[sortField] || '';
-    const bVal = b[sortField] || '';
+    const aVal = a[sortField as keyof Guest] ?? 0;
+    const bVal = b[sortField as keyof Guest] ?? 0;
 
     let comparison = 0;
     
     if (sortField === 'updated_at') {
-      const aTime = a.updated_at?.seconds || 0;
-      const bTime = b.updated_at?.seconds || 0;
+      const aTime = (a.updated_at?.seconds || 0);
+      const bTime = (b.updated_at?.seconds || 0);
       comparison = aTime - bTime;
     } else if (typeof aVal === 'number' && typeof bVal === 'number') {
       comparison = aVal - bVal;
     } else {
-      const aStr = String(aVal).toLowerCase();
-      const bStr = String(bVal).toLowerCase();
+      const aStr = String(aVal || '').toLowerCase();
+      const bStr = String(bVal || '').toLowerCase();
       comparison = aStr.localeCompare(bStr);
     }
 
@@ -432,6 +461,10 @@ export default function AdminGuests() {
               <Button onClick={() => handleUpdateStatus(selectedIds, null)} variant="outline" className="text-slate-400 border-slate-100 hover:bg-slate-50">
                 <UserMinus className="w-4 h-4 mr-2" />
                 Clear
+              </Button>
+              <Button onClick={() => handleMoveToWaitingList(selectedIds)} variant="outline" className="text-amber-600 border-amber-100 hover:bg-amber-50">
+                <Hourglass className="w-4 h-4 mr-2" />
+                Move to Waiting List
               </Button>
               <Button onClick={handleBulkDelete} variant="destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -963,6 +996,15 @@ export default function AdminGuests() {
                     <Button 
                       variant="ghost" 
                       size="icon"
+                      onClick={() => handleMoveToWaitingList([guest.id])}
+                      className="text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                      title="Move to Waiting List"
+                    >
+                      <Hourglass className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
                       onClick={() => {
                         setEditingGuest(guest);
                         setIsEditOpen(true);
@@ -1147,7 +1189,7 @@ export default function AdminGuests() {
                 <Label>Table Number/Identifier</Label>
                 <Input 
                   value={editingGuest?.table_number || ''} 
-                  onChange={e => setEditingGuest(prev => ({ ...prev, table_number: e.target.value }))} 
+                  onChange={e => setEditingGuest(prev => prev ? { ...prev, table_number: e.target.value } : null)} 
                   placeholder="e.g., 1 or A"
                 />
               </div>

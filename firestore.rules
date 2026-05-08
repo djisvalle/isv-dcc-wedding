@@ -10,7 +10,6 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isAdmin() { 
       return isSignedIn() && 
-             request.auth.token.email_verified == true &&
              (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) || 
               (request.auth.token.email in ["israelvalle48@gmail.com", "debcarumba@gmail.com", "joshj.alzate77@gmail.com"])); 
     }
@@ -88,10 +87,7 @@ service cloud.firestore {
     }
 
     match /guests/{guestId} {
-      // Allow listing guests if filtered by invite_id
-      allow list: if isAdmin() || (
-        resource.data.invite_id != null
-      );
+      allow list: if isAdmin();
       
       allow get: if isAdmin() || resource.data.invite_id != null;
 

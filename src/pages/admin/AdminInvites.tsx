@@ -264,7 +264,7 @@ export default function AdminInvites() {
   };
 
   const handleDeleteInvite = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this invitation? All associated guests will be unassigned.')) return;
+    console.log('Delete button clicked for:', id);
     try {
       // Unassign guests
       const inviteGuestsRef = query(collection(db, 'guests'), where('invite_id', '==', id));

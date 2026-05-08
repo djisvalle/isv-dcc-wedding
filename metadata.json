@@ -1,6 +1,4 @@
 {
-  "name": "Israel & Deborah Wedding RSVP",
-  "description": "An elegant wedding RSVP website with real-time guest tracking, admin dashboard, and secure invite-only forms.",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
+  "name": "Israel & Deborah's Wedding Website",
+  "description": "A comprehensive wedding management system for guests, invitations, budget, and RSVP tracking."
 }

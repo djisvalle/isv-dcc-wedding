@@ -1,8 +1,6 @@
 import * as React from "react"
 import {
   DayPicker,
-  getDefaultClassNames,
-  type DayButton,
   type Locale,
 } from "react-day-picker"
 
@@ -23,7 +21,7 @@ function Calendar({
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
-  const defaultClassNames = getDefaultClassNames()
+  const defaultClassNames: any = {}
 
   return (
     <DayPicker
@@ -159,7 +157,7 @@ function Calendar({
             <ChevronDownIcon className={cn("size-4", className)} {...props} />
           )
         },
-        DayButton: ({ ...props }) => (
+        Day: ({ ...props }) => (
           <CalendarDayButton locale={locale} {...props} />
         ),
         WeekNumber: ({ children, ...props }) => {
@@ -184,8 +182,8 @@ function CalendarDayButton({
   modifiers,
   locale,
   ...props
-}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) {
-  const defaultClassNames = getDefaultClassNames()
+}: any) {
+  const defaultClassNames: any = {}
 
   const ref = React.useRef<HTMLButtonElement>(null)
   React.useEffect(() => {

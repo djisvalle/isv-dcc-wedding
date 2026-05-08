@@ -58,6 +58,8 @@ export default function AdminWaitingList() {
   // Form state
   const [form, setForm] = useState({ name: '', role: '', notes: '', priority: '1' });
 
+  const [guests, setGuests] = useState<any[]>([]);
+
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'waiting_list'), (snap) => {
       setWaitingList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as WaitingGuest)));
@@ -66,7 +68,14 @@ export default function AdminWaitingList() {
       handleFirestoreError(error, OperationType.GET, 'waiting_list');
     });
 
-    return () => unsub();
+    const unsubGuests = onSnapshot(collection(db, 'guests'), (snap) => {
+      setGuests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => {
+      unsub();
+      unsubGuests();
+    };
   }, []);
 
   const handleSave = async () => {
@@ -101,7 +110,6 @@ export default function AdminWaitingList() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this guest?')) return;
     try {
       await deleteDoc(doc(db, 'waiting_list', id));
       toast.success('Guest removed');
@@ -112,26 +120,21 @@ export default function AdminWaitingList() {
   };
 
   const handlePromote = async (guest: WaitingGuest) => {
-    if (!confirm(`Promote ${guest.name} to the main Guest List? This will create a new invite.`)) return;
-    
     try {
+      const maxOrder = guests.length > 0 
+        ? Math.max(...guests.map(g => g.import_order || 0)) 
+        : -1;
+      
       const batch = writeBatch(db);
       
-      // 1. Create a new Invite
-      const inviteRef = doc(collection(db, 'invites'));
-      batch.set(inviteRef, {
-        name: guest.name,
-        created_at: serverTimestamp(),
-        import_order: 999
-      });
-      
-      // 2. Create a new Guest
+      // 1. Create a new Guest directly, no invite created
       const guestRef = doc(collection(db, 'guests'));
       batch.set(guestRef, {
-        invite_id: inviteRef.id,
+        invite_id: null, // Initially unassigned to a group
         name: guest.name,
         role: guest.role || 'Guest',
-        is_coming: true, // Assuming invited as confirmed for now or null? Let's leave null/true choice. 
+        is_coming: null,
+        import_order: maxOrder + 1,
         updated_at: serverTimestamp()
       });
       

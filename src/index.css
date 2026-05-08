@@ -21,8 +21,8 @@
     @apply font-serif;
   }
 }
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+/* @import "tw-animate-css"; */
+/* @import "shadcn/tailwind.css"; */
 @import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));

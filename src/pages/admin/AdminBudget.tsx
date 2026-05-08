@@ -83,7 +83,19 @@ export default function AdminBudget() {
 
   // Form states
   const [supplierForm, setSupplierForm] = useState({ name: '', type: '', budget: '' });
-  const [paymentForm, setPaymentForm] = useState({ supplier_id: '', amount: '', date: format(new Date(), 'yyyy-MM-dd'), remarks: '', status: 'paid' as const });
+  const [paymentForm, setPaymentForm] = useState<{
+    supplier_id: string;
+    amount: string;
+    date: string;
+    remarks: string;
+    status: 'paid' | 'scheduled';
+  }>({ 
+    supplier_id: '', 
+    amount: '', 
+    date: format(new Date(), 'yyyy-MM-dd'), 
+    remarks: '', 
+    status: 'paid' 
+  });
   const [budgetForm, setBudgetForm] = useState('');
 
   useEffect(() => {
