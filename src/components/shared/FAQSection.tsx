@@ -8,7 +8,7 @@ import { SectionDecors } from './DecorationLayer';
 
 interface FAQItemProps {
   question: string;
-  answer: string;
+  answer: string | React.ReactNode;
   image?: string;
   onImageClick?: (src: string) => void;
 }
@@ -39,9 +39,9 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer, image, onImageClick
         )}
       >
         <div className="overflow-hidden">
-          <p className="font-serif italic text-wedding-dark/60 leading-relaxed md:text-lg whitespace-pre-line">
+          <div className="font-serif italic text-wedding-dark/60 leading-relaxed md:text-lg whitespace-pre-line">
             {answer}
-          </p>
+          </div>
           {image && (
             <div 
               className="mt-4 rounded-xl overflow-hidden border border-wedding-gold/20 shadow-sm relative group/image cursor-zoom-in"
@@ -97,7 +97,7 @@ export default function FAQSection() {
   const faqs = [
     {
       question: "Is there parking available?",
-      answer: "While there is limited available parking at the venue, we will be reserving this for family, friends, and suppliers.\n\nHowever, there is parking managed by Intramuros, as shown in the image below, colored in gray.",
+      answer: <>While there is limited available parking at the venue, we will be <b>reserving this for family, selected entourage, and suppliers</b>.<br /><br />However, there is parking managed by Intramuros, as shown in the image below, colored in gray.</>,
       image: "/map-data.svg"
     },
     {
@@ -107,12 +107,12 @@ export default function FAQSection() {
     {
       question: "What is the RSVP deadline?",
       answer: deadlineDate 
-        ? `We kindly request that you confirm your attendance through this website by ${deadlineDate}. Your timely response helps us in our final preparations.`
+        ? <>We kindly request that you confirm your attendance through this website by <b>{deadlineDate}</b>. Your timely response helps us in our final preparations.</>
         : "We kindly request that you confirm your attendance through this website as soon as possible. Your timely response helps us in our final preparations."
     },
     {
       question: "Are children allowed?",
-      answer: "While we love your little ones, we have decided to have an adults-only celebration to allow all our guests to fully enjoy the evening. We appreciate your understanding (babies and relatives are exempted)."
+      answer: <>While we love your little ones, we have decided to have an adults-only celebration to allow all our guests to fully enjoy the evening. We appreciate your understanding <b>(Infants included by special invitation of the couple and relatives are exempted)</b>.</>
     }
   ];
 

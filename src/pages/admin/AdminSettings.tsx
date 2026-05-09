@@ -21,16 +21,21 @@ import {
 
 export default function AdminSettings() {
   const [deadline, setDeadline] = useState('');
+  const [messageTemplate, setMessageTemplate] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const docRef = doc(db, 'settings', 'rsvp_deadline');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setDeadline(docSnap.data().value);
+        const deadlineSnap = await getDoc(doc(db, 'settings', 'rsvp_deadline'));
+        if (deadlineSnap.exists()) {
+          setDeadline(deadlineSnap.data().value);
+        }
+        
+        const templateSnap = await getDoc(doc(db, 'settings', 'invite_message_template'));
+        if (templateSnap.exists()) {
+          setMessageTemplate(templateSnap.data().value);
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -45,11 +50,18 @@ export default function AdminSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await setDoc(doc(db, 'settings', 'rsvp_deadline'), {
-        key: 'rsvp_deadline',
-        value: deadline,
-        updated_at: new Date().toISOString()
-      });
+      await Promise.all([
+        setDoc(doc(db, 'settings', 'rsvp_deadline'), {
+          key: 'rsvp_deadline',
+          value: deadline,
+          updated_at: new Date().toISOString()
+        }),
+        setDoc(doc(db, 'settings', 'invite_message_template'), {
+          key: 'invite_message_template',
+          value: messageTemplate,
+          updated_at: new Date().toISOString()
+        })
+      ]);
       toast.success('Settings saved successfully');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -121,6 +133,47 @@ export default function AdminSettings() {
           </Button>
         </CardContent>
       </Card>
+        <Card className="max-w-2xl border-wedding-gold/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SettingsIcon className="w-5 h-5 text-wedding-gold" />
+              Invitation Message Template
+            </CardTitle>
+            <CardDescription>
+              Customize the message sent to guests. Use {"<name>"} for guest/group name and {"<link>"} for the RSVP link.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="messageTemplate">Template</Label>
+              <textarea
+                id="messageTemplate"
+                value={messageTemplate}
+                onChange={(e) => setMessageTemplate(e.target.value)}
+                className="w-full min-h-[200px] p-3 rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-wedding-gold/50"
+                placeholder="Hello, <name>. We would like to cordially invite you... Please RSVP via our wedding website below: <link>"
+              />
+            </div>
+            
+            <Button 
+              onClick={handleSave} 
+              disabled={saving}
+              className="bg-wedding-gold hover:bg-wedding-gold/90 text-white"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
     </div>
   );
 }

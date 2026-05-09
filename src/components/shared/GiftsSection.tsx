@@ -25,7 +25,7 @@ export default function GiftsSection() {
           
           <div className="space-y-6">
             <p className="font-serif text-lg md:text-2xl italic text-wedding-dark/70 leading-relaxed max-w-xl mx-auto">
-              "Your presence at our wedding is the greatest gift of all."
+              "Your presence at our wedding is the<br />greatest gift of all."
             </p>
             
             <div className="h-px w-12 bg-wedding-gold/20 mx-auto" />

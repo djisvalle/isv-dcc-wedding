@@ -57,11 +57,11 @@ export default function ProgramSection() {
         </h2>
         <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-16">Programme</h3>
 
-        <div className="relative max-w-lg mx-auto">
-          {/* Timeline Line */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-wedding-gold/10 -translate-x-1/2 hidden md:block" />
+        <div className="relative max-w-2xl mx-auto mt-12">
+          {/* Vertical Timeline Line */}
+          <div className="absolute left-8 md:left-1/2 top-4 bottom-4 w-px bg-wedding-gold/20 md:-translate-x-1/2" />
           
-          <div className="space-y-12 md:space-y-24">
+          <div className="space-y-12">
             {programItems.map((item, index) => (
               <motion.div
                 key={index}
@@ -69,23 +69,28 @@ export default function ProgramSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className={`relative flex flex-col items-center ${
-                  index % 2 === 0 ? 'md:items-end md:pr-[50%]' : 'md:items-start md:pl-[50%]'
+                className={`relative flex items-start md:items-center gap-8 md:gap-x-16 ${
+                  index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
                 }`}
               >
-                <div className={`flex flex-col items-center ${
-                  index % 2 === 0 ? 'md:items-end md:text-right' : 'md:items-start md:text-left'
+                {/* Icon Circle */}
+                <div className="relative z-10 flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-white border border-wedding-gold/20 shadow-sm md:absolute md:left-1/2 md:-translate-x-1/2">
+                  <item.icon className="w-5 h-5 text-wedding-gold" />
+                </div>
+
+                {/* Content */}
+                <div className={`flex-1 md:w-1/2 md:max-w-[400px] ${
+                  index % 2 === 0 
+                  ? 'text-left md:text-right md:pr-16' 
+                  : 'text-left md:pl-16'
                 }`}>
-                  <div className="bg-wedding-cream/40 p-4 rounded-full mb-4 border border-wedding-gold/5 md:absolute md:left-1/2 md:-translate-x-1/2 md:top-0">
-                    <item.icon className="w-5 h-5 text-wedding-gold" />
-                  </div>
-                  <span className="font-sans font-bold text-wedding-gold text-xs tracking-[0.2em] mb-2 uppercase">
+                  <span className="font-sans font-bold text-wedding-gold text-sm tracking-[0.2em] uppercase block mb-1">
                     {item.time}
                   </span>
-                  <h4 className="font-serif text-xl md:text-2xl text-wedding-dark mb-1">
+                  <h4 className="font-serif text-xl text-wedding-dark mb-1">
                     {item.event}
                   </h4>
-                  <p className="font-serif italic text-wedding-dark/50 text-sm md:text-base">
+                  <p className="font-serif italic text-wedding-dark/60 text-base leading-relaxed">
                     {item.description}
                   </p>
                 </div>

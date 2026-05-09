@@ -20,7 +20,7 @@ export default function VenueSection() {
             </h2>
             <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-10">Venue</h3>
             <div className="space-y-12">
-              <p className="font-serif italic text-wedding-dark/60 text-base md:text-xl leading-relaxed max-w-2xl mx-auto">
+              <p className="font-serif italic text-wedding-dark/60 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto">
                 Our celebration will be held in the heart of Intramuros, Manila. 
                 A place where history meets romance, echoing the timelessness of our vows.
               </p>
@@ -32,11 +32,11 @@ export default function VenueSection() {
                   <p className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-sm mb-2">
                     Puerta Real Gardens
                   </p>
-                  <p className="font-serif text-wedding-dark/50 italic mb-6 text-base md:text-lg leading-relaxed">
+                  <p className="font-serif text-wedding-dark/50 italic mb-6 text-lg md:text-lg leading-relaxed">
                     General Luna St, Intramuros, Manila, 1002 Metro Manila
                   </p>
                   <div className="pt-8 border-t border-wedding-gold/10">
-                    <p className="text-sm md:text-base font-serif italic text-wedding-gold/80 max-w-lg mx-auto leading-loose">
+                    <p className="text-base md:text-base font-serif italic text-wedding-gold max-w-lg mx-auto leading-loose">
                       Dating to 1663, the original Puerta Real gate was constructed as one of the official entrances to Intramuros. This gate had a special ceremonial role, used exclusively by the Spanish Governor-General for state occasions.
                     </p>
                   </div>

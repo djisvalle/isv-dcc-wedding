@@ -57,8 +57,10 @@ export default function LandingPage() {
           <div className="h-px w-12 md:w-20 bg-wedding-gold/30 mx-auto mb-8 md:mb-14" />
 
           <div className="space-y-4 md:space-y-6 mb-10 md:mb-20">
-            <p className="text-base md:text-xl font-serif italic text-wedding-dark/70 max-w-[280px] md:max-w-xl mx-auto leading-relaxed">
-              Sa basbas ng Diyos at ng aming mga pamilya, malugod kaming nag-aanyaya sa inyong pag-iisang dibdib.
+            <p className="text-base md:text-xl font-serif italic text-wedding-gold max-w-[280px] md:max-w-xl mx-auto leading-relaxed">
+              Sa basbas ng Diyos at ng aming mga pamilya,<br />
+              malugod kaming nag-aanyaya sa aming<br />
+              pag-iisang dibdib.
             </p>
           </div>
 
@@ -71,8 +73,9 @@ export default function LandingPage() {
               01 <span className="mx-1">•</span> 08 <span className="mx-1">•</span> 2027
             </p>
             <p className="font-sans text-[10px] md:text-xs tracking-[0.3em] uppercase text-wedding-gold font-medium mt-2">
-              Intramuros, Manila
+              3:00 PM
             </p>
+
           </div>
         </motion.div>
       </div>

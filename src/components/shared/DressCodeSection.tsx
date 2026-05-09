@@ -33,7 +33,7 @@ export default function DressCodeSection() {
                 Classic Polo
               </p>
               <div className="mt-6 h-px w-10 bg-wedding-gold/20 mx-auto" />
-              <p className="mt-6 text-xs md:text-sm font-sans text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed">
+              <p className="mt-6 text-sm font-sans text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed">
                 Long-sleeve, any color
               </p>
             </div>
@@ -54,7 +54,7 @@ export default function DressCodeSection() {
                 Soft, Airy Long Gown
               </p>
               <div className="mt-6 h-px w-10 bg-wedding-gold/20 mx-auto" />
-              <p className="mt-6 text-xs md:text-sm font-sans text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed font-medium">
+              <p className="mt-6 text-sm font-sans text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed font-medium">
                 Any color except white
               </p>
             </div>

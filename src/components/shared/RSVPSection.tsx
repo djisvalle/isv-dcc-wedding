@@ -197,9 +197,9 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
         <Card className="border-none shadow-xl overflow-hidden bg-white/60 backdrop-blur-md rounded-[2.5rem]">
           <CardHeader className="bg-wedding-gold/5 text-center py-10 md:py-16 px-8 md:px-12 border-b border-wedding-gold/5">
             <CardTitle className="text-2xl md:text-5xl font-serif mb-6 md:mb-10 leading-snug">
-              Hello, <span className="font-ballet text-4xl md:text-6xl text-wedding-gold block mt-2">{invite.nickname || (guests.length === 1 && guests[0].nickname) || invite.name}</span>
+              Hello, <span className="font-ballet text-5xl md:text-6xl text-wedding-gold block mt-2">{invite.nickname || (guests.length === 1 && guests[0].nickname) || invite.name}</span>
             </CardTitle>
-            <CardDescription className="text-sm md:text-lg font-serif italic text-wedding-dark/60 leading-relaxed max-w-[280px] md:max-w-md mx-auto">
+            <CardDescription className="text-base md:text-lg font-serif italic text-wedding-dark/60 leading-relaxed max-w-[280px] md:max-w-md mx-auto">
               We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you. <br className="hidden md:block" />
               {isPastDeadline 
                 ? "The deadline for RSVP updates has passed." 
@@ -212,7 +212,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
                 {guests.map((guest) => (
                   <div key={guest.id} className="p-6 md:p-8 border border-wedding-gold/5 rounded-3xl bg-white/40 space-y-6 hover:border-wedding-gold/20 transition-all shadow-sm">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <span className="font-serif text-lg md:text-2xl text-wedding-dark text-center md:text-left">{guest.name}</span>
+                      <span className="font-serif text-xl md:text-2xl text-wedding-dark text-center md:text-left">{guest.name}</span>
                       <div className="flex gap-3 w-full md:w-auto">
                         <button
                           type="button"

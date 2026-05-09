@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Copy, Upload, Download, FileSpreadsheet, Loader2, Search, Plus, Edit2, Trash2, UserPlus, X, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Copy, Upload, Download, FileSpreadsheet, Loader2, Search, Plus, Edit2, Trash2, UserPlus, X, ArrowUpDown, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { 
   collection, 
   onSnapshot, 
@@ -82,6 +82,7 @@ export default function AdminInvites() {
   const [clearing, setClearing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [messageTemplate, setMessageTemplate] = useState('');
 
   // Sorting state
   const [sortField, setSortField] = useState<keyof Invite | 'guest_count' | 'attending_count'>('import_order');
@@ -108,6 +109,12 @@ export default function AdminInvites() {
       setGuests(allGuests);
       setUnassignedGuests(allGuests.filter(g => !g.invite_id));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'guests'));
+
+    getDoc(doc(db, 'settings', 'invite_message_template')).then(snap => {
+      if (snap.exists()) {
+        setMessageTemplate(snap.data().value);
+      }
+    });
 
     return () => {
       unsubInvites();
@@ -212,6 +219,14 @@ export default function AdminInvites() {
     const url = `${window.location.origin}/?inviteUrl=${id}`;
     navigator.clipboard.writeText(url);
     toast.success('Invite link copied to clipboard');
+  };
+
+  const copyMessage = (invite: Invite) => {
+    const message = messageTemplate
+      .replace('<name>', invite.name)
+      .replace('<link>', `${window.location.origin}/?inviteUrl=${invite.id}`);
+    navigator.clipboard.writeText(message);
+    toast.success('Message copied to clipboard');
   };
 
   const handleAddInvite = async (e: React.FormEvent) => {
@@ -719,6 +734,14 @@ export default function AdminInvites() {
                       className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
                     >
                       <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => copyMessage(invite)}
+                      className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
+                    >
+                      <MessageSquare className="w-4 h-4" />
                     </Button>
                     <Button 
                       variant="ghost" 

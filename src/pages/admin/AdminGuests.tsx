@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, Copy, X } from 'lucide-react';
+import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, Copy, X, MessageSquare } from 'lucide-react';
 import { 
   collection, 
   onSnapshot, 
@@ -32,6 +32,7 @@ import {
   query, 
   where, 
   getDocs,
+  getDoc,
   writeBatch
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
@@ -121,6 +122,7 @@ export default function AdminGuests() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [messageTemplate, setMessageTemplate] = useState('');
 
   // Sorting state
   const [sortField, setSortField] = useState<keyof Guest | 'invite_name'>('import_order');
@@ -161,11 +163,33 @@ export default function AdminGuests() {
       handleFirestoreError(err, OperationType.LIST, 'guests');
     });
 
+    getDoc(doc(db, 'settings', 'invite_message_template')).then((snap: any) => {
+      if (snap.exists()) {
+        setMessageTemplate(snap.data().value);
+      }
+    });
+
     return () => {
       unsubInvites();
       unsubGuests();
     };
   }, []);
+
+  const copyMessage = (guest: Guest) => {
+    // 1. Resolve Name
+    const inviteGroup = invites.find(i => i.id === guest.invite_id);
+    const displayName = inviteGroup?.name || guest.nickname || guest.name;
+
+    // 2. Resolve link
+    const link = `${window.location.origin}/?inviteUrl=${guest.invite_id || guest.id}`;
+    
+    // 3. Replace template
+    const message = messageTemplate
+      .replace('<name>', displayName)
+      .replace('<link>', link);
+    navigator.clipboard.writeText(message);
+    toast.success('Message copied to clipboard');
+  };
 
   const handleExport = () => {
     try {
@@ -1020,6 +1044,15 @@ export default function AdminGuests() {
                       className="text-slate-400 hover:text-rose-500 hover:bg-rose-50"
                     >
                       <Trash2 className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => copyMessage(guest)}
+                      className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
+                      title="Copy Message"
+                    >
+                      <MessageSquare className="w-4 h-4" />
                     </Button>
                   </div>
                 </TableCell>
