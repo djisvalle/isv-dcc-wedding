@@ -12,7 +12,8 @@ import { SectionDecors } from '@/components/shared/DecorationLayer';
 
 export default function LandingPage() {
   const [searchParams] = useSearchParams();
-  const inviteId = searchParams.get('inviteUrl') || searchParams.get('invite') || searchParams.get('id');
+  const rawInviteId = searchParams.get('inviteUrl') || searchParams.get('invite') || searchParams.get('id');
+  const inviteId = rawInviteId?.trim().replace(/\/+$/, '');
   const rsvpRef = useRef<HTMLDivElement>(null);
   const venueRef = useRef<HTMLDivElement>(null);
 

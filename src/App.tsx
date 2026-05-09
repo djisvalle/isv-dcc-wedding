@@ -14,7 +14,12 @@ import AdminLogin from '@/pages/admin/AdminLogin';
 
 function RSVPRedirect() {
   const { inviteId } = useParams();
-  return <Navigate to={`/?inviteUrl=${inviteId}`} replace />;
+  const search = window.location.search;
+  
+  // If search already contains ? prefix, replace it with & to append to inviteUrl
+  const cleanSearch = search ? search.replace(/^\?/, '&') : '';
+  
+  return <Navigate to={`/?inviteUrl=${inviteId}${cleanSearch}`} replace />;
 }
 
 export default function App() {
@@ -24,6 +29,7 @@ export default function App() {
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/rsvp/:inviteId" element={<RSVPRedirect />} />
+        <Route path="/rsvp/:inviteId/" element={<RSVPRedirect />} />
         
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />

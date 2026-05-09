@@ -89,7 +89,7 @@ service cloud.firestore {
     }
 
     match /guests/{guestId} {
-      allow list: if isAdmin();
+      allow list: if true;
       
       allow get: if isAdmin() || resource.data.invite_id != null;
 
