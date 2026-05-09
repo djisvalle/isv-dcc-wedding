@@ -168,17 +168,22 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
   if (!invite) return null;
 
   if (completed) {
+    const isAllNotAttending = guests.every(g => g.is_coming === false);
+    const successMessage = isAllNotAttending 
+      ? "Kumpirmado na ang iyong RSVP.\nIkinalulungkot namin na hindi kayo makakadalo.\nInaasahan naming makasama kayo sa diwa sa aming pagdiriwang."
+      : "Kumpirmado na ang iyong RSVP.\nIsang karangalan po na makasama kayo sa okasyong ito.";
+
     return (
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="py-20 text-center"
+        className="py-10 md:py-20 text-center"
       >
-        <div className="bg-wedding-cream border border-wedding-gold/20 rounded-3xl p-12 max-w-lg mx-auto shadow-xl">
+        <div className="bg-wedding-cream border border-wedding-gold/20 rounded-3xl p-6 md:p-12 mx-4 max-w-lg md:mx-auto shadow-xl">
           <Heart className="w-12 h-12 text-wedding-gold mx-auto mb-6 fill-wedding-gold/10" />
-          <h2 className="text-3xl font-serif mb-4 text-wedding-dark">Thank you!</h2>
-          <p className="font-serif italic text-lg text-wedding-dark/60">
-            Your RSVP has been confirmed. We can't wait to celebrate with you!
+          <h2 className="text-3xl font-serif mb-4 text-wedding-dark">Maraming salamat!</h2>
+          <p className="font-serif italic text-lg text-wedding-dark/60 whitespace-pre-line">
+            {successMessage}
           </p>
         </div>
       </motion.div>
@@ -205,7 +210,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
               <span className="text-base md:text-lg block">
                 {isPastDeadline 
                   ? "The deadline for RSVP updates has passed." 
-                  : "Kindly confirming who will be attending."}
+                  : "Kindly confirm who will be attending."}
               </span>
             </CardDescription>
           </CardHeader>
@@ -214,46 +219,48 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
               <div className="space-y-6">
                 {guests.map((guest) => (
                   <div key={guest.id} className="p-6 md:p-8 border border-wedding-gold/5 rounded-3xl bg-white/40 space-y-6 hover:border-wedding-gold/20 transition-all shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex flex-col items-center md:flex-row md:items-center justify-between gap-4">
                       <span className="font-serif text-xl md:text-2xl text-wedding-dark text-center md:text-left">{guest.name}</span>
-                      <div className="flex gap-3 w-full md:w-auto">
-                        <button
-                          type="button"
-                          disabled={isPastDeadline}
-                          onClick={() => handleToggleGuest(guest.id, true)}
-                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 md:py-4 rounded-full border transition-all text-[10px] md:text-xs font-sans tracking-[0.1em] font-bold uppercase ${
-                            guest.is_coming === true 
-                            ? "bg-wedding-gold border-wedding-gold text-white shadow-lg scale-105" 
-                            : "bg-transparent border-wedding-gold/10 text-wedding-dark/40 hover:border-wedding-gold/30"
-                          } ${isPastDeadline ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          Attending
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isPastDeadline}
-                          onClick={() => handleToggleGuest(guest.id, false)}
-                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 md:py-4 rounded-full border transition-all text-[10px] md:text-xs font-sans tracking-[0.1em] font-bold uppercase ${
-                            guest.is_coming === false 
-                            ? "bg-rose-400 border-rose-400 text-white shadow-lg scale-105" 
-                            : "bg-transparent border-wedding-gold/10 text-wedding-dark/40 hover:border-wedding-gold/30"
-                          } ${isPastDeadline ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          Not Attending
-                        </button>
+                        <div className="flex items-center justify-center gap-2 md:gap-3 w-full md:w-auto">
+                          <button
+                            type="button"
+                            disabled={isPastDeadline}
+                            onClick={() => handleToggleGuest(guest.id, true)}
+                            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 rounded-full border transition-all text-[10px] md:text-xs font-sans tracking-[0.1em] font-bold uppercase whitespace-nowrap ${
+                              guest.is_coming === true 
+                              ? "bg-wedding-gold border-wedding-gold text-white shadow-lg scale-105" 
+                              : "bg-transparent border-wedding-gold/10 text-wedding-dark/40 hover:border-wedding-gold/30"
+                            } ${isPastDeadline ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            Attending
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isPastDeadline}
+                            onClick={() => handleToggleGuest(guest.id, false)}
+                            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 rounded-full border transition-all text-[10px] md:text-xs font-sans tracking-[0.1em] font-bold uppercase whitespace-nowrap ${
+                              guest.is_coming === false 
+                              ? "bg-rose-400 border-rose-400 text-white shadow-lg scale-105" 
+                              : "bg-transparent border-wedding-gold/10 text-wedding-dark/40 hover:border-wedding-gold/30"
+                            } ${isPastDeadline ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            Not Attending
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-
+              
               {!isPastDeadline && (
                 <div className="pt-8 space-y-8">
                   <div className="text-center space-y-2">
                     <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-wedding-dark/30 font-sans font-bold">For any questions, please contact either</p>
                     <p className="text-sm md:text-base font-serif text-wedding-dark/50 italic leading-relaxed">
                       Israel <span className="font-sans font-bold not-italic mx-1">0919 067 9165</span> <br className="md:hidden" />
-                      & Debs <span className="font-sans font-bold not-italic mx-1">0969 519 2733</span>
+                      Contact Debs <span className="font-sans font-bold not-italic mx-1">0969 519 2733</span>
+                      <span className="block text-xs mt-1">Please contact us for more info</span>
                     </p>
                   </div>
                   
@@ -272,7 +279,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
                   </Button>
                 </div>
               )}
-            </div>
+            
           </CardContent>
         </Card>
       </motion.div>
