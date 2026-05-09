@@ -14,6 +14,7 @@ interface Guest {
   name: string;
   nickname?: string;
   is_coming: boolean | null;
+  import_order?: number;
 }
 
 interface Invite {
@@ -79,7 +80,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
           const guestData = guestSnap.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-          } as Guest));
+          } as Guest)).sort((a, b) => (a.import_order || 0) - (b.import_order || 0));
           
           setGuests(guestData);
           setInitialGuests(JSON.parse(JSON.stringify(guestData)));
@@ -199,11 +200,13 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
             <CardTitle className="text-2xl md:text-5xl font-serif mb-6 md:mb-10 leading-snug">
               Hello, <span className="font-ballet text-5xl md:text-6xl text-wedding-gold block mt-2">{invite.nickname || (guests.length === 1 && guests[0].nickname) || invite.name}</span>
             </CardTitle>
-            <CardDescription className="text-base md:text-lg font-serif italic text-wedding-dark/60 leading-relaxed max-w-[280px] md:max-w-md mx-auto">
-              We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you. <br className="hidden md:block" />
-              {isPastDeadline 
-                ? "The deadline for RSVP updates has passed." 
-                : "Kindly confirm your attendance."}
+            <CardDescription className="font-serif italic text-wedding-dark/60 leading-relaxed max-w-[280px] md:max-w-md mx-auto">
+              <span className="text-xl md:text-2xl text-wedding-dark/80 block mb-2">We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you.</span>
+              <span className="text-base md:text-lg block">
+                {isPastDeadline 
+                  ? "The deadline for RSVP updates has passed." 
+                  : "Kindly confirming who will be attending."}
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="p-8 md:p-14">
@@ -218,25 +221,25 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
                           type="button"
                           disabled={isPastDeadline}
                           onClick={() => handleToggleGuest(guest.id, true)}
-                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 md:py-4 rounded-full border transition-all text-xs md:text-sm font-sans tracking-[0.1em] font-bold uppercase ${
+                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 md:py-4 rounded-full border transition-all text-[10px] md:text-xs font-sans tracking-[0.1em] font-bold uppercase ${
                             guest.is_coming === true 
                             ? "bg-wedding-gold border-wedding-gold text-white shadow-lg scale-105" 
                             : "bg-transparent border-wedding-gold/10 text-wedding-dark/40 hover:border-wedding-gold/30"
                           } ${isPastDeadline ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          Going
+                          Attending
                         </button>
                         <button
                           type="button"
                           disabled={isPastDeadline}
                           onClick={() => handleToggleGuest(guest.id, false)}
-                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 md:py-4 rounded-full border transition-all text-xs md:text-sm font-sans tracking-[0.1em] font-bold uppercase ${
+                          className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 md:py-4 rounded-full border transition-all text-[10px] md:text-xs font-sans tracking-[0.1em] font-bold uppercase ${
                             guest.is_coming === false 
                             ? "bg-rose-400 border-rose-400 text-white shadow-lg scale-105" 
                             : "bg-transparent border-wedding-gold/10 text-wedding-dark/40 hover:border-wedding-gold/30"
                           } ${isPastDeadline ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          No
+                          Not Attending
                         </button>
                       </div>
                     </div>
@@ -247,7 +250,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
               {!isPastDeadline && (
                 <div className="pt-8 space-y-8">
                   <div className="text-center space-y-2">
-                    <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-wedding-dark/30 font-sans font-bold">Contact Person</p>
+                    <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-wedding-dark/30 font-sans font-bold">For any questions, please contact either</p>
                     <p className="text-sm md:text-base font-serif text-wedding-dark/50 italic leading-relaxed">
                       Israel <span className="font-sans font-bold not-italic mx-1">0919 067 9165</span> <br className="md:hidden" />
                       & Debs <span className="font-sans font-bold not-italic mx-1">0969 519 2733</span>
