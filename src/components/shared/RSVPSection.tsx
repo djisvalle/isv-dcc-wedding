@@ -258,9 +258,8 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
                   <div className="text-center space-y-2">
                     <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-wedding-dark/30 font-sans font-bold">For any questions, please contact either</p>
                     <p className="text-sm md:text-base font-serif text-wedding-dark/50 italic leading-relaxed">
-                      Israel <span className="font-sans font-bold not-italic mx-1">0919 067 9165</span> <br className="md:hidden" />
-                      Contact Debs <span className="font-sans font-bold not-italic mx-1">0969 519 2733</span>
-                      <span className="block text-xs mt-1">Please contact us for more info</span>
+                      Israel <span className="font-sans font-bold not-italic mx-1">0919 067 9165</span><br />
+                      Debs <span className="font-sans font-bold not-italic mx-1">0969 519 2733</span>
                     </p>
                   </div>
                   

@@ -34,12 +34,6 @@ export default function GiftsSection() {
               However, if you wish to honor us with a gift, a contribution towards our future together would be most appreciated.
             </p>
           </div>
-
-          <div className="pt-4">
-            <p className="font-sans text-[10px] md:text-xs uppercase tracking-[0.3em] text-wedding-gold font-bold">
-              With much love, Israel & Deborah
-            </p>
-          </div>
         </div>
       </motion.div>
     </section>
