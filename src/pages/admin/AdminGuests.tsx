@@ -33,7 +33,9 @@ import {
   where, 
   getDocs,
   getDoc,
-  writeBatch
+  writeBatch,
+  DocumentSnapshot,
+  QuerySnapshot
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import * as xlsx from 'xlsx';
@@ -152,18 +154,18 @@ export default function AdminGuests() {
   });
 
   useEffect(() => {
-    const unsubInvites = onSnapshot(collection(db, 'invites'), (snap) => {
+    const unsubInvites = onSnapshot(collection(db, 'invites'), (snap: QuerySnapshot) => {
       setInvites(snap.docs.map(d => ({ id: d.id, name: d.data().name } as Invite)));
     });
 
-    const unsubGuests = onSnapshot(collection(db, 'guests'), (snap) => {
+    const unsubGuests = onSnapshot(collection(db, 'guests'), (snap: QuerySnapshot) => {
       setGuests(snap.docs.map(d => ({ id: d.id, ...d.data() } as Guest)));
       setLoading(false);
     }, (err) => {
       handleFirestoreError(err, OperationType.LIST, 'guests');
     });
 
-    getDoc(doc(db, 'settings', 'invite_message_template')).then((snap: any) => {
+    getDoc(doc(db, 'settings', 'invite_message_template')).then((snap: DocumentSnapshot) => {
       if (snap.exists()) {
         setMessageTemplate(snap.data().value);
       }

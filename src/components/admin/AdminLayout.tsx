@@ -108,13 +108,11 @@ export default function AdminLayout() {
         <div className="lg:hidden flex items-center justify-between mb-8 px-4">
           <h2 className="font-serif text-2xl text-wedding-gold">Admin</h2>
           <Sheet>
-            <SheetTrigger
-              render={
-                <Button variant="ghost" size="icon">
-                  <Menu className="w-6 h-6" />
-                </Button>
-              }
-            />
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="w-6 h-6" />
+              </Button>
+            </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0">
                <div className="p-8">
                 <h2 className="font-serif text-2xl text-wedding-gold">Admin Panel</h2>

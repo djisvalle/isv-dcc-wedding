@@ -32,7 +32,9 @@ import {
   getDocs,
   getDoc,
   serverTimestamp,
-  addDoc
+  addDoc,
+  DocumentSnapshot,
+  QuerySnapshot
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { generateInviteId } from '@/lib/utils';
@@ -99,18 +101,18 @@ export default function AdminInvites() {
   const [guestPopoverOpen, setGuestPopoverOpen] = useState(false);
 
   useEffect(() => {
-    const unsubInvites = onSnapshot(collection(db, 'invites'), (snap) => {
+    const unsubInvites = onSnapshot(collection(db, 'invites'), (snap: QuerySnapshot) => {
       setInvites(snap.docs.map(d => ({ id: d.id, ...d.data() } as Invite)));
       setLoading(false);
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'invites'));
 
-    const unsubGuests = onSnapshot(collection(db, 'guests'), (snap) => {
+    const unsubGuests = onSnapshot(collection(db, 'guests'), (snap: QuerySnapshot) => {
       const allGuests = snap.docs.map(d => ({ id: d.id, ...d.data() } as Guest));
       setGuests(allGuests);
       setUnassignedGuests(allGuests.filter(g => !g.invite_id));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'guests'));
 
-    getDoc(doc(db, 'settings', 'invite_message_template')).then(snap => {
+    getDoc(doc(db, 'settings', 'invite_message_template')).then((snap: DocumentSnapshot) => {
       if (snap.exists()) {
         setMessageTemplate(snap.data().value);
       }
