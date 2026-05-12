@@ -68,6 +68,8 @@ interface Guest {
   table_type?: 'bridal' | 'vip' | 'regular';
   table_number?: string;
   import_order?: number;
+  is_baby_or_child?: boolean;
+  parent_name?: string;
 }
 
 const TABLE_TYPES = [
@@ -141,7 +143,9 @@ export default function AdminGuests() {
 
   // Searchable dropdown states
   const [invitePopoverOpen, setInvitePopoverOpen] = useState(false);
+  const [parentPopoverOpen, setParentPopoverOpen] = useState(false);
   const [editInvitePopoverOpen, setEditInvitePopoverOpen] = useState(false);
+  const [editParentPopoverOpen, setEditParentPopoverOpen] = useState(false);
 
   // New guest state
   const [newGuest, setNewGuest] = useState({ 
@@ -150,7 +154,9 @@ export default function AdminGuests() {
     role: '', 
     invite_id: '',
     table_type: '' as any,
-    table_number: ''
+    table_number: '',
+    is_baby_or_child: false,
+    parent_name: ''
   });
 
   useEffect(() => {
@@ -231,12 +237,14 @@ export default function AdminGuests() {
         invite_id: newGuest.invite_id || null,
         table_type: newGuest.table_type || null,
         table_number: newGuest.table_number || null,
+        is_baby_or_child: newGuest.is_baby_or_child || false,
+        parent_name: newGuest.parent_name || null,
         is_coming: null,
         import_order: maxOrder + 1,
         updated_at: serverTimestamp()
       });
       toast.success('Guest added successfully');
-      setNewGuest({ name: '', nickname: '', role: '', invite_id: '', table_type: '' as any, table_number: '' });
+      setNewGuest({ name: '', nickname: '', role: '', invite_id: '', table_type: '' as any, table_number: '', is_baby_or_child: false, parent_name: '' });
       setIsAddOpen(false);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'guests');
@@ -255,6 +263,8 @@ export default function AdminGuests() {
         invite_id: editingGuest.invite_id || null,
         table_type: editingGuest.table_type || null,
         table_number: editingGuest.table_number || null,
+        is_baby_or_child: editingGuest.is_baby_or_child || false,
+        parent_name: editingGuest.parent_name || null,
         updated_at: serverTimestamp()
       });
       toast.success('Guest updated successfully');
@@ -545,6 +555,59 @@ export default function AdminGuests() {
                     ))}
                   </select>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox 
+                    id="is_baby_or_child_add"
+                    checked={newGuest.is_baby_or_child}
+                    onCheckedChange={(checked) => setNewGuest(prev => ({ ...prev, is_baby_or_child: checked as boolean }))}
+                  />
+                  <Label htmlFor="is_baby_or_child_add">Is Baby/Child</Label>
+                </div>
+                {newGuest.is_baby_or_child && (
+                  <div className="space-y-2 flex flex-col">
+                    <Label>Parent Name</Label>
+                    <Popover open={parentPopoverOpen} onOpenChange={setParentPopoverOpen}>
+                      <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between font-normal h-10 px-3 bg-white border-slate-200"
+                          >
+                            {newGuest.parent_name || "Select parent..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search guest..." />
+                          <CommandList>
+                            <CommandEmpty>No guest found.</CommandEmpty>
+                            <CommandGroup>
+                              {guests.map((guest) => (
+                                <CommandItem
+                                  key={guest.id}
+                                  value={guest.name}
+                                  onSelect={() => {
+                                    setNewGuest(prev => ({ ...prev, parent_name: guest.name }));
+                                    setParentPopoverOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      newGuest.parent_name === guest.name ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {guest.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
                 <div className="space-y-2 flex flex-col">
                   <Label>Invitation Group (Optional)</Label>
                   <Popover open={invitePopoverOpen} onOpenChange={setInvitePopoverOpen}>
@@ -1143,6 +1206,59 @@ export default function AdminGuests() {
                 ))}
               </select>
             </div>
+            <div className="flex items-center gap-2">
+              <Checkbox 
+                id="is_baby_or_child_edit"
+                checked={editingGuest?.is_baby_or_child || false}
+                onCheckedChange={(checked) => setEditingGuest(prev => prev ? ({ ...prev, is_baby_or_child: checked as boolean }) : null)}
+              />
+              <Label htmlFor="is_baby_or_child_edit">Is Baby/Child</Label>
+            </div>
+            {editingGuest?.is_baby_or_child && (
+                <div className="space-y-2 flex flex-col">
+                  <Label>Parent Name</Label>
+                  <Popover open={editParentPopoverOpen} onOpenChange={setEditParentPopoverOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between font-normal h-10 px-3 bg-white border-slate-200"
+                        >
+                          {editingGuest?.parent_name || "Select parent..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search guest..." />
+                        <CommandList>
+                          <CommandEmpty>No guest found.</CommandEmpty>
+                          <CommandGroup>
+                            {guests.map((guest) => (
+                              <CommandItem
+                                key={guest.id}
+                                value={guest.name}
+                                onSelect={() => {
+                                  setEditingGuest(prev => prev ? ({ ...prev, parent_name: guest.name }) : null);
+                                  setEditInvitePopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    editingGuest?.parent_name === guest.name ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {guest.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+            )}
             <div className="space-y-2 flex flex-col">
               <Label>Invitation Group</Label>
               <Popover open={editInvitePopoverOpen} onOpenChange={setEditInvitePopoverOpen}>

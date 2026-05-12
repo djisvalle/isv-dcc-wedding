@@ -15,6 +15,8 @@ interface Guest {
   nickname?: string;
   is_coming: boolean | null;
   import_order?: number;
+  is_baby_or_child?: boolean;
+  parent_name?: string;
 }
 
 interface Invite {
@@ -206,7 +208,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
               Hello, <span className="font-ballet text-5xl md:text-6xl text-wedding-gold block mt-2">{invite.nickname || (guests.length === 1 && guests[0].nickname) || invite.name}</span>
             </CardTitle>
             <CardDescription className="font-serif italic text-wedding-dark/60 leading-relaxed max-w-[280px] md:max-w-md mx-auto">
-              <span className="text-xl md:text-2xl text-wedding-dark/80 block mb-2">We have reserved <span className="text-wedding-gold font-bold">{guests.length}</span> {guests.length === 1 ? 'seat' : 'seats'} for you.</span>
+              <span className="text-xl md:text-2xl text-wedding-dark/80 block mb-2">We have reserved <span className="text-wedding-gold font-bold">{guests.filter(g => !g.is_baby_or_child).length}</span> {guests.filter(g => !g.is_baby_or_child).length === 1 ? 'seat' : 'seats'} for you.</span>
               <span className="text-base md:text-lg block">
                 {isPastDeadline 
                   ? "The deadline for RSVP updates has passed." 
