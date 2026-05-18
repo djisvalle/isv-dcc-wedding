@@ -30,10 +30,10 @@ export default function AdminDashboard() {
           pendingGuests
         ] = await Promise.all([
           getCountFromServer(invitesRef),
-          getCountFromServer(guestsRef),
-          getCountFromServer(query(guestsRef, where('is_coming', '==', true))),
-          getCountFromServer(query(guestsRef, where('is_coming', '==', false))),
-          getCountFromServer(query(guestsRef, where('is_coming', '==', null)))
+          getCountFromServer(query(guestsRef, where('is_baby_or_child', '!=', true))),
+          getCountFromServer(query(guestsRef, where('is_coming', '==', true), where('is_baby_or_child', '!=', true))),
+          getCountFromServer(query(guestsRef, where('is_coming', '==', false), where('is_baby_or_child', '!=', true))),
+          getCountFromServer(query(guestsRef, where('is_coming', '==', null), where('is_baby_or_child', '!=', true)))
         ]);
 
         setStats({

@@ -29,6 +29,14 @@ interface Stats {
   totalAllocated: number;
 }
 
+interface Guest {
+  id: string;
+  is_coming?: boolean | null;
+  is_baby_or_child?: boolean;
+  role?: string;
+  table_number?: string;
+}
+
 export default function AdminReports() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [roleData, setRoleData] = useState<any[]>([]);
@@ -44,15 +52,15 @@ export default function AdminReports() {
 
       // Listen to data
       const unsubGuests = onSnapshot(collection(db, 'guests'), (snap) => {
-        const guests = snap.docs.map(doc => doc.data());
-        const totalGuests = guests.length;
-        const attending = guests.filter(g => g.is_coming === true).length;
-        const declined = guests.filter(g => g.is_coming === false).length;
-        const pending = guests.filter(g => g.is_coming === null).length;
+        const guests = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Guest[];
+        const totalGuests = guests.filter(g => !g.is_baby_or_child).length;
+        const attending = guests.filter(g => g.is_coming === true && !g.is_baby_or_child).length;
+        const declined = guests.filter(g => g.is_coming === false && !g.is_baby_or_child).length;
+        const pending = guests.filter(g => g.is_coming === null && !g.is_baby_or_child).length;
 
         // Role Breakdown
         const roles: Record<string, number> = {};
-        guests.forEach(g => {
+        guests.filter(g => !g.is_baby_or_child).forEach(g => {
           const role = g.role || 'Guest';
           roles[role] = (roles[role] || 0) + 1;
         });
@@ -60,8 +68,9 @@ export default function AdminReports() {
 
         // Table Utilization (assuming table_number exists)
         const tables: Record<string, number> = {};
-        guests.filter(g => g.is_coming === true && g.table_number).forEach(g => {
-          tables[g.table_number] = (tables[g.table_number] || 0) + 1;
+        guests.filter(g => g.is_coming === true && !g.is_baby_or_child && g.table_number).forEach(g => {
+          const tableNum = g.table_number as string;
+          tables[tableNum] = (tables[tableNum] || 0) + 1;
         });
         setTableData(Object.entries(tables).map(([name, value]) => ({ name, value })));
 

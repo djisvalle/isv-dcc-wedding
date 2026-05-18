@@ -68,6 +68,7 @@ interface Guest {
   table_order?: number;
   role?: string;
   is_coming?: boolean | null;
+  is_baby_or_child?: boolean;
 }
 
 interface Table {
@@ -131,7 +132,7 @@ const SortableGuestItem: React.FC<{
           <GripVertical className="w-3 h-3 text-slate-300 flex-shrink-0" />
           <div className="truncate">
             <span className="text-sm text-slate-700 font-medium group-hover/guest:text-wedding-gold transition-colors truncate block">
-              {guest.name}
+              {guest.name} {guest.is_baby_or_child && <span className="text-[10px] text-slate-400 font-normal">(Baby/Child)</span>}
             </span>
           </div>
         </div>
@@ -231,6 +232,8 @@ const DroppableTable: React.FC<{
     }
   };
 
+  const countOccupants = tableGuests.filter(g => !g.is_baby_or_child).length;
+
   return (
     <div ref={setNodeRef} className="h-full">
       <Card className={`
@@ -251,7 +254,7 @@ const DroppableTable: React.FC<{
                   {getTableTitle(table.type, table.number)}
                 </CardTitle>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                  {tableGuests.length} {tableGuests.length === 1 ? 'Guest' : 'Guests'}
+                  {countOccupants} {countOccupants === 1 ? 'Guest' : 'Guests'}
                 </p>
               </div>
             </div>

@@ -1001,23 +1001,45 @@ export default function AdminGuests() {
                   )}
                 </TableCell>
                 <TableCell className="py-6 px-8">
-                  <div className="flex items-center gap-2">
-                    <code className="text-[10px] px-1.5 py-0.5 bg-wedding-gold/10 text-wedding-gold rounded">
-                      {guest.invite_id || `ind-${guest.id.substring(0, 5)}`}
-                    </code>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6"
-                      onClick={() => {
-                        const link = `${window.location.origin}/rsvp/${guest.invite_id || guest.id}`;
-                        navigator.clipboard.writeText(link);
-                        toast.success('Link copied');
-                      }}
-                      title="Copy RSVP Link"
-                    >
-                      <Copy className="w-3 h-3" />
-                    </Button>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <code className="text-[10px] px-1.5 py-0.5 bg-wedding-gold/10 text-wedding-gold rounded truncate max-w-[120px]" title={guest.invite_id || `ind-${guest.id.substring(0, 5)}`}>
+                        {guest.invite_id || `ind-${guest.id.substring(0, 5)}`}
+                      </code>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6"
+                        onClick={() => {
+                          const link = `${window.location.origin}/rsvp/${guest.invite_id || guest.id}`;
+                          navigator.clipboard.writeText(link);
+                          toast.success(guest.invite_id ? 'Group Link copied' : 'Link copied');
+                        }}
+                        title={guest.invite_id ? "Copy Group RSVP Link" : "Copy RSVP Link"}
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    {guest.invite_id && (
+                      <div className="flex items-center gap-2">
+                        <code className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded truncate max-w-[120px]" title={`ind-${guest.id.substring(0, 5)}`}>
+                          ind-{guest.id.substring(0, 5)}
+                        </code>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-slate-400 hover:text-slate-600"
+                          onClick={() => {
+                            const link = `${window.location.origin}/rsvp/${guest.id}`;
+                            navigator.clipboard.writeText(link);
+                            toast.success('Individual Link copied');
+                          }}
+                          title="Copy Individual RSVP Link"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="py-6 px-8">
