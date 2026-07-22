@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Users, Ticket, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Users, Ticket, CheckCircle2, XCircle, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { collection, getCountFromServer, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -15,6 +15,7 @@ interface Stats {
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function fetchStats() {
@@ -26,25 +27,31 @@ export default function AdminDashboard() {
           totalInvites,
           totalGuests,
           attendingGuests,
-          declinedGuests,
-          pendingGuests
+          declinedGuests
         ] = await Promise.all([
           getCountFromServer(invitesRef),
           getCountFromServer(query(guestsRef, where('is_baby_or_child', '!=', true))),
           getCountFromServer(query(guestsRef, where('is_coming', '==', true), where('is_baby_or_child', '!=', true))),
-          getCountFromServer(query(guestsRef, where('is_coming', '==', false), where('is_baby_or_child', '!=', true))),
-          getCountFromServer(query(guestsRef, where('is_coming', '==', null), where('is_baby_or_child', '!=', true)))
+          getCountFromServer(query(guestsRef, where('is_coming', '==', false), where('is_baby_or_child', '!=', true)))
         ]);
+
+        const total = totalGuests.data().count;
+        const attending = attendingGuests.data().count;
+        const declined = declinedGuests.data().count;
 
         setStats({
           totalInvites: totalInvites.data().count,
-          totalGuests: totalGuests.data().count,
-          attendingGuests: attendingGuests.data().count,
-          declinedGuests: declinedGuests.data().count,
-          pendingGuests: pendingGuests.data().count
+          totalGuests: total,
+          attendingGuests: attending,
+          declinedGuests: declined,
+          // Derive "no RSVP yet" from the remainder so guests whose `is_coming`
+          // field is absent (not explicit null) are still counted.
+          pendingGuests: Math.max(0, total - attending - declined)
         });
+        setError(false);
       } catch (err) {
         console.error('Failed to fetch stats:', err);
+        setError(true);
       }
     }
     fetchStats();
@@ -52,7 +59,27 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  if (!stats) return null;
+  if (!stats && error) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-center gap-3">
+        <AlertCircle className="w-8 h-8 text-rose-500" />
+        <p className="text-slate-600 font-medium">Couldn't load dashboard stats.</p>
+        <p className="text-sm text-slate-400">Retrying automatically…</p>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-wedding-gold" />
+      </div>
+    );
+  }
+
+  const rsvpTotal = stats.totalGuests || 0;
+  const attendingPct = rsvpTotal > 0 ? (stats.attendingGuests / rsvpTotal) * 100 : 0;
+  const declinedPct = rsvpTotal > 0 ? (stats.declinedGuests / rsvpTotal) * 100 : 0;
 
   const cards = [
     { label: 'Total Guests', value: stats.totalGuests, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
@@ -97,18 +124,18 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex">
-              <div 
-                className="h-full bg-emerald-500" 
-                style={{ width: `${(stats.attendingGuests / stats.totalGuests) * 100}%` }} 
+              <div
+                className="h-full bg-emerald-500"
+                style={{ width: `${attendingPct}%` }}
               />
-              <div 
-                className="h-full bg-rose-500" 
-                style={{ width: `${(stats.declinedGuests / stats.totalGuests) * 100}%` }} 
+              <div
+                className="h-full bg-rose-500"
+                style={{ width: `${declinedPct}%` }}
               />
             </div>
             <div className="flex justify-between mt-4 text-xs font-semibold text-slate-400">
-              <span>{Math.round((stats.attendingGuests / stats.totalGuests) * 100)}% Attending</span>
-              <span>{Math.round((stats.declinedGuests / stats.totalGuests) * 100)}% Declined</span>
+              <span>{Math.round(attendingPct)}% Attending</span>
+              <span>{Math.round(declinedPct)}% Declined</span>
             </div>
           </CardContent>
         </Card>
