@@ -163,46 +163,52 @@ export default function AdminInvites() {
 
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = xlsx.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = xlsx.utils.sheet_to_json(sheet) as any[];
+      // arrayBuffer() is awaitable, so the spinner and error handling wrap the
+      // actual import work (the old FileReader.onload flow cleared the spinner
+      // before the rows were even processed, and swallowed parse errors).
+      const data = new Uint8Array(await file.arrayBuffer());
+      const workbook = xlsx.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = xlsx.utils.sheet_to_json(sheet) as any[];
 
-        let rowIndex = 0;
-        for (const row of rows) {
-          const inviteId = row.inviteId || generateInviteId();
-          const name = row.inviteName || row.name;
-          if (!name) continue;
+      let rowIndex = 0;
+      let imported = 0;
+      for (const row of rows) {
+        const inviteId = row.inviteId || generateInviteId();
+        const name = row.inviteName || row.name;
+        if (!name) continue;
 
-          await setDoc(doc(db, 'invites', inviteId), {
-            name,
-            import_order: rowIndex++,
-            created_at: serverTimestamp()
-          }, { merge: true });
+        await setDoc(doc(db, 'invites', inviteId), {
+          name,
+          import_order: rowIndex++,
+          created_at: serverTimestamp()
+        }, { merge: true });
 
-          const guestNames = row.guests ? String(row.guests).split(',').map((s: string) => s.trim()) : [row.name];
-          let guestIndex = 0;
-          for (const guestName of guestNames) {
-            if (guestName) {
-              await addDoc(collection(db, 'guests'), {
-                name: guestName,
-                invite_id: inviteId,
-                role: row.role || null,
-                is_coming: null,
-                import_order: guestIndex++,
-                updated_at: serverTimestamp()
-              });
-            }
+        const guestNames = row.guests ? String(row.guests).split(',').map((s: string) => s.trim()) : [row.name];
+        let guestIndex = 0;
+        for (const guestName of guestNames) {
+          if (guestName) {
+            await addDoc(collection(db, 'guests'), {
+              name: guestName,
+              invite_id: inviteId,
+              role: row.role || null,
+              is_coming: null,
+              import_order: guestIndex++,
+              updated_at: serverTimestamp()
+            });
           }
         }
-        toast.success('Successfully imported invitations');
+        imported++;
+      }
+      if (imported === 0) {
+        toast.error('No valid rows found. Make sure an "inviteName" column exists.');
+      } else {
+        toast.success(`Successfully imported ${imported} invitation(s)`);
         setIsBulkOpen(false);
-      };
-      reader.readAsArrayBuffer(file);
+      }
     } catch (err) {
-      toast.error('Failed to upload file');
+      console.error(err);
+      toast.error('Failed to import file. Please check the format.');
     } finally {
       setUploading(false);
     }
@@ -225,8 +231,8 @@ export default function AdminInvites() {
 
   const copyMessage = (invite: Invite) => {
     const message = messageTemplate
-      .replace('<name>', invite.name)
-      .replace('<link>', `${window.location.origin}/?inviteUrl=${invite.id}`);
+      .replace(/<name>/g, invite.name)
+      .replace(/<link>/g, `${window.location.origin}/?inviteUrl=${invite.id}`);
     navigator.clipboard.writeText(message);
     toast.success('Message copied to clipboard');
   };
@@ -281,14 +287,13 @@ export default function AdminInvites() {
   };
 
   const handleDeleteInvite = async (id: string) => {
-    console.log('Delete button clicked for:', id);
+    const invite = invites.find(i => i.id === id);
+    if (!window.confirm(`Delete invitation "${invite?.name || id}"? Its guests will be unassigned (not deleted).`)) return;
     try {
       // Unassign guests
       const inviteGuestsRef = query(collection(db, 'guests'), where('invite_id', '==', id));
       const snap = await getDocs(inviteGuestsRef);
-      for (const d of snap.docs) {
-        await updateDoc(doc(db, 'guests', d.id), { invite_id: null });
-      }
+      await Promise.all(snap.docs.map(d => updateDoc(doc(db, 'guests', d.id), { invite_id: null })));
       // Delete invite
       await deleteDoc(doc(db, 'invites', id));
       toast.success('Invitation deleted');
@@ -374,11 +379,16 @@ export default function AdminInvites() {
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
-  const totalPages = Math.ceil(sortedInvites.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(sortedInvites.length / itemsPerPage));
   const paginatedInvites = sortedInvites.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Keep the current page in range when filters/deletes shrink the result set.
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const handleSort = (field: keyof Invite | 'guest_count' | 'attending_count') => {
     if (sortField === field) {
@@ -621,8 +631,8 @@ export default function AdminInvites() {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-        <Table>
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-x-auto">
+        <Table className="min-w-[760px]">
           <TableHeader className="bg-slate-50/50">
             <TableRow>
               <TableHead 
@@ -676,13 +686,13 @@ export default function AdminInvites() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-20 text-center">
+                <TableCell colSpan={6} className="py-20 text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-wedding-gold opacity-20" />
                 </TableCell>
               </TableRow>
             ) : paginatedInvites.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-20 text-center text-slate-400">
+                <TableCell colSpan={6} className="py-20 text-center text-slate-400">
                   No invitations found.
                 </TableCell>
               </TableRow>

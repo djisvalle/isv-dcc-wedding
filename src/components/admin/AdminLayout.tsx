@@ -18,12 +18,13 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 import { auth } from '@/lib/firebase';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function AdminLayout() {
   const { user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -62,7 +63,7 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-slate-50 flex">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-72 bg-white border-r border-slate-200 flex-col">
-        <div className="p-8 border-bottom border-slate-100 mb-8">
+        <div className="p-8 border-b border-slate-100 mb-8">
           <h2 className="font-serif text-2xl text-wedding-gold">Admin Panel</h2>
           <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-1">I & D Wedding</p>
         </div>
@@ -107,28 +108,46 @@ export default function AdminLayout() {
       <main className="flex-1 p-6 lg:p-12 overflow-auto">
         <div className="lg:hidden flex items-center justify-between mb-8 px-4">
           <h2 className="font-serif text-2xl text-wedding-gold">Admin</h2>
-          <Sheet>
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="w-6 h-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
+            <SheetContent side="left" className="w-72 p-0 flex flex-col">
                <div className="p-8">
                 <h2 className="font-serif text-2xl text-wedding-gold">Admin Panel</h2>
               </div>
-              <nav className="px-4 space-y-1">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl"
-                  >
-                    <item.icon className="w-5 h-5" />
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
+              <nav className="px-4 space-y-1 flex-1 overflow-y-auto">
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileNavOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                        isActive
+                          ? 'bg-wedding-gold text-white'
+                          : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
               </nav>
+              <div className="p-4 border-t border-slate-100">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-slate-400 hover:text-red-500 hover:bg-red-50"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-4 h-4 mr-3" />
+                  Sign Out
+                </Button>
+              </div>
             </SheetContent>
           </Sheet>
         </div>

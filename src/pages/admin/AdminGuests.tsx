@@ -193,8 +193,8 @@ export default function AdminGuests() {
     
     // 3. Replace template
     const message = messageTemplate
-      .replace('<name>', displayName)
-      .replace('<link>', link);
+      .replace(/<name>/g, displayName)
+      .replace(/<link>/g, link);
     navigator.clipboard.writeText(message);
     toast.success('Message copied to clipboard');
   };
@@ -276,6 +276,8 @@ export default function AdminGuests() {
   };
 
   const handleDeleteGuest = async (id: string) => {
+    const guest = guests.find(g => g.id === id);
+    if (!window.confirm(`Delete ${guest?.name || 'this guest'}? This cannot be undone.`)) return;
     try {
       await deleteDoc(doc(db, 'guests', id));
       toast.success('Guest deleted successfully');
@@ -286,13 +288,13 @@ export default function AdminGuests() {
   };
 
   const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.length} selected guest(s)? This cannot be undone.`)) return;
     try {
-      for (const id of selectedIds) {
-        await deleteDoc(doc(db, 'guests', id));
-      }
+      await Promise.all(selectedIds.map(id => deleteDoc(doc(db, 'guests', id))));
       toast.success('Guests deleted successfully');
       setSelectedIds([]);
     } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'guests/bulk');
       toast.error('Failed to delete guests');
     }
   };
@@ -313,6 +315,7 @@ export default function AdminGuests() {
   };
 
   const handleMoveToWaitingList = async (ids: string[]) => {
+    if (!window.confirm(`Move ${ids.length} guest(s) to the waiting list? They will be removed from the guest list.`)) return;
     try {
       const batch = writeBatch(db);
       for (const id of ids) {
@@ -348,36 +351,43 @@ export default function AdminGuests() {
 
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = xlsx.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = xlsx.utils.sheet_to_json(sheet) as any[];
+      // arrayBuffer() is awaitable, so parsing/import errors are caught here and
+      // the spinner clears only after the work actually finishes (the old
+      // FileReader.onload flow resolved `finally` before the import even ran).
+      const data = new Uint8Array(await file.arrayBuffer());
+      const workbook = xlsx.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = xlsx.utils.sheet_to_json(sheet) as any[];
 
-        let index = 0;
-        for (const row of rows) {
-          if (row.name) {
-            await addDoc(collection(db, 'guests'), {
-              name: row.name,
-              role: row.role || null,
-              invite_id: row.inviteId || null,
-              is_coming: null,
-              import_order: index++,
-              updated_at: serverTimestamp()
-            });
-          }
+      const maxOrder = guests.length > 0 ? Math.max(...guests.map(g => g.import_order || 0)) : -1;
+      let index = maxOrder + 1;
+      let imported = 0;
+      for (const row of rows) {
+        if (row.name) {
+          await addDoc(collection(db, 'guests'), {
+            name: row.name,
+            role: row.role || null,
+            invite_id: row.inviteId || null,
+            is_coming: null,
+            import_order: index++,
+            updated_at: serverTimestamp()
+          });
+          imported++;
         }
-        toast.success('Successfully imported guest list');
+      }
+      if (imported === 0) {
+        toast.error('No valid rows found. Make sure a "name" column exists.');
+      } else {
+        toast.success(`Successfully imported ${imported} guest(s)`);
         setIsUploadOpen(false);
-      };
-      reader.readAsArrayBuffer(file);
+      }
     } catch (err) {
-      toast.error('Failed to upload file');
+      console.error(err);
+      toast.error('Failed to import file. Please check the format.');
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [guests]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
     onDrop,
@@ -446,11 +456,16 @@ export default function AdminGuests() {
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
-  const totalPages = Math.ceil(sortedGuests.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(sortedGuests.length / itemsPerPage));
   const paginatedGuests = sortedGuests.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Keep the current page in range when filters/deletes shrink the result set.
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const handleSort = (field: keyof Guest | 'invite_name') => {
     if (sortField === field) {
@@ -485,7 +500,7 @@ export default function AdminGuests() {
 
         <div className="flex flex-wrap gap-2">
           {selectedIds.length > 0 && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button onClick={() => handleUpdateStatus(selectedIds, true)} variant="outline" className="text-emerald-600 border-emerald-100 hover:bg-emerald-50">
                 <UserCheck className="w-4 h-4 mr-2" />
                 Attend ({selectedIds.length})
@@ -899,8 +914,8 @@ export default function AdminGuests() {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-        <Table>
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-x-auto">
+        <Table className="min-w-[900px]">
           <TableHeader className="bg-slate-50/50">
             <TableRow>
               <TableHead className="w-12 px-8">
@@ -961,13 +976,13 @@ export default function AdminGuests() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-20 text-center">
+                <TableCell colSpan={8} className="py-20 text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-wedding-gold opacity-20" />
                 </TableCell>
               </TableRow>
             ) : paginatedGuests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-20 text-center text-slate-400">
+                <TableCell colSpan={8} className="py-20 text-center text-slate-400">
                   No guests found.
                 </TableCell>
               </TableRow>
@@ -1071,7 +1086,7 @@ export default function AdminGuests() {
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -1262,7 +1277,7 @@ export default function AdminGuests() {
                                 value={guest.name}
                                 onSelect={() => {
                                   setEditingGuest(prev => prev ? ({ ...prev, parent_name: guest.name }) : null);
-                                  setEditInvitePopoverOpen(false);
+                                  setEditParentPopoverOpen(false);
                                 }}
                               >
                                 <Check

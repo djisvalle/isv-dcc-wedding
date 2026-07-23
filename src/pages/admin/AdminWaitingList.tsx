@@ -110,6 +110,7 @@ export default function AdminWaitingList() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm('Remove this person from the waiting list? This cannot be undone.')) return;
     try {
       await deleteDoc(doc(db, 'waiting_list', id));
       toast.success('Guest removed');
