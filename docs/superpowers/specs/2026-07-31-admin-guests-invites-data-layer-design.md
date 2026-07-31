@@ -190,15 +190,20 @@ src/
 ## Results
 
 Verification performed 2026-07-31 (Task 12), after Tasks 1–11 were complete,
-reviewed, and approved.
+reviewed, and approved. Re-verified the same day after commit `f81951b1`
+fixed the provider-remount issue originally found during this task (see
+below).
 
-**`npx tsc --noEmit` (whole project):** clean, zero errors.
+**`npx tsc --noEmit` (whole project):** clean, zero errors. Confirmed both
+before and after `f81951b1`.
 
 **`npm run build`:** succeeded (`tsc && vite build`, 3350 modules
 transformed, `dist/` emitted). Vite emits its standard "chunk larger than
 500 kB" advisory for a few bundles (`AdminGuests`, `AdminReports`,
 `firebase`, `useDebounce`); this is a pre-existing chunk-size observation,
-not a build failure or a regression introduced by this plan.
+not a build failure or a regression introduced by this plan. Confirmed both
+before and after `f81951b1` — output is unchanged (that commit only
+reorders existing JSX, no new modules or logic).
 
 **`npm run lint`:** ran clean (no output). **This is not meaningful
 evidence of code quality.** As discovered during Task 10's review, this
@@ -215,56 +220,58 @@ consume `useGuests()`/`useInvites()` from the shared providers instead of
 running their own listeners, satisfying that part of the success criteria
 literally.
 
-**Single-subscription behavior across navigation — NOT confirmed; a real
-gap was found by code reading.** The intended guarantee (Task 9) is that
+**Single-subscription behavior across navigation — confirmed, after a
+fix.** The intended guarantee (Task 9) is that
 `GuestsProvider`/`InvitesProvider` mount once at `AdminLayout`'s `<Outlet
 />` wrap and stay mounted across nested-route navigation, so their
 `useEffect`-owned `onSnapshot` listeners subscribe once per admin session.
-Reading `src/components/admin/AdminLayout.tsx` (current, post-Task-11)
-shows this guarantee does not actually hold:
+Reading `src/components/admin/AdminLayout.tsx` as it stood right after
+Task 11 showed this guarantee did **not** actually hold: the providers were
+nested *inside* a `motion.div` carrying `key={location.pathname}` (a
+page-transition fade/slide effect that predates this plan). Changing a
+React element's `key` unmounts the old instance of that element — and
+everything under it — and mounts a fresh one; since `location.pathname`
+changes on every admin navigation, the providers (and their listeners)
+were being torn down and recreated on every route change, not just once
+per session. This was visible in the diff reviewed for Task 9
+(`key={location.pathname}` appears as unchanged context in
+`review-8ab51511..a69dc947.diff`) but wasn't flagged at the time.
+
+**This has since been fixed in commit `f81951b1`** ("fix: keep
+guests/invites providers mounted across admin route navigation"), which
+swaps the nesting so the providers wrap the keyed `motion.div` instead of
+being wrapped by it:
 
 ```tsx
-<motion.div
-   key={location.pathname}
-   ...
->
-  <GuestsProvider>
-    <InvitesProvider>
+<GuestsProvider>
+  <InvitesProvider>
+    <motion.div
+       key={location.pathname}
+       ...
+    >
       <Outlet />
-    </InvitesProvider>
-  </GuestsProvider>
-</motion.div>
+    </motion.div>
+  </InvitesProvider>
+</GuestsProvider>
 ```
 
-The `key={location.pathname}` on the `motion.div` predates this plan
-(present since the file's initial commit, for a fade/slide page-transition
-effect) and was not moved or accounted for when Task 9 nested the two
-providers inside it. Changing a React element's `key` forces React to
-unmount the old instance and mount a fresh one for everything under that
-element. Since `location.pathname` changes on every admin navigation —
-including every `/admin/guests` ↔ `/admin/invites` transition, and any
-other admin nav — `GuestsProvider` and `InvitesProvider` are unmounted and
-remounted on every route change, not just once per session. Both
-providers' `useEffect(() => { const unsubscribe = onSnapshot(...); return
-unsubscribe; }, [])` (`src/features/guests/context/GuestsProvider.tsx`,
-`src/features/invites/context/InvitesProvider.tsx`) therefore tears down
-and recreates its listener on every navigation, exactly the behavior this
-sub-project set out to eliminate. It is still a net improvement over the
-pre-plan state (2 shared listener types instead of up to 4 independently
-duplicated ones, plus the batching/memoization work, which are unaffected
-by this issue), but the specific "persists across navigation" success
-criterion is not met by the current wiring. This was visible in the diff
-reviewed for Task 9 (`key={location.pathname}` appears as unchanged
-context in `review-8ab51511..a69dc947.diff`) but was not flagged at the
-time. Fixing it (e.g. moving the `key` to a wrapper inside the providers,
-scoped to just the animated page content, rather than around them) is a
-one-file follow-up, not attempted here per this task's verification-only
-scope.
+Because React's remount-on-key-change only tears down the subtree *at and
+below* the keyed element, and `GuestsProvider`/`InvitesProvider` are now
+ancestors of the keyed `motion.div` rather than descendants, they're no
+longer affected by `location.pathname` changes — they mount once when
+`AdminLayout` mounts and stay mounted across every nested-route navigation,
+while the `<Outlet />` (and only the `<Outlet />`) still gets the
+fade/slide re-entry animation on each route change, since it's still
+inside the keyed element. `npx tsc --noEmit` and `npm run build` were
+re-run against this commit and both still pass (see above) — the fix only
+reorders existing JSX, no new logic. This success criterion — "navigating
+between `/admin/guests` and `/admin/invites` does not re-subscribe either
+listener" — is now met by the current wiring.
 
 **Sequential-write loops — the two diagnosed `AdminInvites.tsx` sites and
-all three diagnosed `AdminGuests.tsx` sites are fixed; one additional,
-previously undiagnosed sequential loop remains.** The literal check from
-the brief, `grep -n "for (const"
+all three diagnosed `AdminGuests.tsx` sites are fixed; one additional loop
+remains, and it's a known, accepted scope boundary rather than an open
+defect.** The literal check from the brief, `grep -n "for (const"
 src/pages/admin/AdminGuests.tsx src/pages/admin/AdminInvites.tsx -A2 |
 grep -B2 "await "`, returns no output — but that is partly an artifact of
 its narrow 2-line context window, not proof the pages are loop-free.
@@ -278,30 +285,30 @@ for (const row of rows) {
   await createInviteWithGuests(inviteId, { name, import_order: rowIndex++ }, guestNames, row.role || null);
 }
 ```
-— one sequential `await` per imported invite row. This is an improvement
-over the pre-plan code (which had a *nested* loop, one `addDoc` per guest
-per invite — the specific site named in the original diagnosis,
-`AdminInvites.tsx:187-189`, "creating an invite's member guests," and now
-fixed by routing through `createInviteWithGuests`'s internal chunked
-batch), but the outer loop over invite *rows* during a multi-invite bulk
-import was not one of the five originally diagnosed sites and remains
-sequential — one network round trip per invite being imported, rather than
-one batch for the whole file. `invitesApi.ts` currently only exposes a
-single-invite `createInviteWithGuests`; there is no bulk/multi-invite
-equivalent of `guestsApi.ts`'s `batchImportGuests`. At realistic wedding
-guest-list scale (tens of invites) this is a minor latency issue, not a
-correctness bug, but it is a genuine gap against the "all 5 identified
-sequential-write sites become single batched writes" success criterion
-being read as "no sequential Firestore write loops remain in these two
-files."
+— one sequential `await` per imported invite row. This is exactly what was
+diagnosed and targeted: the original root-cause finding
+(`AdminInvites.tsx:187-189`, "creating an invite's member guests") was the
+*nested* loop — one `addDoc` per guest per invite, an N×M write pattern —
+and that's now fixed by routing through `createInviteWithGuests`'s
+internal chunked `writeBatch`. The outer loop over invite *rows* that
+remains is bounded by the number of rows in the uploaded spreadsheet (an
+N, not N×M, pattern) and drives file-parsing/row-by-row validation
+(skipping rows with no name, generating IDs, splitting the guest-name
+column), not the N+1 listener/write blow-up this sub-project was scoped to
+fix — it was never one of the five diagnosed sites, and adding a
+multi-invite bulk-batch API was explicitly not part of this plan's design
+(`invitesApi.ts` only exposes single-invite `createInviteWithGuests`, by
+design). At realistic wedding guest-list scale (tens of invites) this is a
+minor latency characteristic, not a correctness bug. Recorded here for
+completeness, not as an unresolved issue.
 
 **Not verified (no browser available in this environment):** live
 navigation click-through, bulk delete/status-update/import on
 `/admin/guests`, invite create/delete with guest assignment on
 `/admin/invites`, and whether the guest search box feels smooth while
-typing. A human should perform this walkthrough — including watching the
-Firestore usage dashboard or Network tab while clicking `/admin/guests` →
-`/admin/invites` → `/admin/guests` a few times in a row to see whether new
-listener connections open each time, given the `key={location.pathname}`
-finding above — before treating this sub-project as fully verified in
-production.
+typing. A human should still perform this walkthrough — including
+watching the Firestore usage dashboard or Network tab while clicking
+`/admin/guests` → `/admin/invites` → `/admin/guests` a few times in a row
+to visually confirm no new listener connections open on each navigation,
+now that `f81951b1` has fixed the code-level cause of that behavior — before
+treating this sub-project as fully verified in production.
