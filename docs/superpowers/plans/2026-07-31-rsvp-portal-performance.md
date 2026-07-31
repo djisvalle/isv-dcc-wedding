@@ -109,7 +109,7 @@ git commit -m "feat: add TanStack Query provider"
 - Create: `src/features/rsvp/types.ts`
 
 **Interfaces:**
-- Produces: `Guest`, `Invite`, `RsvpDeadline` interfaces, imported by Tasks 3, 4, 5, 6.
+- Produces: `Guest`, `Invite`, `RsvpDeadline` interfaces, imported by Tasks 3, 4, 5.
 
 - [ ] **Step 1: Create the types file**
 
@@ -286,7 +286,7 @@ git commit -m "feat: add RSVP API module with parallel-fetch-ready reads and bat
 
 **Interfaces:**
 - Consumes: `fetchDeadline`, `fetchInvite`, `submitRsvp`, `GuestStatusChange` from `../api/rsvpApi` (Task 3).
-- Produces: `useDeadline()` (returns a TanStack Query `UseQueryResult<RsvpDeadline>`), `useRsvpInvite(inviteId: string | undefined)` (returns `{ invite, guests, deadline, isPastDeadline, loading, error }`), `useSubmitRsvp(inviteId: string | undefined)` (returns a TanStack `UseMutationResult` with `mutateAsync(changes: GuestStatusChange[])`). Consumed by Task 5 (`useDeadline`, `useRsvpInvite`), Task 6 (`useSubmitRsvp`), Task 7 (`useDeadline`).
+- Produces: `useDeadline()` (returns a TanStack Query `UseQueryResult<RsvpDeadline>`), `useRsvpInvite(inviteId: string | undefined)` (returns `{ invite, guests, deadline, isPastDeadline, loading, error }`), `useSubmitRsvp(inviteId: string | undefined)` (returns a TanStack `UseMutationResult` with `mutateAsync(changes: GuestStatusChange[])`). Consumed by Task 5 (`useDeadline`, `useRsvpInvite`, `useSubmitRsvp`), Task 6 (`useDeadline`).
 
 - [ ] **Step 1: Create the read hooks**
 
@@ -363,15 +363,17 @@ git commit -m "feat: add RSVP query and mutation hooks"
 
 ---
 
-### Task 5: Add an RSVP loading skeleton and rewire RSVPSection's read path
+### Task 5: Add an RSVP loading skeleton and rewire RSVPSection onto TanStack Query
 
 **Files:**
 - Create: `src/components/shared/RsvpSkeleton.tsx`
-- Modify: `src/components/shared/RSVPSection.tsx` (full rewrite of data-fetching portion, lines 1–170 region)
+- Modify: `src/components/shared/RSVPSection.tsx` (full rewrite of data-fetching and submit-handling; touches the whole file)
 
 **Interfaces:**
-- Consumes: `useRsvpInvite` from `@/features/rsvp/hooks/useRsvpInvite` (Task 4), `Guest` from `@/features/rsvp/types` (Task 2).
+- Consumes: `useRsvpInvite` from `@/features/rsvp/hooks/useRsvpInvite`, `useSubmitRsvp` from `@/features/rsvp/hooks/useSubmitRsvp` (both Task 4), `Guest` from `@/features/rsvp/types` (Task 2).
 - Produces: `RsvpSkeleton` (default export) — a layout-matched loading placeholder, sized to approximate the real RSVP card to minimize CLS when it's replaced by real content.
+
+This task rewires both the read path (invite/guest/deadline fetch) and the write path (batched submit) in one pass, so every commit in this task leaves the file in a compiling, working state — the read and write rewires are too entangled in this one file (the submit handler reads `guests`/`serverGuests` state the read-path rewire introduces, and the JSX further down references the mutation's pending state) to split into separately-committed sub-steps without an intermediate broken build.
 
 - [ ] **Step 1: Create the skeleton component**
 
@@ -481,37 +483,13 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
   if (!invite) return null;
 ```
 
-Everything from the original `if (completed) { ... }` block onward (originally starting at line 172) stays **unchanged** — do not modify the completed-screen JSX or the main return JSX below it, except for the two substitutions in Step 3.
+Everything from the original `if (completed) { ... }` block onward (originally starting at line 172) stays **unchanged** for now — do not modify the completed-screen JSX or the main return JSX below it yet; Step 3 makes the two substitutions it needs.
 
-Note: the `Loader2` icon import is kept even though the old centered-spinner block is removed, because it's still used inside the submit button's pending state (handled in Task 6).
+Note: the `Loader2` icon import is kept even though the old centered-spinner block is removed, because it's still used inside the submit button's pending state, updated next.
 
-- [ ] **Step 3: Verify**
+- [ ] **Step 3: Replace the `submitting` references further down in the same file**
 
-Run: `npx tsc --noEmit`
-Expected: an error at the `submitting` identifier (used further down in the file, e.g. `disabled={submitting || ...}` and the spinner conditional) — this is expected and fixed in Task 6, which replaces `submitting` with `submitMutation.isPending`. Confirm the error is *only* about `submitting` being undefined, not about anything else (e.g. `guests`, `invite`, `handleSubmit`, `handleToggleGuest` should all resolve cleanly).
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add src/components/shared/RsvpSkeleton.tsx src/components/shared/RSVPSection.tsx
-git commit -m "feat: rewire RSVPSection read path onto TanStack Query, add skeleton loader"
-```
-
-(This commit intentionally leaves a known, tracked type error for Task 6 to fix immediately after — the two tasks are split for reviewability of read-path vs. write-path changes, and Task 6 lands right after with no other work in between.)
-
----
-
-### Task 6: Rewire RSVPSection's write path onto the batched mutation
-
-**Files:**
-- Modify: `src/components/shared/RSVPSection.tsx`
-
-**Interfaces:**
-- Consumes: `submitMutation` (from Task 5's `useSubmitRsvp(inviteId)` call, already in scope in this file).
-
-- [ ] **Step 1: Replace the `submitting` references**
-
-In `src/components/shared/RSVPSection.tsx`, find the `disabled` prop on the submit `<Button>`:
+The removed `submitting` state is still referenced twice below the code Step 2 replaced. Find the `disabled` prop on the submit `<Button>`:
 
 ```tsx
 disabled={submitting || guests.every(g => g.is_coming === null)}
@@ -523,9 +501,7 @@ Replace with:
 disabled={submitMutation.isPending || guests.every(g => g.is_coming === null)}
 ```
 
-- [ ] **Step 2: Replace the spinner conditional**
-
-Find:
+Then find the spinner conditional:
 
 ```tsx
 {submitting ? (
@@ -547,7 +523,7 @@ Replace with:
 ) : "Confirm RSVP"}
 ```
 
-- [ ] **Step 3: Verify**
+- [ ] **Step 4: Verify**
 
 Run: `npx tsc --noEmit`
 Expected: no errors anywhere in the file.
@@ -555,16 +531,16 @@ Expected: no errors anywhere in the file.
 Run: `npm run dev`, then in a browser open an RSVP link for a test invite with 2+ guests (use an existing `invite_id`/guest doc id from the Firestore console, or ask the project owner for a live test link).
 Expected: page loads (skeleton flashes briefly, then real card), toggling Attending/Not Attending updates instantly, clicking "Confirm RSVP" shows the spinner briefly then the success screen. Open the browser's Network tab before clicking Confirm and confirm exactly **one** Firestore `Commit`/write request fires on submit, regardless of how many guests were toggled (compare to the old behavior of one request per changed guest).
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add src/components/shared/RSVPSection.tsx
-git commit -m "fix: batch RSVP submit into a single Firestore write"
+git add src/components/shared/RsvpSkeleton.tsx src/components/shared/RSVPSection.tsx
+git commit -m "feat: rewire RSVPSection onto TanStack Query, batch submit, add skeleton loader"
 ```
 
 ---
 
-### Task 7: Rewire FAQSection onto the shared deadline query
+### Task 6: Rewire FAQSection onto the shared deadline query
 
 **Files:**
 - Modify: `src/components/shared/FAQSection.tsx`
@@ -596,7 +572,7 @@ import { cn } from '@/lib/utils';
 import { useDeadline } from '@/features/rsvp/hooks/useRsvpInvite';
 ```
 
-(The `SectionDecors` import is removed here since Task 12 deletes that module entirely — removing it now avoids a dangling import in the interim. `useEffect` is dropped since the manual fetch effect goes away in this step.)
+(The `SectionDecors` import is removed here since Task 11 deletes that module entirely — removing it now avoids a dangling import in the interim. `useEffect` is dropped since the manual fetch effect goes away in this step.)
 
 - [ ] **Step 2: Replace the deadline state/effect**
 
@@ -670,7 +646,7 @@ git commit -m "fix: dedupe rsvp_deadline fetch by sharing the deadline query wit
 
 ---
 
-### Task 8: Add a root error boundary
+### Task 7: Add a root error boundary
 
 **Files:**
 - Create: `src/components/ErrorBoundary.tsx`
@@ -795,7 +771,7 @@ git commit -m "feat: add root error boundary"
 
 ---
 
-### Task 9: Lazy-load admin routes
+### Task 8: Lazy-load admin routes
 
 **Files:**
 - Modify: `src/App.tsx`
@@ -905,7 +881,7 @@ git commit -m "perf: lazy-load admin routes to keep admin dependencies out of th
 
 ---
 
-### Task 10: Split vendor chunks in the Vite build
+### Task 9: Split vendor chunks in the Vite build
 
 **Files:**
 - Modify: `vite.config.ts`
@@ -967,7 +943,7 @@ git commit -m "perf: split firebase and motion into dedicated vendor chunks"
 
 ---
 
-### Task 11: Remove the debug connection-test call
+### Task 10: Remove the debug connection-test call
 
 **Files:**
 - Modify: `src/lib/firebase.ts`
@@ -1023,7 +999,7 @@ git commit -m "chore: remove debug connection-test read from every page load"
 
 ---
 
-### Task 12: Delete the dead decoration system and orphaned SVGs
+### Task 11: Delete the dead decoration system and orphaned SVGs
 
 **Files:**
 - Delete: `src/components/shared/DecorationLayer.tsx`
@@ -1035,7 +1011,7 @@ git commit -m "chore: remove debug connection-test read from every page load"
 - Modify: `src/components/shared/RSVPSection.tsx`
 - Modify: `src/pages/LandingPage.tsx`
 
-(`FAQSection.tsx` already had its `SectionDecors` import and call site removed in Task 7 — no change needed there.)
+(`FAQSection.tsx` already had its `SectionDecors` import and call site removed in Task 6 — no change needed there.)
 
 **Interfaces:**
 - None external — pure deletion of dead code with no behavior change (the component being removed already renders nothing).
@@ -1085,7 +1061,7 @@ git commit -m "chore: delete dead decoration system and ~35MB of orphaned SVG as
 
 ---
 
-### Task 13: Optimize the dress-code attire images
+### Task 12: Optimize the dress-code attire images
 
 **Files:**
 - Modify: `package.json` (devDependencies)
@@ -1200,7 +1176,7 @@ git commit -m "perf: rasterize oversized attire SVGs to properly sized WebP imag
 
 ---
 
-### Task 14: Defer the FAQ map image until its accordion item is opened
+### Task 13: Defer the FAQ map image until its accordion item is opened
 
 **Files:**
 - Modify: `src/components/shared/FAQSection.tsx`
@@ -1303,7 +1279,7 @@ git commit -m "perf: defer FAQ map image fetch until its accordion item is opene
 
 ---
 
-### Task 15: Fix font loading and the dangling favicon reference
+### Task 14: Fix font loading and the dangling favicon reference
 
 **Files:**
 - Modify: `index.html`
@@ -1404,7 +1380,7 @@ git commit -m "perf: move font loading to link tags, drop unused font families, 
 
 ---
 
-### Task 16: Final verification and before/after comparison
+### Task 15: Final verification and before/after comparison
 
 **Files:** none (verification only).
 
@@ -1427,13 +1403,13 @@ Expected: that entry chunk's size is substantially smaller than 3,120.79 kB / 90
 - [ ] **Step 3: Confirm dead assets are gone**
 
 Run: `ls public/*.svg`
-Expected: only `favicon.svg` and `map-data.svg` remain (the orchid/petal/paper-bg files and the men/women attire SVGs were deleted in Tasks 12–13).
+Expected: only `favicon.svg` and `map-data.svg` remain (the orchid/petal/paper-bg files and the men/women attire SVGs were deleted in Tasks 11–12).
 
 - [ ] **Step 4: Manual Lighthouse pass**
 
 Run: `npm run preview` (serves the production build)
 Open the preview URL in Chrome, open DevTools → Lighthouse, run a Mobile report against `/?inviteUrl=<a-real-or-test-invite-id>`.
-Record: Performance score, LCP, CLS, and Total Blocking Time. There is no prior Lighthouse baseline to diff against numerically (none was captured before this sub-project began), so treat this run as the new baseline going forward — but the bundle-size reduction from Step 2 and the fetch/write-count reductions verified in Tasks 6, 7, and 14 are the concrete, already-confirmed evidence that the diagnosed root causes are fixed.
+Record: Performance score, LCP, CLS, and Total Blocking Time. There is no prior Lighthouse baseline to diff against numerically (none was captured before this sub-project began), so treat this run as the new baseline going forward — but the bundle-size reduction from Step 2 and the fetch/write-count reductions verified in Tasks 5, 6, and 13 are the concrete, already-confirmed evidence that the diagnosed root causes are fixed.
 
 - [ ] **Step 5: Full manual walkthrough**
 
