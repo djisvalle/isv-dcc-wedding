@@ -20,8 +20,8 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
   const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
-    setGuests(prev => (prev.length === 0 ? serverGuests : prev));
-  }, [serverGuests]);
+    setGuests(prev => (prev.length === 0 || completed ? serverGuests : prev));
+  }, [serverGuests, completed]);
 
   useEffect(() => {
     if (error) {

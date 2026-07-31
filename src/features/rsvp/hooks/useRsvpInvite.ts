@@ -20,6 +20,8 @@ export function useRsvpInvite(inviteId: string | undefined) {
     queryFn: () => fetchInvite(inviteId as string),
     enabled: !!inviteId,
     staleTime: 30 * 1000, // RSVP status should feel current
+    retry: (failureCount, error) =>
+      error instanceof Error && error.message !== 'Invite not found' && failureCount < 2,
   });
 
   return {
