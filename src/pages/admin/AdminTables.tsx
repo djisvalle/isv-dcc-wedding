@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { 
-  Users, 
-  User, 
-  Crown, 
-  Star, 
-  GlassWater, 
-  Plus, 
+import {
+  Users,
+  User,
+  Crown,
+  Star,
+  GlassWater,
+  Plus,
   GripVertical,
   Trash2,
   Table as TableIcon,
@@ -53,18 +53,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { handleFirestoreError, OperationType } from '@/lib/firebase';
-
-interface Guest {
-  id: string;
-  name: string;
-  nickname?: string;
-  table_type?: 'bridal' | 'vip' | 'regular';
-  table_number?: string;
-  table_order?: number;
-  role?: string;
-  is_coming?: boolean | null;
-  is_baby_or_child?: boolean;
-}
+import { useGuests } from '@/features/guests/context/GuestsProvider';
+import type { Guest } from '@/features/guests/types';
 
 interface Table {
   id: string; // key: type-number
@@ -80,12 +70,12 @@ const TABLE_TYPES = [
 
 // --- Sub-components for DnD ---
 
-const SortableGuestItem: React.FC<{ 
-  guest: Guest; 
+const SortableGuestItem = React.memo<{
+  guest: Guest;
   isOverlay?: boolean;
   onQuickMove?: (guestId: string, tableId: string | null) => void;
   availableTables?: Table[];
-}> = ({ guest, isOverlay = false, onQuickMove, availableTables = [] }) => {
+}>(({ guest, isOverlay = false, onQuickMove, availableTables = [] }) => {
   const {
     attributes,
     listeners,
@@ -182,16 +172,16 @@ const SortableGuestItem: React.FC<{
       )}
     </div>
   );
-};
+});
 
-const DroppableTable: React.FC<{ 
-  table: Table; 
-  tableGuests: Guest[]; 
+const DroppableTable = React.memo<{
+  table: Table;
+  tableGuests: Guest[];
   onRemoveTable: (id: string) => void;
   onQuickMove: (guestId: string, tableId: string | null) => void;
   availableTables: Table[];
   unassignedGuests: Guest[];
-}> = ({ table, tableGuests, onRemoveTable, onQuickMove, availableTables, unassignedGuests }) => {
+}>(({ table, tableGuests, onRemoveTable, onQuickMove, availableTables, unassignedGuests }) => {
   const { setNodeRef, isOver } = useSortable({
     id: table.id,
     data: { 
@@ -349,13 +339,12 @@ const DroppableTable: React.FC<{
       </Card>
     </div>
   );
-};
+});
 
 // --- Main Page ---
 
 export default function AdminTables() {
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { guests: allGuests, loading } = useGuests();
   const [activeTables, setActiveTables] = useState<Table[]>([]);
   const [activeGuestId, setActiveGuestId] = useState<string | null>(null);
   const [isAddTableOpen, setIsAddTableOpen] = useState(false);
@@ -372,56 +361,50 @@ export default function AdminTables() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const activeGuest = useMemo(() => 
+  const guests = useMemo(
+    () => allGuests.filter(g => g.is_coming === true),
+    [allGuests]
+  );
+
+  const activeGuest = useMemo(() =>
     activeGuestId ? guests.find(g => g.id === activeGuestId) : null
   , [activeGuestId, guests]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'guests'), (snap) => {
-      const guestData = snap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as Guest))
-        .filter(g => g.is_coming === true);
-      setGuests(guestData);
+    const tablesFromGuests: Record<string, Table> = {};
 
-      // Derive initial tables from guest assignments
-      const tablesFromGuests: Record<string, Table> = {};
-      
-      // Always ensure a Bridal table exists
-      tablesFromGuests['bridal-'] = { id: 'bridal-', type: 'bridal', number: '' };
+    // Always ensure a Bridal table exists
+    tablesFromGuests['bridal-'] = { id: 'bridal-', type: 'bridal', number: '' };
 
-      guestData.forEach(g => {
-        if (g.table_type) {
-          const key = `${g.table_type}-${g.table_number || ''}`;
-          if (!tablesFromGuests[key]) {
-            tablesFromGuests[key] = {
-              id: key,
-              type: g.table_type,
-              number: g.table_number || ''
-            };
-          }
+    guests.forEach(g => {
+      if (g.table_type) {
+        const key = `${g.table_type}-${g.table_number || ''}`;
+        if (!tablesFromGuests[key]) {
+          tablesFromGuests[key] = {
+            id: key,
+            type: g.table_type,
+            number: g.table_number || ''
+          };
         }
-      });
-      
-      setActiveTables(prev => {
-        // Merge with existing active tables to preserve newly created empty tables
-        const combined = { ...tablesFromGuests };
-        prev.forEach(t => {
-          if (!combined[t.id]) combined[t.id] = t;
-        });
-        
-        return Object.values(combined).sort((a,b) => {
-           const order = ['bridal', 'vip', 'regular'];
-           const aOrder = order.indexOf(a.type);
-           const bOrder = order.indexOf(b.type);
-           if (aOrder !== bOrder) return aOrder - bOrder;
-           return (a.number || '').localeCompare(b.number || '', undefined, { numeric: true });
-        });
+      }
+    });
+
+    setActiveTables(prev => {
+      // Merge with existing active tables to preserve newly created empty tables
+      const combined = { ...tablesFromGuests };
+      prev.forEach(t => {
+        if (!combined[t.id]) combined[t.id] = t;
       });
 
-      setLoading(false);
+      return Object.values(combined).sort((a, b) => {
+        const order = ['bridal', 'vip', 'regular'];
+        const aOrder = order.indexOf(a.type);
+        const bOrder = order.indexOf(b.type);
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return (a.number || '').localeCompare(b.number || '', undefined, { numeric: true });
+      });
     });
-    return () => unsub();
-  }, []);
+  }, [guests]);
 
   const unassignedGuests = useMemo(() => 
     guests
@@ -437,7 +420,7 @@ export default function AdminTables() {
     )
   , [unassignedGuests, guestSearch]);
 
-  const handleQuickMove = async (guestId: string, tableId: string | null) => {
+  const handleQuickMove = useCallback(async (guestId: string, tableId: string | null) => {
     try {
       const guestRef = doc(db, 'guests', guestId);
       
@@ -471,7 +454,7 @@ export default function AdminTables() {
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `guests/${guestId}`);
     }
-  };
+  }, [guests, activeTables]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -548,10 +531,10 @@ export default function AdminTables() {
     }
 
     try {
-      // Update all guests in the target list with their NEW order
-      const updatePromises = newList.map((g, index) => {
+      const batch = writeBatch(db);
+      newList.forEach((g, index) => {
         const guestRef = doc(db, 'guests', g.id);
-        const data: any = {
+        const data: Record<string, unknown> = {
           table_order: index,
           updated_at: serverTimestamp()
         };
@@ -560,10 +543,10 @@ export default function AdminTables() {
           data.table_type = targetType;
           data.table_number = targetNumber;
         }
-        return updateDoc(guestRef, data);
+        batch.update(guestRef, data);
       });
 
-      await Promise.all(updatePromises);
+      await batch.commit();
       toast.success('Arrangement updated');
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `guests`);
@@ -592,10 +575,10 @@ export default function AdminTables() {
     toast.success('Table added');
   };
 
-  const handleRemoveTable = (id: string) => {
+  const handleRemoveTable = useCallback((id: string) => {
     setActiveTables(prev => prev.filter(t => t.id !== id));
     toast.success('Table removed');
-  };
+  }, []);
 
   if (loading) {
     return (
