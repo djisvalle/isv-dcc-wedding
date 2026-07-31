@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Plus,
   Search,
@@ -8,13 +8,12 @@ import {
   Hourglass,
   UserPlus
 } from 'lucide-react';
-import { 
-  collection, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
   serverTimestamp,
   writeBatch
 } from 'firebase/firestore';
@@ -22,56 +21,30 @@ import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogFooter
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-
-interface WaitingGuest {
-  id: string;
-  name: string;
-  role: string;
-  notes: string;
-  priority: number;
-  created_at: any;
-}
+import { useWaitingList } from '@/features/waitingList/context/WaitingListProvider';
+import { useGuests } from '@/features/guests/context/GuestsProvider';
+import type { WaitingGuest } from '@/features/waitingList/types';
 
 export default function AdminWaitingList() {
-  const [waitingList, setWaitingList] = useState<WaitingGuest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { waitingList, loading } = useWaitingList();
+  const { guests } = useGuests();
   const [search, setSearch] = useState('');
-  
+
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<WaitingGuest | null>(null);
 
   // Form state
   const [form, setForm] = useState({ name: '', role: '', notes: '', priority: '1' });
-
-  const [guests, setGuests] = useState<any[]>([]);
-
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'waiting_list'), (snap) => {
-      setWaitingList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as WaitingGuest)));
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'waiting_list');
-    });
-
-    const unsubGuests = onSnapshot(collection(db, 'guests'), (snap) => {
-      setGuests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
-    return () => {
-      unsub();
-      unsubGuests();
-    };
-  }, []);
 
   const handleSave = async () => {
     if (!form.name) return;
@@ -145,21 +118,23 @@ export default function AdminWaitingList() {
     }
   };
 
-  const sortedList = [...waitingList].sort((a, b) => {
-    // Primary: Priority (1 is highest, so ascending)
-    const pA = a.priority || 3;
-    const pB = b.priority || 3;
-    if (pA !== pB) return pA - pB;
-    
-    // Secondary: Time added (Earliest first for fairness)
-    const tA = a.created_at?.seconds || 0;
-    const tB = b.created_at?.seconds || 0;
-    return tA - tB;
-  });
-  const filteredList = sortedList.filter(g => 
-    g.name.toLowerCase().includes(search.toLowerCase()) || 
-    g.role.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredList = useMemo(() => {
+    const sortedList = [...waitingList].sort((a, b) => {
+      // Primary: Priority (1 is highest, so ascending)
+      const pA = a.priority || 3;
+      const pB = b.priority || 3;
+      if (pA !== pB) return pA - pB;
+
+      // Secondary: Time added (Earliest first for fairness)
+      const tA = a.created_at?.seconds || 0;
+      const tB = b.created_at?.seconds || 0;
+      return tA - tB;
+    });
+    return sortedList.filter(g =>
+      g.name.toLowerCase().includes(search.toLowerCase()) ||
+      g.role.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [waitingList, search]);
 
   if (loading) {
     return (
