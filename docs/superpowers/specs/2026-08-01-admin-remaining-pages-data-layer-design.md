@@ -113,8 +113,15 @@ aggregates, Tables' table-grouping and unassigned-guest list, Dashboard's
 stat cards, Budget's filtered-supplier search, Waiting List's
 sorted/filtered list), `useCallback` for handlers passed to child
 components, `React.memo` on row/card components rendered in a `.map()`
-over a list that can grow (Budget's supplier/payment cards, Waiting List's
-guest cards, Tables' `SortableGuestItem`/`DroppableTable`).
+over a list that can grow — scoped to Tables' `SortableGuestItem`/
+`DroppableTable` only. Budget's supplier/payment cards and Waiting List's
+guest cards remain inline JSX inside their `.map()` callbacks rather than
+standalone components; extracting them purely to attach `React.memo` would
+be disproportionate churn for admin lists of this size (YAGNI, consistent
+with this project's repeated scope decisions elsewhere). Their
+memoization is instead the `useMemo`'d containing arrays noted above —
+the array reference is stable across unrelated re-renders even though the
+individual card elements are not wrapped in `React.memo`.
 
 Extraction stays minimal, matching 2a's "Minimal extraction" precedent:
 `AdminTables.tsx`'s `SortableGuestItem` and `DroppableTable` stay defined
@@ -200,6 +207,21 @@ shared providers wired in Task 4.
 produced no output, confirming these three pages no longer open their own
 `guests` listener and instead read through the existing `GuestsProvider`.
 
+**Undocumented counting-semantics change on `AdminDashboard`:** the old
+code counted server-side with a Firestore `where('is_baby_or_child', '!=',
+true)` query, which in Firestore's query semantics *excludes* documents
+where that field is entirely absent. The new client-side
+`guests.filter(g => !g.is_baby_or_child)` *includes* documents missing the
+field. Any guest doc without `is_baby_or_child` set now counts toward
+Dashboard's Total/Attending/Declined/Pending counts where it previously
+did not. This is almost certainly the *correct* direction —
+`AdminReports` has always used this same client-side falsy-check form, so
+Dashboard and Reports previously disagreed with each other and now agree —
+but it is an undocumented behavior/numbers change, not a bug: it's an
+intentional-in-effect improvement (Dashboard now agrees with Reports)
+rather than a regression, called out here so a human reviewing real
+production numbers after this ships isn't surprised by a count shift.
+
 **Not verified (no browser automation available in this environment):** a
 human must do a live browser walkthrough before treating this plan as fully
 verified in production, specifically:
@@ -216,3 +238,6 @@ verified in production, specifically:
   `AdminWaitingList.handlePromote`'s existing 2-op `writeBatch` (untouched
   by this sub-project, but reading its inputs through the new
   `WaitingListProvider`/`useGuests()` now instead of its own listeners).
+- Confirm Dashboard's guest counts match Reports' guest counts on real
+  data (they should now, given the counting-semantics change noted above,
+  though previously they may not have).
