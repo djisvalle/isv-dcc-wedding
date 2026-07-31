@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   Users,
@@ -54,6 +54,7 @@ import {
 import { toast } from 'sonner';
 import { handleFirestoreError, OperationType } from '@/lib/firebase';
 import { useGuests } from '@/features/guests/context/GuestsProvider';
+import { commitInChunks } from '@/lib/firestoreBatch';
 import type { Guest } from '@/features/guests/types';
 
 interface Table {
@@ -67,6 +68,8 @@ const TABLE_TYPES = [
   { id: 'vip', label: 'VIP Table' },
   { id: 'regular', label: 'Regular Table' }
 ] as const;
+
+const EMPTY_GUESTS: Guest[] = [];
 
 // --- Sub-components for DnD ---
 
@@ -412,13 +415,24 @@ export default function AdminTables() {
       .sort((a,b) => (a.table_order || 0) - (b.table_order || 0))
   , [guests]);
 
-  const filteredUnassigned = useMemo(() => 
-    unassignedGuests.filter(g => 
+  const filteredUnassigned = useMemo(() =>
+    unassignedGuests.filter(g =>
       g.name.toLowerCase().includes(guestSearch.toLowerCase()) ||
       (g.nickname && g.nickname.toLowerCase().includes(guestSearch.toLowerCase())) ||
       (g.role && g.role.toLowerCase().includes(guestSearch.toLowerCase()))
     )
   , [unassignedGuests, guestSearch]);
+
+  const guestsByTable = useMemo(() => {
+    const m: Record<string, Guest[]> = {};
+    for (const g of guests) {
+      if (!g.table_type) continue;
+      const key = `${g.table_type}-${g.table_number || ''}`;
+      (m[key] ||= []).push(g);
+    }
+    for (const k in m) m[k].sort((a, b) => (a.table_order || 0) - (b.table_order || 0));
+    return m;
+  }, [guests]);
 
   const handleQuickMove = useCallback(async (guestId: string, tableId: string | null) => {
     try {
@@ -531,8 +545,8 @@ export default function AdminTables() {
     }
 
     try {
-      const batch = writeBatch(db);
-      newList.forEach((g, index) => {
+      const reorderOps = newList.map((g, index) => ({ guest: g, index }));
+      await commitInChunks(reorderOps, ({ guest: g, index }, batch) => {
         const guestRef = doc(db, 'guests', g.id);
         const data: Record<string, unknown> = {
           table_order: index,
@@ -545,8 +559,6 @@ export default function AdminTables() {
         }
         batch.update(guestRef, data);
       });
-
-      await batch.commit();
       toast.success('Arrangement updated');
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `guests`);
@@ -709,12 +721,10 @@ export default function AdminTables() {
           <div className="lg:col-span-3">
              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {activeTables.map((table) => (
-                <DroppableTable 
-                  key={table.id} 
-                  table={table} 
-                  tableGuests={guests
-                    .filter(g => g.table_type === table.type && (g.table_number || '') === (table.number || ''))
-                    .sort((a,b) => (a.table_order || 0) - (b.table_order || 0))}
+                <DroppableTable
+                  key={table.id}
+                  table={table}
+                  tableGuests={guestsByTable[table.id] ?? EMPTY_GUESTS}
                   onRemoveTable={handleRemoveTable}
                   onQuickMove={handleQuickMove}
                   availableTables={activeTables}
