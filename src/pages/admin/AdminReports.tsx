@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
-import { 
+import {
   PieChart, 
   Pie, 
   Cell, 
@@ -15,9 +14,9 @@ import {
   Area
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { collection, onSnapshot, query, where, getDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, getDoc, doc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
-import { Loader2, Users, Wallet, Ticket, LayoutGrid, TrendingUp, TrendingDown } from 'lucide-react';
+import { Loader2, Users, Wallet, Ticket, LayoutGrid } from 'lucide-react';
 
 interface Stats {
   attending: number;
@@ -138,7 +137,6 @@ export default function AdminReports() {
     );
   }
 
-  const COLORS = ['#d4af37', '#1e293b', '#64748b', '#94a3b8', '#cbd5e1', '#f1f5f9'];
   const RSVP_COLORS = ['#10b981', '#f43f5e', '#f59e0b'];
 
   const rsvpPieData = [

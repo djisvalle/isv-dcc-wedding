@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Heart, Music, Utensils, Camera, Film, Sparkles } from 'lucide-react';
+import { Heart, Music, Utensils, Film, Sparkles } from 'lucide-react';
 
 const programItems = [
   {

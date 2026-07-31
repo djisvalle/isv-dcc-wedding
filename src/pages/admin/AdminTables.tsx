@@ -16,8 +16,7 @@ import {
   Search,
   UserX
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   DndContext, 
   DragOverlay, 
   closestCenter, 
@@ -29,31 +28,27 @@ import {
   DragEndEvent,
   defaultDropAnimationSideEffects
 } from '@dnd-kit/core';
-import { 
-  SortableContext, 
-  sortableKeyboardCoordinates, 
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable,
-  arrayMove
+  useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetTrigger 
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger
 } from '@/components/ui/sheet';
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
   DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';

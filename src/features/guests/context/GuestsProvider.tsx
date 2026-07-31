@@ -36,6 +36,7 @@ export function GuestsProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- Provider + its hook are intentionally co-located
 export function useGuests() {
   return useContext(GuestsContext);
 }

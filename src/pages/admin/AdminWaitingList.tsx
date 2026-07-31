@@ -1,17 +1,12 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { 
-  Plus, 
-  Search, 
-  Loader2, 
-  Trash2, 
-  Edit2, 
+import {
+  Plus,
+  Search,
+  Loader2,
+  Trash2,
+  Edit2,
   Hourglass,
-  ArrowRight,
-  UserPlus,
-  MoreVertical,
-  ChevronUp,
-  ChevronDown
+  UserPlus
 } from 'lucide-react';
 import { 
   collection, 

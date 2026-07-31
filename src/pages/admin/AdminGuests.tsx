@@ -34,9 +34,6 @@ import {
   deleteDoc,
   addDoc,
   serverTimestamp,
-  query,
-  where,
-  getDocs,
   getDoc,
   DocumentSnapshot
 } from 'firebase/firestore';
@@ -184,7 +181,7 @@ export default function AdminGuests() {
       xlsx.utils.book_append_sheet(workbook, worksheet, 'Guests');
       xlsx.writeFile(workbook, 'wedding_guest_list.xlsx');
       toast.success('Guest list exported successfully');
-    } catch (err) {
+    } catch {
       toast.error('Failed to export guest list');
     }
   };
@@ -271,7 +268,7 @@ export default function AdminGuests() {
       await batchDeleteGuests(selectedIds);
       toast.success('Guests deleted successfully');
       setSelectedIds([]);
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete guests');
     }
   };
@@ -281,7 +278,7 @@ export default function AdminGuests() {
       await batchUpdateGuestStatus(ids, status);
       toast.success('Status updated successfully');
       if (ids.length > 1) setSelectedIds([]);
-    } catch (err) {
+    } catch {
       toast.error('Failed to update status');
     }
   }, []);
@@ -295,7 +292,7 @@ export default function AdminGuests() {
       await batchMoveToWaitingList(entries);
       toast.success('Guests moved to waiting list');
       setSelectedIds([]);
-    } catch (err) {
+    } catch {
       toast.error('Failed to move guests');
     }
   }, [guests]);
@@ -322,14 +319,14 @@ export default function AdminGuests() {
         setIsUploadOpen(false);
       };
       reader.readAsArrayBuffer(file);
-    } catch (err) {
+    } catch {
       toast.error('Failed to upload file');
     } finally {
       setUploading(false);
     }
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],

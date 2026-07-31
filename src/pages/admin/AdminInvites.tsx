@@ -160,7 +160,7 @@ export default function AdminInvites() {
         setIsBulkOpen(false);
       };
       reader.readAsArrayBuffer(file);
-    } catch (err) {
+    } catch {
       toast.error('Failed to upload file');
     } finally {
       setUploading(false);
@@ -242,7 +242,7 @@ export default function AdminInvites() {
     try {
       await deleteInviteAndUnassignGuests(id);
       toast.success('Invitation deleted');
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete invitation');
     }
   }, []);
@@ -259,7 +259,7 @@ export default function AdminInvites() {
       await Promise.all(promises);
       toast.success(`${selectedGuestIds.length} guest(s) added to invite`);
       setSelectedGuestIds([]);
-    } catch (err) {
+    } catch {
       toast.error('Failed to add guests');
     }
   };
@@ -310,8 +310,8 @@ export default function AdminInvites() {
         return val;
       };
 
-      let aValue = getSortValue(a[sortField as keyof typeof a]);
-      let bValue = getSortValue(b[sortField as keyof typeof b]);
+      const aValue = getSortValue(a[sortField as keyof typeof a]);
+      const bValue = getSortValue(b[sortField as keyof typeof b]);
 
       let comparison = 0;
 

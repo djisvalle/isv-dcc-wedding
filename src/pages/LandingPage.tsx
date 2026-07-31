@@ -7,7 +7,7 @@ import ProgramSection from '@/components/shared/ProgramSection';
 import GiftsSection from '@/components/shared/GiftsSection';
 import FAQSection from '@/components/shared/FAQSection';
 import RSVPSection from '@/components/shared/RSVPSection';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 export default function LandingPage() {
   const [searchParams] = useSearchParams();

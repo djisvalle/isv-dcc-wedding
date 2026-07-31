@@ -1,49 +1,38 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { 
-  Plus, 
-  Search, 
-  Loader2, 
-  Trash2, 
-  Edit2, 
-  Wallet, 
-  IndianRupee, 
+import {
+  Plus,
+  Search,
+  Loader2,
+  Trash2,
+  Edit2,
+  Wallet,
   Calendar,
   AlertCircle,
   CheckCircle2,
   Clock,
-  ExternalLink,
-  ChevronRight,
-  ChevronDown,
-  DollarSign,
   PhilippinePeso,
   LayoutGrid
 } from 'lucide-react';
-import { 
-  collection, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  query, 
-  where,
-  orderBy,
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
   serverTimestamp,
-  getDocs,
   setDoc,
   getDoc
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger,
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogFooter
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -423,7 +412,6 @@ export default function AdminBudget() {
             {payments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(payment => {
               const supplier = suppliers.find(s => s.id === payment.supplier_id);
               const isPaid = payment.status === 'paid';
-              const isFuture = new Date(payment.date) > new Date();
 
               return (
                 <div 
