@@ -1,45 +1,42 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Copy, Upload, Download, FileSpreadsheet, Loader2, Search, Plus, Edit2, Trash2, UserPlus, X, ArrowUpDown, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
-import { 
-  collection, 
-  onSnapshot, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
   getDocs,
   getDoc,
   serverTimestamp,
-  addDoc,
-  DocumentSnapshot,
-  QuerySnapshot
+  DocumentSnapshot
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { generateInviteId } from '@/lib/utils';
 import * as xlsx from 'xlsx';
-import { 
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -54,28 +51,17 @@ import {
 } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Invite {
-  id: string;
-  name: string;
-  import_order?: number;
-  created_at?: any;
-  guest_count?: number;
-  attending_count?: number;
-}
-
-interface Guest {
-  id: string;
-  name: string;
-  invite_id: string | null;
-  import_order?: number;
-}
+import { useGuests } from '@/features/guests/context/GuestsProvider';
+import { useInvites } from '@/features/invites/context/InvitesProvider';
+import { createInviteWithGuests, deleteInviteAndUnassignGuests } from '@/features/invites/api/invitesApi';
+import { useDebounce } from '@/hooks/useDebounce';
+import { InviteRow } from '@/components/admin/invites/InviteRow';
+import type { Guest } from '@/features/guests/types';
+import type { Invite, InviteWithCounts } from '@/features/invites/types';
 
 export default function AdminInvites() {
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [unassignedGuests, setUnassignedGuests] = useState<Guest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { guests } = useGuests();
+  const { invites, loading } = useInvites();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'partial' | 'empty'>('all');
   const [uploading, setUploading] = useState(false);
@@ -87,7 +73,7 @@ export default function AdminInvites() {
   const [messageTemplate, setMessageTemplate] = useState('');
 
   // Sorting state
-  const [sortField, setSortField] = useState<keyof Invite | 'guest_count' | 'attending_count'>('import_order');
+  const [sortField, setSortField] = useState<keyof InviteWithCounts>('import_order');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Pagination state
@@ -96,42 +82,24 @@ export default function AdminInvites() {
 
   const [newInvite, setNewInvite] = useState({ id: '', name: '' });
   const [editingInvite, setEditingInvite] = useState<Invite | null>(null);
-  const [inviteGuests, setInviteGuests] = useState<Guest[]>([]);
   const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
   const [guestPopoverOpen, setGuestPopoverOpen] = useState(false);
 
   useEffect(() => {
-    const unsubInvites = onSnapshot(collection(db, 'invites'), (snap: QuerySnapshot) => {
-      setInvites(snap.docs.map(d => ({ id: d.id, ...d.data() } as Invite)));
-      setLoading(false);
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'invites'));
-
-    const unsubGuests = onSnapshot(collection(db, 'guests'), (snap: QuerySnapshot) => {
-      const allGuests = snap.docs.map(d => ({ id: d.id, ...d.data() } as Guest));
-      setGuests(allGuests);
-      setUnassignedGuests(allGuests.filter(g => !g.invite_id));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'guests'));
-
     getDoc(doc(db, 'settings', 'invite_message_template')).then((snap: DocumentSnapshot) => {
       if (snap.exists()) {
         setMessageTemplate(snap.data().value);
       }
     });
-
-    return () => {
-      unsubInvites();
-      unsubGuests();
-    };
   }, []);
 
-  useEffect(() => {
-    if (editingInvite) {
-      setInviteGuests(
-        guests
-          .filter(g => g.invite_id === editingInvite.id)
-          .sort((a, b) => (a.import_order || 0) - (b.import_order || 0))
-      );
-    }
+  const unassignedGuests = useMemo(() => guests.filter(g => !g.invite_id), [guests]);
+
+  const inviteGuests = useMemo(() => {
+    if (!editingInvite) return [];
+    return guests
+      .filter(g => g.invite_id === editingInvite.id)
+      .sort((a, b) => (a.import_order || 0) - (b.import_order || 0));
   }, [guests, editingInvite]);
 
   const handleClearAllData = async () => {
@@ -176,26 +144,13 @@ export default function AdminInvites() {
           const name = row.inviteName || row.name;
           if (!name) continue;
 
-          await setDoc(doc(db, 'invites', inviteId), {
-            name,
-            import_order: rowIndex++,
-            created_at: serverTimestamp()
-          }, { merge: true });
-
           const guestNames = row.guests ? String(row.guests).split(',').map((s: string) => s.trim()) : [row.name];
-          let guestIndex = 0;
-          for (const guestName of guestNames) {
-            if (guestName) {
-              await addDoc(collection(db, 'guests'), {
-                name: guestName,
-                invite_id: inviteId,
-                role: row.role || null,
-                is_coming: null,
-                import_order: guestIndex++,
-                updated_at: serverTimestamp()
-              });
-            }
-          }
+          await createInviteWithGuests(
+            inviteId,
+            { name, import_order: rowIndex++ },
+            guestNames,
+            row.role || null
+          );
         }
         toast.success('Successfully imported invitations');
         setIsBulkOpen(false);
@@ -217,19 +172,24 @@ export default function AdminInvites() {
     }
   } as any);
 
-  const copyLink = (id: string) => {
+  const copyLink = useCallback((id: string) => {
     const url = `${window.location.origin}/?inviteUrl=${id}`;
     navigator.clipboard.writeText(url);
     toast.success('Invite link copied to clipboard');
-  };
+  }, []);
 
-  const copyMessage = (invite: Invite) => {
+  const copyMessage = useCallback((invite: Invite) => {
     const message = messageTemplate
       .replace('<name>', invite.name)
       .replace('<link>', `${window.location.origin}/?inviteUrl=${invite.id}`);
     navigator.clipboard.writeText(message);
     toast.success('Message copied to clipboard');
-  };
+  }, [messageTemplate]);
+
+  const handleEditClick = useCallback((invite: InviteWithCounts) => {
+    setEditingInvite(invite);
+    setIsEditOpen(true);
+  }, []);
 
   const handleAddInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,23 +240,14 @@ export default function AdminInvites() {
     }
   };
 
-  const handleDeleteInvite = async (id: string) => {
-    console.log('Delete button clicked for:', id);
+  const handleDeleteInvite = useCallback(async (id: string) => {
     try {
-      // Unassign guests
-      const inviteGuestsRef = query(collection(db, 'guests'), where('invite_id', '==', id));
-      const snap = await getDocs(inviteGuestsRef);
-      for (const d of snap.docs) {
-        await updateDoc(doc(db, 'guests', d.id), { invite_id: null });
-      }
-      // Delete invite
-      await deleteDoc(doc(db, 'invites', id));
+      await deleteInviteAndUnassignGuests(id);
       toast.success('Invitation deleted');
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `invites/${id}`);
       toast.error('Failed to delete invitation');
     }
-  };
+  }, []);
 
   const addGuestsToInvite = async () => {
     if (selectedGuestIds.length === 0 || !editingInvite) return;
@@ -328,51 +279,55 @@ export default function AdminInvites() {
     }
   };
 
-  const invitesWithCounts = invites.map(invite => {
-    const inviteGuestsList = guests.filter(g => g.invite_id === invite.id);
-    return {
-      ...invite,
-      guest_count: inviteGuestsList.length,
-      attending_count: inviteGuestsList.filter(g => (g as any).is_coming === true).length
-    };
-  });
+  const debouncedSearch = useDebounce(search, 300);
 
-  const filteredInvites = invitesWithCounts.filter(i => {
-    const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase()) || 
-                         i.id.toLowerCase().includes(search.toLowerCase());
-    
-    if (!matchesSearch) return false;
+  const sortedInvites = useMemo((): InviteWithCounts[] => {
+    const invitesWithCounts: InviteWithCounts[] = invites.map(invite => {
+      const inviteGuestsList = guests.filter(g => g.invite_id === invite.id);
+      return {
+        ...invite,
+        guest_count: inviteGuestsList.length,
+        attending_count: inviteGuestsList.filter(g => g.is_coming === true).length
+      };
+    });
 
-    if (statusFilter === 'completed') return i.attending_count === i.guest_count && i.guest_count > 0;
-    if (statusFilter === 'partial') return i.attending_count > 0 && i.attending_count < i.guest_count;
-    if (statusFilter === 'empty') return i.attending_count === 0;
-    
-    return true;
-  });
+    const filteredInvites = invitesWithCounts.filter(i => {
+      const matchesSearch = i.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                           i.id.toLowerCase().includes(debouncedSearch.toLowerCase());
 
-  const sortedInvites = [...filteredInvites].sort((a, b) => {
-    const getSortValue = (val: any) => {
-      if (val === null || val === undefined) return -Infinity;
-      if (val?.seconds) return val.seconds;
-      if (val instanceof Date) return val.getTime();
-      return val;
-    };
+      if (!matchesSearch) return false;
 
-    let aValue = getSortValue(a[sortField as keyof typeof a]);
-    let bValue = getSortValue(b[sortField as keyof typeof b]);
+      if (statusFilter === 'completed') return i.attending_count === i.guest_count && i.guest_count > 0;
+      if (statusFilter === 'partial') return i.attending_count > 0 && i.attending_count < i.guest_count;
+      if (statusFilter === 'empty') return i.attending_count === 0;
 
-    let comparison = 0;
-    
-    if (typeof aValue === 'number' && typeof bValue === 'number') {
-      comparison = aValue - bValue;
-    } else {
-      const aStr = String(aValue).toLowerCase();
-      const bStr = String(bValue).toLowerCase();
-      comparison = aStr.localeCompare(bStr);
-    }
+      return true;
+    });
 
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
+    return [...filteredInvites].sort((a, b) => {
+      const getSortValue = (val: any) => {
+        if (val === null || val === undefined) return -Infinity;
+        if (val?.seconds) return val.seconds;
+        if (val instanceof Date) return val.getTime();
+        return val;
+      };
+
+      let aValue = getSortValue(a[sortField as keyof typeof a]);
+      let bValue = getSortValue(b[sortField as keyof typeof b]);
+
+      let comparison = 0;
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        comparison = aValue - bValue;
+      } else {
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+        comparison = aStr.localeCompare(bStr);
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [invites, guests, debouncedSearch, statusFilter, sortField, sortDirection]);
 
   const totalPages = Math.ceil(sortedInvites.length / itemsPerPage);
   const paginatedInvites = sortedInvites.slice(
@@ -380,7 +335,7 @@ export default function AdminInvites() {
     currentPage * itemsPerPage
   );
 
-  const handleSort = (field: keyof Invite | 'guest_count' | 'attending_count') => {
+  const handleSort = (field: keyof InviteWithCounts) => {
     if (sortField === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
@@ -687,75 +642,14 @@ export default function AdminInvites() {
                 </TableCell>
               </TableRow>
             ) : paginatedInvites.map((invite) => (
-              <TableRow key={invite.id} className="group hover:bg-slate-50/50 transition-colors">
-                <TableCell className="py-6 px-8 text-xs font-mono text-slate-400">
-                  {invite.import_order !== undefined ? invite.import_order + 1 : '-'}
-                </TableCell>
-                <TableCell className="py-6 px-8 font-semibold text-slate-700">{invite.name}</TableCell>
-                <TableCell className="py-6 px-8 text-slate-500">{invite.guest_count} Guests</TableCell>
-                <TableCell className="py-6 px-8">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    invite.attending_count === invite.guest_count 
-                      ? 'bg-emerald-100 text-emerald-700' 
-                      : invite.attending_count > 0 
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {invite.attending_count} / {invite.guest_count} Joined
-                  </span>
-                </TableCell>
-                <TableCell className="py-6 px-8">
-                  <div 
-                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => copyLink(invite.id)}
-                    title="Click to copy full link"
-                  >
-                    <code className="text-[10px] font-mono text-wedding-gold bg-wedding-gold/5 px-2 py-1 rounded truncate max-w-[150px]">
-                      ?inviteUrl={invite.id}
-                    </code>
-                    <Copy className="w-3 h-3 text-wedding-gold opacity-40" />
-                  </div>
-                </TableCell>
-                <TableCell className="py-6 px-8 text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => {
-                        setEditingInvite(invite);
-                        setIsEditOpen(true);
-                      }}
-                      className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => copyLink(invite.id)}
-                      className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => copyMessage(invite)}
-                      className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleDeleteInvite(invite.id)}
-                      className="text-slate-400 hover:text-rose-500 hover:bg-rose-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
+              <InviteRow
+                key={invite.id}
+                invite={invite}
+                onCopyLink={copyLink}
+                onCopyMessage={copyMessage}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteInvite}
+              />
             ))}
           </TableBody>
         </Table>
