@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Copy, UserCheck, UserX, UserMinus, Edit2, Trash2, MessageSquare, Hourglass } from 'lucide-react';
 import { toast } from 'sonner';
+import { EditableCell } from '@/components/admin/EditableCell';
 import type { Guest } from '@/features/guests/types';
 
 interface GuestRowProps {
@@ -12,6 +13,7 @@ interface GuestRowProps {
   onToggleSelect: (id: string) => void;
   onUpdateStatus: (ids: string[], status: boolean | null) => void;
   onMoveToWaiting: (ids: string[]) => void;
+  onUpdateField: (id: string, field: 'name' | 'nickname', value: string) => void;
   onEdit: (guest: Guest) => void;
   onDelete: (id: string) => void;
   onCopyMessage: (guest: Guest) => void;
@@ -23,6 +25,7 @@ function GuestRowComponent({
   onToggleSelect,
   onUpdateStatus,
   onMoveToWaiting,
+  onUpdateField,
   onEdit,
   onDelete,
   onCopyMessage,
@@ -39,10 +42,20 @@ function GuestRowComponent({
         {guest.import_order !== undefined ? guest.import_order + 1 : '-'}
       </TableCell>
       <TableCell className="py-6 px-8">
-        <div className="font-semibold text-slate-700">{guest.name}</div>
-        {guest.nickname && (
-          <div className="text-[10px] text-slate-400 italic">"{guest.nickname}"</div>
-        )}
+        <EditableCell
+          value={guest.name}
+          onSave={(newValue) => onUpdateField(guest.id, 'name', newValue)}
+          className="font-semibold text-slate-700 hover:underline decoration-dotted decoration-slate-300 underline-offset-2"
+          inputClassName="h-7 px-2 text-sm font-semibold"
+        />
+        <EditableCell
+          value={guest.nickname || ''}
+          onSave={(newValue) => onUpdateField(guest.id, 'nickname', newValue)}
+          placeholder="Add nickname"
+          allowEmpty
+          className="block text-[10px] text-slate-400 italic hover:underline decoration-dotted underline-offset-2"
+          inputClassName="h-6 px-2 text-xs italic mt-0.5"
+        />
         {(guest.table_type || guest.table_number) && (
           <div className="mt-1 flex gap-1">
             <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded uppercase font-bold">

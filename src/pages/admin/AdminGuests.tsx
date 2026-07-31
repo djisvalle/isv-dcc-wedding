@@ -18,6 +18,12 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle
+} from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -217,8 +223,6 @@ export default function AdminGuests() {
     if (!editingGuest) return;
     try {
       await updateDoc(doc(db, 'guests', editingGuest.id), {
-        name: editingGuest.name,
-        nickname: editingGuest.nickname || null,
         role: editingGuest.role || null,
         invite_id: editingGuest.invite_id || null,
         table_type: editingGuest.table_type || null,
@@ -248,6 +252,18 @@ export default function AdminGuests() {
   const handleEditClick = useCallback((guest: Guest) => {
     setEditingGuest(guest);
     setIsEditOpen(true);
+  }, []);
+
+  const onUpdateField = useCallback(async (id: string, field: 'name' | 'nickname', value: string) => {
+    try {
+      await updateDoc(doc(db, 'guests', id), {
+        [field]: field === 'nickname' && !value ? null : value,
+        updated_at: serverTimestamp()
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `guests/${id}`);
+      toast.error(`Failed to update ${field}`);
+    }
   }, []);
 
   const handleBulkDelete = async () => {
@@ -916,6 +932,7 @@ export default function AdminGuests() {
                 onToggleSelect={toggleSelect}
                 onUpdateStatus={handleUpdateStatus}
                 onMoveToWaiting={handleMoveToWaitingList}
+                onUpdateField={onUpdateField}
                 onEdit={handleEditClick}
                 onDelete={handleDeleteGuest}
                 onCopyMessage={copyMessage}
@@ -968,29 +985,12 @@ export default function AdminGuests() {
         </div>
       )}
 
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Guest</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditGuest} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input 
-                  required 
-                  value={editingGuest?.name || ''} 
-                  onChange={e => setEditingGuest(prev => prev ? ({ ...prev, name: e.target.value }) : null)} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Nickname</Label>
-                <Input 
-                  value={editingGuest?.nickname || ''} 
-                  onChange={e => setEditingGuest(prev => prev ? ({ ...prev, nickname: e.target.value }) : null)} 
-                />
-              </div>
-            </div>
+      <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <SheetContent className="data-[side=right]:sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Edit {editingGuest?.name}</SheetTitle>
+          </SheetHeader>
+          <form onSubmit={handleEditGuest} className="space-y-4 px-4 pb-4 overflow-y-auto flex-1">
             <div className="space-y-2">
               <Label>Role</Label>
               <select 
@@ -1145,8 +1145,8 @@ export default function AdminGuests() {
             </div>
             <Button type="submit" className="w-full bg-wedding-gold">Save Changes</Button>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
