@@ -186,3 +186,122 @@ src/
   memoized; table rows are `React.memo`'d.
 - No visual or workflow change — this is a data-layer and performance pass
   only.
+
+## Results
+
+Verification performed 2026-07-31 (Task 12), after Tasks 1–11 were complete,
+reviewed, and approved.
+
+**`npx tsc --noEmit` (whole project):** clean, zero errors.
+
+**`npm run build`:** succeeded (`tsc && vite build`, 3350 modules
+transformed, `dist/` emitted). Vite emits its standard "chunk larger than
+500 kB" advisory for a few bundles (`AdminGuests`, `AdminReports`,
+`firebase`, `useDebounce`); this is a pre-existing chunk-size observation,
+not a build failure or a regression introduced by this plan.
+
+**`npm run lint`:** ran clean (no output). **This is not meaningful
+evidence of code quality.** As discovered during Task 10's review, this
+repo's `eslint.config.js` applies its rule set only to `*.rules` (Firebase
+security rules) files — it lints no `.ts`/`.tsx` file at all. A clean lint
+run has never been real signal anywhere in this plan or in sub-project 1;
+it is reported here only because the task asked for the run to be on
+record.
+
+**`onSnapshot` removal — confirmed:**
+`grep -rn "onSnapshot" src/pages/admin/AdminGuests.tsx
+src/pages/admin/AdminInvites.tsx` returns no matches. Both pages now
+consume `useGuests()`/`useInvites()` from the shared providers instead of
+running their own listeners, satisfying that part of the success criteria
+literally.
+
+**Single-subscription behavior across navigation — NOT confirmed; a real
+gap was found by code reading.** The intended guarantee (Task 9) is that
+`GuestsProvider`/`InvitesProvider` mount once at `AdminLayout`'s `<Outlet
+/>` wrap and stay mounted across nested-route navigation, so their
+`useEffect`-owned `onSnapshot` listeners subscribe once per admin session.
+Reading `src/components/admin/AdminLayout.tsx` (current, post-Task-11)
+shows this guarantee does not actually hold:
+
+```tsx
+<motion.div
+   key={location.pathname}
+   ...
+>
+  <GuestsProvider>
+    <InvitesProvider>
+      <Outlet />
+    </InvitesProvider>
+  </GuestsProvider>
+</motion.div>
+```
+
+The `key={location.pathname}` on the `motion.div` predates this plan
+(present since the file's initial commit, for a fade/slide page-transition
+effect) and was not moved or accounted for when Task 9 nested the two
+providers inside it. Changing a React element's `key` forces React to
+unmount the old instance and mount a fresh one for everything under that
+element. Since `location.pathname` changes on every admin navigation —
+including every `/admin/guests` ↔ `/admin/invites` transition, and any
+other admin nav — `GuestsProvider` and `InvitesProvider` are unmounted and
+remounted on every route change, not just once per session. Both
+providers' `useEffect(() => { const unsubscribe = onSnapshot(...); return
+unsubscribe; }, [])` (`src/features/guests/context/GuestsProvider.tsx`,
+`src/features/invites/context/InvitesProvider.tsx`) therefore tears down
+and recreates its listener on every navigation, exactly the behavior this
+sub-project set out to eliminate. It is still a net improvement over the
+pre-plan state (2 shared listener types instead of up to 4 independently
+duplicated ones, plus the batching/memoization work, which are unaffected
+by this issue), but the specific "persists across navigation" success
+criterion is not met by the current wiring. This was visible in the diff
+reviewed for Task 9 (`key={location.pathname}` appears as unchanged
+context in `review-8ab51511..a69dc947.diff`) but was not flagged at the
+time. Fixing it (e.g. moving the `key` to a wrapper inside the providers,
+scoped to just the animated page content, rather than around them) is a
+one-file follow-up, not attempted here per this task's verification-only
+scope.
+
+**Sequential-write loops — the two diagnosed `AdminInvites.tsx` sites and
+all three diagnosed `AdminGuests.tsx` sites are fixed; one additional,
+previously undiagnosed sequential loop remains.** The literal check from
+the brief, `grep -n "for (const"
+src/pages/admin/AdminGuests.tsx src/pages/admin/AdminInvites.tsx -A2 |
+grep -B2 "await "`, returns no output — but that is partly an artifact of
+its narrow 2-line context window, not proof the pages are loop-free.
+`AdminGuests.tsx` has zero `for (const` loops left (its bulk delete,
+status update, and Excel import all now call a single `batchX(...)`
+function). `AdminInvites.tsx` still has one: its bulk Excel-import handler
+(`onDrop`, around line 142) does
+```tsx
+for (const row of rows) {
+  ...
+  await createInviteWithGuests(inviteId, { name, import_order: rowIndex++ }, guestNames, row.role || null);
+}
+```
+— one sequential `await` per imported invite row. This is an improvement
+over the pre-plan code (which had a *nested* loop, one `addDoc` per guest
+per invite — the specific site named in the original diagnosis,
+`AdminInvites.tsx:187-189`, "creating an invite's member guests," and now
+fixed by routing through `createInviteWithGuests`'s internal chunked
+batch), but the outer loop over invite *rows* during a multi-invite bulk
+import was not one of the five originally diagnosed sites and remains
+sequential — one network round trip per invite being imported, rather than
+one batch for the whole file. `invitesApi.ts` currently only exposes a
+single-invite `createInviteWithGuests`; there is no bulk/multi-invite
+equivalent of `guestsApi.ts`'s `batchImportGuests`. At realistic wedding
+guest-list scale (tens of invites) this is a minor latency issue, not a
+correctness bug, but it is a genuine gap against the "all 5 identified
+sequential-write sites become single batched writes" success criterion
+being read as "no sequential Firestore write loops remain in these two
+files."
+
+**Not verified (no browser available in this environment):** live
+navigation click-through, bulk delete/status-update/import on
+`/admin/guests`, invite create/delete with guest assignment on
+`/admin/invites`, and whether the guest search box feels smooth while
+typing. A human should perform this walkthrough — including watching the
+Firestore usage dashboard or Network tab while clicking `/admin/guests` →
+`/admin/invites` → `/admin/guests` a few times in a row to see whether new
+listener connections open each time, given the `key={location.pathname}`
+finding above — before treating this sub-project as fully verified in
+production.
