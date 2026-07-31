@@ -194,3 +194,77 @@ otherwise untouched.
 - Fonts load via `<link>`, not CSS `@import`.
 - Lighthouse mobile score (bundle size, LCP, CLS, TBT) measurably improves
   over the pre-change baseline.
+
+## Results
+
+Verification performed 2026-07-31 (Task 15), after Tasks 1–14 were implemented
+and reviewed. Environment note: no browser-automation tool is available in
+this execution environment, so Lighthouse (Step 4 of the task brief) and the
+interactive/visual portion of the manual walkthrough (Step 5) could **not**
+be run here — see "Not verified" below.
+
+### Bundle size — guest-facing entry chunk
+
+`npm run build` output, entry chunk identified as the one `dist/index.html`'s
+`<script type="module" src="...">` points at:
+
+| | Before (documented baseline) | After (this build) | Change |
+|---|---|---|---|
+| Entry chunk (raw) | 3,120.79 kB | 347.43 kB (`index-CZxlQrk_.js`) | **−88.9%** (−2,773.36 kB) |
+| Entry chunk (gzip) | 904.52 kB | 110.07 kB | **−87.8%** (−794.45 kB) |
+| CSS (raw) | 101.91 kB | 99.93 kB (`index-H53Nt0qK.css`) | −1.9% |
+| CSS (gzip) | 16.75 kB | 16.30 kB | −2.7% |
+
+The single 3.1MB monolithic chunk from before this sub-project is gone. The
+production build now emits ~30 separate chunks; `xlsx`/`exceljs`/`@dnd-kit`/
+`recharts`/`react-day-picker`/`cmdk` and all 8 admin pages are isolated into
+lazy chunks (`AdminGuests-*.js` 978.21 kB, `AdminReports-*.js` 420.84 kB,
+`command-*.js` 544.09 kB, etc.) that are not requested until `/admin` is
+visited — confirmed by `dist/index.html` only referencing the entry chunk,
+`motion-*.js`, and `firebase-*.js` via `modulepreload`.
+
+For completeness, total JS actually preloaded for a guest hitting `/` (entry +
+modulepreloaded `motion` + `firebase` vendor chunks) is ~905.6 kB raw /
+~251.25 kB gzip — still a ~71% raw / ~72% gzip reduction versus the old single
+3,120.79 kB / 904.52 kB chunk, even counting those eagerly-preloaded vendor
+chunks.
+
+### Dead asset cleanup
+
+`ls public/*.svg` → only `favicon.svg` (633 B) and `map-data.svg` (998,282 B)
+remain. The orchid/petal/paper-bg decoration SVGs and the oversized
+men-attire/women-attire SVGs (~35MB total) confirmed deleted.
+
+### Full-codebase sanity checks
+
+- `npx tsc --noEmit` — **passed, zero errors** (whole repo, not just this
+  task's files).
+- `npm run lint` (`eslint . --report-unused-disable-directives
+  --max-warnings 0`) — **passed, zero warnings/errors** (whole repo).
+- `npm run dev` boots cleanly (Vite ready in 713ms). `curl` against
+  `http://localhost:3000/` returns HTTP 200 with the expected HTML shell;
+  `/src/main.tsx` (entry module) returns HTTP 200; `/admin` route resolves
+  HTTP 200 (served via Vite's SPA fallback). No server-side errors in the dev
+  server log during these requests.
+
+### Not verified (requires a human with a browser)
+
+This environment has no browser-automation tool, so the following from the
+task brief were **not** performed and must be done by a human before this
+sub-project is treated as fully verified in production:
+
+- **Step 4, Lighthouse mobile run** against `/?inviteUrl=<invite-id>` via
+  Chrome DevTools — no Performance score, LCP, CLS, or Total Blocking Time
+  numbers were captured. None are fabricated here.
+- **Step 5, interactive/visual walkthrough** — scrolling every landing-page
+  section, opening a real RSVP link, toggling guest statuses, submitting, and
+  confirming no visual regressions/console errors/broken images. Only static
+  verification (dev server boot, HTTP 200 on `/` and `/admin`, `tsc`/`lint`
+  clean) was possible here; actual rendering, images, and JS console were not
+  inspected.
+
+**Recommendation:** before marking this sub-project done in production, a
+human should run `npm run preview`, open it in Chrome, do the full guest
+walkthrough described in Step 5, and run a Lighthouse mobile report to
+capture the first real Performance/LCP/CLS/TBT numbers as the new baseline
+going forward.
