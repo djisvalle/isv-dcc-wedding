@@ -145,3 +145,74 @@ build`, no test runner introduced.
   not polled.
 - No UI/visual changes to any of the 5 pages.
 - `npx tsc --noEmit` and `npm run build` both pass clean.
+
+## Results
+
+Final verification (Task 10) performed 2026-08-01, after Tasks 1–9 (new
+`SuppliersProvider`/`PaymentsProvider`/`WaitingListProvider`; `AdminLayout`
+wiring; migration of `AdminDashboard`, `AdminBudget`, `AdminReports`,
+`AdminTables`, `AdminWaitingList` onto the shared contexts; the
+`AdminTables.handleDragEnd` batched-write fix) were each implemented and
+approved. All 9 implementation tasks passed task-level review with zero
+unresolved findings; two tasks (Task 8 for `AdminTables`, Task 9 for
+`AdminWaitingList`) each caught and self-corrected a real defect in their
+own task brief text during implementation (a use-before-declaration
+ordering bug in Task 8; an incorrectly-flagged-for-removal `collection`
+import in Task 9) — both fixes were verified correct by their task
+reviewers, no open issues.
+
+**`npx tsc --noEmit` (whole project):** zero errors, zero output.
+
+**`npx eslint . --report-unused-disable-directives --max-warnings 0`:**
+zero output (exit 0). Note from sub-project 2a's Results section still
+applies: this repo's `eslint.config.js` applies no rules to `.ts`/`.tsx`
+files (a pre-existing gap), so a clean lint run is expected but not
+meaningful evidence of correctness on its own — `tsc` and the build are the
+signals that matter here.
+
+**`npm run build`:** succeeded (`vite v6.4.2`, "3354 modules transformed",
+"✓ built in 12.45s"). Chunk sizes for the 5 migrated pages:
+
+| Chunk | Size | Gzip |
+|---|---|---|
+| `AdminDashboard` | 3.59 kB | 1.46 kB |
+| `AdminWaitingList` | 7.48 kB | 2.61 kB |
+| `AdminBudget` | 35.07 kB | 9.55 kB |
+| `AdminTables` | 106.50 kB | 35.20 kB |
+| `AdminReports` | 420.37 kB | 113.52 kB |
+
+The build emits the same pre-existing chunk-size warning noted in
+sub-project 2a's Results section ("Some chunks are larger than 500 kB after
+minification", flagging `EditableCell-*.js` at 545.20 kB and
+`AdminGuests-*.js` at 979.42 kB) — both are 2a artifacts, unrelated to this
+sub-project's changes, and not treated as a blocking signal here. None of
+the 5 pages migrated in this sub-project approach that threshold.
+
+**Dangling-reference grep, check 1:**
+`grep -rn "getCountFromServer\|onSnapshot(collection(db, 'suppliers')\|onSnapshot(collection(db, 'payments')\|onSnapshot(collection(db, 'waiting_list')" src/pages/admin/AdminDashboard.tsx src/pages/admin/AdminBudget.tsx src/pages/admin/AdminReports.tsx src/pages/admin/AdminTables.tsx src/pages/admin/AdminWaitingList.tsx`
+produced no output, confirming `AdminDashboard` no longer polls via
+`getCountFromServer` and none of the 5 pages open their own
+`suppliers`/`payments`/`waiting_list` listener — all read through the
+shared providers wired in Task 4.
+
+**Dangling-reference grep, check 2:**
+`grep -n "onSnapshot(collection(db, 'guests')" src/pages/admin/AdminReports.tsx src/pages/admin/AdminTables.tsx src/pages/admin/AdminWaitingList.tsx`
+produced no output, confirming these three pages no longer open their own
+`guests` listener and instead read through the existing `GuestsProvider`.
+
+**Not verified (no browser automation available in this environment):** a
+human must do a live browser walkthrough before treating this plan as fully
+verified in production, specifically:
+
+- Live drag-and-drop reorder in `AdminTables` actually persisting via the
+  new batched write (including the previously-latent partial-failure case:
+  confirming a failure now aborts atomically rather than leaving a
+  partially-reordered table).
+- The Dashboard's real-time count updates actually reflecting a guest RSVP
+  change without a page refresh (replacing the old 30-second
+  `getCountFromServer` poll).
+- All 5 pages' existing CRUD flows (add/edit/delete supplier, payment,
+  waiting-list entry) still working end-to-end in a browser, including
+  `AdminWaitingList.handlePromote`'s existing 2-op `writeBatch` (untouched
+  by this sub-project, but reading its inputs through the new
+  `WaitingListProvider`/`useGuests()` now instead of its own listeners).
