@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, X, ZoomIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { SectionDecors } from './DecorationLayer';
+import { useDeadline } from '@/features/rsvp/hooks/useRsvpInvite';
 
 interface FAQItemProps {
   question: string;
@@ -68,31 +66,12 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer, image, onImageClick
 }
 
 export default function FAQSection() {
-  const [deadlineDate, setDeadlineDate] = useState<string>('');
+  const { data: deadline } = useDeadline();
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchDeadline = async () => {
-      try {
-        const docRef = doc(db, 'settings', 'rsvp_deadline');
-        const snap = await getDoc(docRef);
-        if (snap.exists()) {
-          const val = snap.data().value;
-          if (val) {
-            const date = new Date(val);
-            setDeadlineDate(date.toLocaleDateString('en-US', { 
-              month: 'long', 
-              day: 'numeric', 
-              year: 'numeric' 
-            }));
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch deadline:', err);
-      }
-    };
-    fetchDeadline();
-  }, []);
+  const deadlineDate = deadline?.date
+    ? deadline.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : '';
 
   const faqs = [
     {
@@ -118,7 +97,6 @@ export default function FAQSection() {
 
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden" id="faq-section">
-      <SectionDecors.FAQ />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
