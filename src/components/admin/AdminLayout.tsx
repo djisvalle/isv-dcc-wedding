@@ -19,6 +19,8 @@ import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 import { auth } from '@/lib/firebase';
 import { useEffect } from 'react';
+import { GuestsProvider } from '@/features/guests/context/GuestsProvider';
+import { InvitesProvider } from '@/features/invites/context/InvitesProvider';
 
 export default function AdminLayout() {
   const { user, isAdmin, loading } = useAuth();
@@ -139,7 +141,11 @@ export default function AdminLayout() {
            animate={{ opacity: 1, y: 0 }}
            transition={{ duration: 0.3 }}
         >
-          <Outlet />
+          <GuestsProvider>
+            <InvitesProvider>
+              <Outlet />
+            </InvitesProvider>
+          </GuestsProvider>
         </motion.div>
       </main>
     </div>
