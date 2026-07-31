@@ -17,6 +17,12 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle
+} from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Upload, Download, FileSpreadsheet, Loader2, Search, Plus, Trash2, UserPlus, X, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -189,6 +195,15 @@ export default function AdminInvites() {
     setIsEditOpen(true);
   }, []);
 
+  const onUpdateName = useCallback(async (id: string, value: string) => {
+    try {
+      await updateDoc(doc(db, 'invites', id), { name: value });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `invites/${id}`);
+      toast.error('Failed to update invitation name');
+    }
+  }, []);
+
   const handleAddInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -220,21 +235,6 @@ export default function AdminInvites() {
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'invites');
       toast.error('Failed to create invitation');
-    }
-  };
-
-  const handleEditInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingInvite) return;
-    try {
-      await updateDoc(doc(db, 'invites', editingInvite.id), {
-        name: editingInvite.name
-      });
-      toast.success('Invitation updated successfully');
-      setIsEditOpen(false);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `invites/${editingInvite.id}`);
-      toast.error('Failed to update invitation');
     }
   };
 
@@ -645,6 +645,7 @@ export default function AdminInvites() {
                 invite={invite}
                 onCopyLink={copyLink}
                 onCopyMessage={copyMessage}
+                onUpdateName={onUpdateName}
                 onEdit={handleEditClick}
                 onDelete={handleDeleteInvite}
               />
@@ -696,26 +697,12 @@ export default function AdminInvites() {
         </div>
       )}
 
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Invite: {editingInvite?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
-            <form onSubmit={handleEditInvite} className="space-y-4 pb-6 border-b border-slate-100">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Group Name</Label>
-                <Input 
-                  value={editingInvite?.name || ''} 
-                  onChange={e => setEditingInvite(prev => prev ? ({ ...prev, name: e.target.value }) : null)} 
-                  className="bg-slate-50/50 border-slate-200"
-                />
-              </div>
-              <Button type="submit" className="w-full bg-wedding-gold hover:bg-wedding-gold/90 text-white font-medium">
-                Update Settings
-              </Button>
-            </form>
-
+      <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <SheetContent className="data-[side=right]:sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Edit Invite: {editingInvite?.name}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-6 overflow-y-auto flex-1 px-4 pb-4">
             <div className="space-y-4">
               <Label className="text-lg font-serif">Assigned Guests</Label>
               <div className="space-y-2">
@@ -829,8 +816,8 @@ export default function AdminInvites() {
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

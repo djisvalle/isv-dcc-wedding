@@ -2,23 +2,32 @@ import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Copy, Edit2, Trash2, MessageSquare } from 'lucide-react';
+import { EditableCell } from '@/components/admin/EditableCell';
 import type { Invite, InviteWithCounts } from '@/features/invites/types';
 
 interface InviteRowProps {
   invite: InviteWithCounts;
   onCopyLink: (id: string) => void;
   onCopyMessage: (invite: Invite) => void;
+  onUpdateName: (id: string, value: string) => void;
   onEdit: (invite: InviteWithCounts) => void;
   onDelete: (id: string) => void;
 }
 
-function InviteRowComponent({ invite, onCopyLink, onCopyMessage, onEdit, onDelete }: InviteRowProps) {
+function InviteRowComponent({ invite, onCopyLink, onCopyMessage, onUpdateName, onEdit, onDelete }: InviteRowProps) {
   return (
     <TableRow className="group hover:bg-slate-50/50 transition-colors">
       <TableCell className="py-6 px-8 text-xs font-mono text-slate-400">
         {invite.import_order !== undefined ? invite.import_order + 1 : '-'}
       </TableCell>
-      <TableCell className="py-6 px-8 font-semibold text-slate-700">{invite.name}</TableCell>
+      <TableCell className="py-6 px-8">
+        <EditableCell
+          value={invite.name}
+          onSave={(newValue) => onUpdateName(invite.id, newValue)}
+          className="font-semibold text-slate-700 hover:underline decoration-dotted decoration-slate-300 underline-offset-2"
+          inputClassName="h-7 px-2 text-sm font-semibold"
+        />
+      </TableCell>
       <TableCell className="py-6 px-8 text-slate-500">{invite.guest_count} Guests</TableCell>
       <TableCell className="py-6 px-8">
         <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
