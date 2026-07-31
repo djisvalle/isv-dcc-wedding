@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchDeadline, fetchInvite } from '../api/rsvpApi';
+import type { Guest } from '../types';
+
+const EMPTY_GUESTS: Guest[] = [];
 
 export function useDeadline() {
   return useQuery({
@@ -21,7 +24,7 @@ export function useRsvpInvite(inviteId: string | undefined) {
 
   return {
     invite: inviteQuery.data?.invite ?? null,
-    guests: inviteQuery.data?.guests ?? [],
+    guests: inviteQuery.data?.guests ?? EMPTY_GUESTS,
     deadline: deadlineQuery.data?.date ?? null,
     isPastDeadline: deadlineQuery.data?.isPastDeadline ?? false,
     loading: inviteQuery.isLoading || deadlineQuery.isLoading,
