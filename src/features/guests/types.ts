@@ -10,6 +10,7 @@ export interface Guest {
   updated_at: any;
   table_type?: TableType;
   table_number?: string;
+  table_order?: number;
   import_order?: number;
   is_baby_or_child?: boolean;
   parent_name?: string;
