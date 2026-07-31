@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +21,7 @@ export function EditableCell({
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const handledRef = useRef(false);
 
   useEffect(() => {
     if (!isEditing) {
@@ -29,9 +30,11 @@ export function EditableCell({
   }, [value, isEditing]);
 
   const commit = () => {
+    if (handledRef.current) return;
+    handledRef.current = true;
     setIsEditing(false);
     const trimmed = draft.trim();
-    if (trimmed === value) return;
+    if (trimmed === value.trim()) return;
     if (!trimmed && !allowEmpty) {
       setDraft(value);
       return;
@@ -40,6 +43,8 @@ export function EditableCell({
   };
 
   const cancel = () => {
+    if (handledRef.current) return;
+    handledRef.current = true;
     setDraft(value);
     setIsEditing(false);
   };
@@ -69,7 +74,10 @@ export function EditableCell({
 
   return (
     <span
-      onClick={() => setIsEditing(true)}
+      onClick={() => {
+        handledRef.current = false;
+        setIsEditing(true);
+      }}
       className={cn('cursor-pointer', className)}
       title="Click to edit"
     >
