@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Plus,
   Search,
@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import {
   collection,
-  onSnapshot,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -38,30 +37,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-
-interface Supplier {
-  id: string;
-  name: string;
-  type: string;
-  budget: number;
-  created_at: any;
-}
-
-interface Payment {
-  id: string;
-  supplier_id: string;
-  amount: number;
-  date: string;
-  remarks: string;
-  status: 'paid' | 'scheduled';
-  created_at: any;
-}
+import { useSuppliers } from '@/features/budget/context/SuppliersProvider';
+import { usePayments } from '@/features/budget/context/PaymentsProvider';
+import type { Supplier, Payment } from '@/features/budget/types';
 
 export default function AdminBudget() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const { suppliers, loading: suppliersLoading } = useSuppliers();
+  const { payments, loading: paymentsLoading } = usePayments();
   const [totalBudget, setTotalBudget] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   
   // Modals
@@ -88,7 +71,6 @@ export default function AdminBudget() {
   const [budgetForm, setBudgetForm] = useState('');
 
   useEffect(() => {
-    // Fetch Settings (Total Budget)
     const fetchBudget = async () => {
       const budgetDoc = await getDoc(doc(db, 'settings', 'total_budget'));
       if (budgetDoc.exists()) {
@@ -98,27 +80,9 @@ export default function AdminBudget() {
       }
     };
     fetchBudget();
-
-    // Listen to Suppliers
-    const unsubSuppliers = onSnapshot(collection(db, 'suppliers'), (snap) => {
-      setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'suppliers');
-    });
-
-    // Listen to Payments
-    const unsubPayments = onSnapshot(collection(db, 'payments'), (snap) => {
-      setPayments(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment)));
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'payments');
-    });
-
-    return () => {
-      unsubSuppliers();
-      unsubPayments();
-    };
   }, []);
+
+  const loading = suppliersLoading || paymentsLoading;
 
   const handleSaveBudget = async () => {
     try {
@@ -219,13 +183,27 @@ export default function AdminBudget() {
     }
   };
 
-  const totalSpent = payments.reduce((acc, p) => acc + (p.status === 'paid' ? p.amount : 0), 0);
-  const totalAllocated = suppliers.reduce((acc, s) => acc + (s.budget || 0), 0);
+  const totalSpent = useMemo(
+    () => payments.reduce((acc, p) => acc + (p.status === 'paid' ? p.amount : 0), 0),
+    [payments]
+  );
+  const totalAllocated = useMemo(
+    () => suppliers.reduce((acc, s) => acc + (s.budget || 0), 0),
+    [suppliers]
+  );
   const remainingBudget = totalBudget - totalSpent;
 
-  const filteredSuppliers = suppliers.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) || 
-    s.type.toLowerCase().includes(search.toLowerCase())
+  const filteredSuppliers = useMemo(
+    () => suppliers.filter(s =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.type.toLowerCase().includes(search.toLowerCase())
+    ),
+    [suppliers, search]
+  );
+
+  const sortedPayments = useMemo(
+    () => [...payments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [payments]
   );
 
   if (loading) {
@@ -409,7 +387,7 @@ export default function AdminBudget() {
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {payments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(payment => {
+            {sortedPayments.map(payment => {
               const supplier = suppliers.find(s => s.id === payment.supplier_id);
               const isPaid = payment.status === 'paid';
 
