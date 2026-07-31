@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import LandingPage from '@/pages/LandingPage';
 import AdminLayout from '@/components/admin/AdminLayout';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -24,29 +25,31 @@ function RSVPRedirect() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/rsvp/:inviteId" element={<RSVPRedirect />} />
-        <Route path="/rsvp/:inviteId/" element={<RSVPRedirect />} />
-        
-        {/* Admin Routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="invites" element={<AdminInvites />} />
-          <Route path="guests" element={<AdminGuests />} />
-          <Route path="tables" element={<AdminTables />} />
-          <Route path="waiting-list" element={<AdminWaitingList />} />
-          <Route path="budget" element={<AdminBudget />} />
-          <Route path="reports" element={<AdminReports />} />
-          <Route path="settings" element={<AdminSettings />} />
-        </Route>
-        
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <Toaster />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/rsvp/:inviteId" element={<RSVPRedirect />} />
+          <Route path="/rsvp/:inviteId/" element={<RSVPRedirect />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="invites" element={<AdminInvites />} />
+            <Route path="guests" element={<AdminGuests />} />
+            <Route path="tables" element={<AdminTables />} />
+            <Route path="waiting-list" element={<AdminWaitingList />} />
+            <Route path="budget" element={<AdminBudget />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <Toaster />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
