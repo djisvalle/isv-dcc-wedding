@@ -19,15 +19,13 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Copy, Upload, Download, FileSpreadsheet, Loader2, Search, Plus, Edit2, Trash2, UserPlus, X, ArrowUpDown, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { Upload, Download, FileSpreadsheet, Loader2, Search, Plus, Trash2, UserPlus, X, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   collection,
   doc,
   setDoc,
   updateDoc,
   deleteDoc,
-  query,
-  where,
   getDocs,
   getDoc,
   serverTimestamp,

@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 import { auth } from '@/lib/firebase';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { GuestsProvider } from '@/features/guests/context/GuestsProvider';
 import { InvitesProvider } from '@/features/invites/context/InvitesProvider';
 
@@ -137,14 +137,16 @@ export default function AdminLayout() {
 
         <GuestsProvider>
           <InvitesProvider>
-            <motion.div
-               key={location.pathname}
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ duration: 0.3 }}
-            >
-              <Outlet />
-            </motion.div>
+            <Suspense fallback={<Loader2 className="w-8 h-8 animate-spin text-wedding-gold mx-auto mt-20" />}>
+              <motion.div
+                 key={location.pathname}
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ duration: 0.3 }}
+              >
+                <Outlet />
+              </motion.div>
+            </Suspense>
           </InvitesProvider>
         </GuestsProvider>
       </main>

@@ -21,7 +21,10 @@ export function InvitesProvider({ children }: { children: ReactNode }) {
         setInvites(snap.docs.map(d => ({ id: d.id, ...d.data() } as Invite)));
         setLoading(false);
       },
-      (err) => handleFirestoreError(err, OperationType.LIST, 'invites')
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'invites');
+        setLoading(false);
+      }
     );
     return unsubscribe;
   }, []);

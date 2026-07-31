@@ -21,7 +21,10 @@ export function GuestsProvider({ children }: { children: ReactNode }) {
         setGuests(snap.docs.map(d => ({ id: d.id, ...d.data() } as Guest)));
         setLoading(false);
       },
-      (err) => handleFirestoreError(err, OperationType.LIST, 'guests')
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'guests');
+        setLoading(false);
+      }
     );
     return unsubscribe;
   }, []);

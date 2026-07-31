@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, Copy, X, MessageSquare } from 'lucide-react';
+import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import {
   collection,
   doc,
