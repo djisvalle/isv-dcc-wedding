@@ -150,3 +150,71 @@ cells and the `Sheet`.
 - No change to `AdminDashboard`/`AdminBudget`/`AdminReports`/`AdminTables`/
   `AdminWaitingList` — untouched, both UI and data layer.
 - No visual rebrand — existing design language preserved, tightened.
+
+## Results
+
+Final verification (Task 4) performed 2026-07-31, after Tasks 1–3 (shared
+`EditableCell`; `AdminGuests`/`GuestRow` wiring; `AdminInvites`/`InviteRow`
+wiring, including removal of the dead `handleEditInvite`) were each
+implemented and approved.
+
+**`npx tsc --noEmit` (whole project):** zero errors, zero output.
+
+**`npm run build`:** succeeded (`vite v6.4.2`, "3351 modules transformed",
+"✓ built in 17.16s"). The build emits a pre-existing chunk-size warning
+("Some chunks are larger than 500 kB after minification", flagging
+`EditableCell-*.js` at 545.05 kB and `AdminGuests-*.js` at 979.36 kB) — this
+is a build-output-size advisory, not a build failure, and is unrelated to
+correctness of this change; not treated as a blocking signal here.
+
+**Dangling-reference grep:**
+`grep -rn "handleEditInvite\|DialogTitle>Edit Guest<\|DialogTitle>Edit Invite:" src/pages/admin/AdminGuests.tsx src/pages/admin/AdminInvites.tsx`
+produced no output, confirming `handleEditInvite` is fully gone from
+`AdminInvites.tsx` and neither page file still carries the old
+`Dialog`-based edit-panel titles. (`AdminGuests.tsx` still defines
+`handleEditGuest` — expected and correct, since the Guest edit `Sheet`
+still submits the remaining structural fields via that handler; only the
+invite-editing handler was fully removed, per Task 3's brief.)
+
+**Dialog/Sheet coexistence**, confirmed by reading both files in full:
+
+- `AdminGuests.tsx` imports both `Dialog, DialogContent, DialogHeader,
+  DialogTitle, DialogTrigger` (from `@/components/ui/dialog`) and `Sheet,
+  SheetContent, SheetHeader, SheetTitle` (from `@/components/ui/sheet`).
+  Two `Dialog`s remain in use unchanged (Add New Guest, Import Guests from
+  Excel); the former Edit Guest `Dialog` is now a `Sheet`
+  (`<SheetTitle>Edit {editingGuest?.name}</SheetTitle>`).
+- `AdminInvites.tsx` imports the same `Dialog`/`Sheet` sets. Three
+  `Dialog`s remain in use unchanged (Create New Invitation, Import from
+  Excel, Danger Zone: Clear All Data); the former Edit Invite `Dialog` is
+  now a `Sheet` (`<SheetTitle>Edit Invite: {editingInvite?.name}</SheetTitle>`).
+- `EditableCell` usage confirmed present in `GuestRow.tsx` and
+  `InviteRow.tsx` alongside its shared definition in
+  `src/components/admin/EditableCell.tsx`.
+
+**Not verified (no browser automation available in this environment):** a
+human must do a live browser walkthrough before treating this plan as fully
+verified in production, specifically:
+
+- Click-to-edit on the `name` and `nickname` cells for both guests and
+  invites, including starting from an empty `nickname` and clearing an
+  existing `nickname` back to empty.
+- Escape-to-cancel genuinely not saving the in-progress edit — this was a
+  specific risk identified and defensively guarded against during Task 1's
+  review (a stale-blur guard fix), so a human should specifically confirm
+  Escape leaves the underlying value untouched, including the case where
+  blur fires immediately after Escape.
+- Both `Sheet`s opening and closing correctly, and that their remaining
+  content still works: the guest structural fields (role, table
+  type/number, invite group, baby/parent fields) in `AdminGuests`'s Edit
+  Guest `Sheet`; the guest-assignment search/add/remove sub-workflow in
+  `AdminInvites`'s Edit Invite `Sheet`.
+- The Add Guest and Add Invite `Dialog`s (plus the Import/Clear-Data
+  `Dialog`s they sit alongside) still working unchanged, since they were
+  not touched by this plan but share the same page files as the edited
+  code.
+
+Note on lint: this repo's `eslint.config.js` applies no rules to `.ts`/
+`.tsx` files (a pre-existing gap, discovered in an earlier sub-project) —
+`npm run lint` passing would not be meaningful evidence for this change and
+was not used as a verification signal.
