@@ -9,6 +9,7 @@ interface EditableCellProps {
   allowEmpty?: boolean;
   className?: string;
   inputClassName?: string;
+  onInvalid?: (message: string) => void;
 }
 
 export function EditableCell({
@@ -18,6 +19,7 @@ export function EditableCell({
   allowEmpty = false,
   className,
   inputClassName,
+  onInvalid,
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -37,6 +39,7 @@ export function EditableCell({
     if (trimmed === value.trim()) return;
     if (!trimmed && !allowEmpty) {
       setDraft(value);
+      onInvalid?.('This field cannot be empty');
       return;
     }
     onSave(trimmed);
@@ -47,6 +50,11 @@ export function EditableCell({
     handledRef.current = true;
     setDraft(value);
     setIsEditing(false);
+  };
+
+  const enterEdit = () => {
+    handledRef.current = false;
+    setIsEditing(true);
   };
 
   if (isEditing) {
@@ -74,9 +82,14 @@ export function EditableCell({
 
   return (
     <span
-      onClick={() => {
-        handledRef.current = false;
-        setIsEditing(true);
+      role="button"
+      tabIndex={0}
+      onClick={enterEdit}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          enterEdit();
+        }
       }}
       className={cn('cursor-pointer', className)}
       title="Click to edit"

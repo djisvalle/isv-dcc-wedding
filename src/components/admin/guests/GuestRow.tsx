@@ -45,6 +45,7 @@ function GuestRowComponent({
         <EditableCell
           value={guest.name}
           onSave={(newValue) => onUpdateField(guest.id, 'name', newValue)}
+          onInvalid={(message) => toast.error(message)}
           className="font-semibold text-slate-700 hover:underline decoration-dotted decoration-slate-300 underline-offset-2"
           inputClassName="h-7 px-2 text-sm font-semibold"
         />

@@ -2,6 +2,7 @@ import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Copy, Edit2, Trash2, MessageSquare } from 'lucide-react';
+import { toast } from 'sonner';
 import { EditableCell } from '@/components/admin/EditableCell';
 import type { Invite, InviteWithCounts } from '@/features/invites/types';
 
@@ -24,6 +25,7 @@ function InviteRowComponent({ invite, onCopyLink, onCopyMessage, onUpdateName, o
         <EditableCell
           value={invite.name}
           onSave={(newValue) => onUpdateName(invite.id, newValue)}
+          onInvalid={(message) => toast.error(message)}
           className="font-semibold text-slate-700 hover:underline decoration-dotted decoration-slate-300 underline-offset-2"
           inputClassName="h-7 px-2 text-sm font-semibold"
         />
