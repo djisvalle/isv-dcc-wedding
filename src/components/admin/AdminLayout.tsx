@@ -21,6 +21,9 @@ import { auth } from '@/lib/firebase';
 import { useEffect, Suspense } from 'react';
 import { GuestsProvider } from '@/features/guests/context/GuestsProvider';
 import { InvitesProvider } from '@/features/invites/context/InvitesProvider';
+import { SuppliersProvider } from '@/features/budget/context/SuppliersProvider';
+import { PaymentsProvider } from '@/features/budget/context/PaymentsProvider';
+import { WaitingListProvider } from '@/features/waitingList/context/WaitingListProvider';
 
 export default function AdminLayout() {
   const { user, isAdmin, loading } = useAuth();
@@ -137,16 +140,22 @@ export default function AdminLayout() {
 
         <GuestsProvider>
           <InvitesProvider>
-            <Suspense fallback={<Loader2 className="w-8 h-8 animate-spin text-wedding-gold mx-auto mt-20" />}>
-              <motion.div
-                 key={location.pathname}
-                 initial={{ opacity: 0, y: 10 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 transition={{ duration: 0.3 }}
-              >
-                <Outlet />
-              </motion.div>
-            </Suspense>
+            <SuppliersProvider>
+              <PaymentsProvider>
+                <WaitingListProvider>
+                  <Suspense fallback={<Loader2 className="w-8 h-8 animate-spin text-wedding-gold mx-auto mt-20" />}>
+                    <motion.div
+                       key={location.pathname}
+                       initial={{ opacity: 0, y: 10 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       transition={{ duration: 0.3 }}
+                    >
+                      <Outlet />
+                    </motion.div>
+                  </Suspense>
+                </WaitingListProvider>
+              </PaymentsProvider>
+            </SuppliersProvider>
           </InvitesProvider>
         </GuestsProvider>
       </main>
