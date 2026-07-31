@@ -8,7 +8,6 @@ import { useRsvpInvite } from '@/features/rsvp/hooks/useRsvpInvite';
 import { useSubmitRsvp } from '@/features/rsvp/hooks/useSubmitRsvp';
 import type { Guest } from '@/features/rsvp/types';
 import RsvpSkeleton from './RsvpSkeleton';
-import { SectionDecors } from './DecorationLayer';
 
 interface RSVPSectionProps {
   inviteId: string;
@@ -89,7 +88,6 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
 
   return (
     <div id="rsvp" className="py-12 md:py-20 px-6 md:px-8 relative overflow-hidden">
-      <SectionDecors.RSVP />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}

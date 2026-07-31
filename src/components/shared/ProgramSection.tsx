@@ -1,5 +1,4 @@
 import { motion } from 'motion/react';
-import { SectionDecors } from './DecorationLayer';
 import { Heart, Music, Utensils, Camera, Film, Sparkles } from 'lucide-react';
 
 const programItems = [
@@ -44,8 +43,7 @@ const programItems = [
 export default function ProgramSection() {
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-white relative overflow-hidden">
-      <SectionDecors.Programme />
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "0px 0px -50px 0px" }}

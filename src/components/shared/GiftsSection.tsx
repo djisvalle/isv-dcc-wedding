@@ -1,12 +1,10 @@
 import { motion } from 'motion/react';
-import { SectionDecors } from './DecorationLayer';
 import { Gift } from 'lucide-react';
 
 export default function GiftsSection() {
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-white relative overflow-hidden">
-      <SectionDecors.Gifts />
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "0px 0px -50px 0px" }}
