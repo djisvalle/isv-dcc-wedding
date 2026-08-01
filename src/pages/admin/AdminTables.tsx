@@ -639,18 +639,19 @@ export default function AdminTables() {
                 const allTableGuests = guestsByTable[table.id] ?? EMPTY_GUESTS;
                 const visibleGuests = hasGuestFilter ? allTableGuests.filter(matchesGuestFilters) : allTableGuests;
                 return (
-                  <DroppableTable
-                    key={table.id}
-                    table={table}
-                    allTableGuests={allTableGuests}
-                    visibleGuests={visibleGuests}
-                    hasGuestFilter={hasGuestFilter}
-                    onRemoveTable={handleRemoveTable}
-                    onQuickMove={handleQuickMove}
-                    availableTables={activeTables}
-                    unassignedGuests={unassignedGuests}
-                    onUpdateCapacity={handleUpdateCapacity}
-                  />
+                  <div key={table.id} className="animate-in fade-in duration-300">
+                    <DroppableTable
+                      table={table}
+                      allTableGuests={allTableGuests}
+                      visibleGuests={visibleGuests}
+                      hasGuestFilter={hasGuestFilter}
+                      onRemoveTable={handleRemoveTable}
+                      onQuickMove={handleQuickMove}
+                      availableTables={activeTables}
+                      unassignedGuests={unassignedGuests}
+                      onUpdateCapacity={handleUpdateCapacity}
+                    />
+                  </div>
                 );
               })}
 
