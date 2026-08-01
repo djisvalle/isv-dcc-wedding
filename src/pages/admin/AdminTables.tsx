@@ -105,7 +105,11 @@ export default function AdminTables() {
 
     // Merge with existing active tables (e.g. empty tables loaded from
     // Firestore, or ones created earlier this session) to avoid dropping them.
-    setActiveTables(prev => mergeTables(Object.values(tablesFromGuests), prev));
+    // `prev` must come FIRST: mergeTables is first-occurrence-wins, and only
+    // `prev` can carry a user-set `capacity` (tablesFromGuests entries never
+    // have one). Passing tablesFromGuests first would silently wipe out any
+    // custom capacity on every guest-list change.
+    setActiveTables(prev => mergeTables(prev, Object.values(tablesFromGuests)));
   }, [guests]);
 
   // Load any previously-saved table layout once on mount, so tables with no
@@ -119,7 +123,11 @@ export default function AdminTables() {
       try {
         const saved = JSON.parse(raw);
         if (!Array.isArray(saved)) return;
-        setActiveTables(prev => mergeTables(prev, saved));
+        // `saved` must come FIRST: mergeTables is first-occurrence-wins, and
+        // `saved` carries the persisted capacity while `prev` (derived from
+        // guests) never does. Passing `prev` first would discard the just
+        // loaded capacity immediately on mount.
+        setActiveTables(prev => mergeTables(saved, prev));
       } catch {
         // Malformed layout data shouldn't block the page from loading.
       }
@@ -197,6 +205,11 @@ export default function AdminTables() {
       return true;
     })
   , [activeTables, guestsByTable, typeFilter, capacityFilter, hasGuestFilter, matchesGuestFilters]);
+
+  // Cheap membership check for "is this table currently filtered out",
+  // used only to toggle on-screen visibility (print must always show every
+  // table regardless of the active filter — see the map below).
+  const visibleTableIds = useMemo(() => new Set(visibleTables.map(t => t.id)), [visibleTables]);
 
   const handleQuickMove = useCallback(async (guestId: string, tableId: string | null) => {
     try {
@@ -635,11 +648,16 @@ export default function AdminTables() {
           {/* Main Area: Tables */}
           <div className="lg:col-span-3 print:col-span-4">
              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 print:grid-cols-2 print:gap-4">
-              {visibleTables.map((table) => {
+              {activeTables.map((table) => {
                 const allTableGuests = guestsByTable[table.id] ?? EMPTY_GUESTS;
                 const visibleGuests = hasGuestFilter ? allTableGuests.filter(matchesGuestFilters) : allTableGuests;
+                // Print must always include every table, independent of the
+                // on-screen filter (filter bar itself is print:hidden, so a
+                // filtered print would silently omit whole tables with no
+                // indication anything was excluded).
+                const isFilteredOut = !visibleTableIds.has(table.id);
                 return (
-                  <div key={table.id} className="animate-in fade-in duration-300">
+                  <div key={table.id} className={isFilteredOut ? 'hidden print:block' : 'animate-in fade-in duration-300'}>
                     <DroppableTable
                       table={table}
                       allTableGuests={allTableGuests}
@@ -664,7 +682,7 @@ export default function AdminTables() {
               )}
 
               {activeTables.length > 0 && visibleTables.length === 0 && (
-                <div className="col-span-full py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-400">
+                <div className="col-span-full py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-400 print:hidden">
                   <Search className="w-12 h-12 mb-4 opacity-20" />
                   <p className="font-serif text-xl mb-1 text-slate-600">No tables match your filters</p>
                   <Button
