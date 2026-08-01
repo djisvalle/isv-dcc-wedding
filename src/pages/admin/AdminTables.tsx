@@ -15,7 +15,8 @@ import {
   UserCheck,
   Search,
   UserX,
-  AlertTriangle
+  AlertTriangle,
+  Printer
 } from 'lucide-react';
 import {
   DndContext, 
@@ -275,7 +276,7 @@ const DroppableTable = React.memo<{
                     {visibleGuests.filter(g => !g.is_baby_or_child).length} of {countOccupants} shown
                   </p>
                 )}
-                <div className="mt-0.5">
+                <div className="mt-0.5 print:hidden">
                   {isEditingCapacity ? (
                     <Input
                       autoFocus
@@ -320,10 +321,13 @@ const DroppableTable = React.memo<{
                     </div>
                   )}
                 </div>
+                <p className="hidden print:block text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                  {capacity !== undefined ? `${countOccupants} / ${capacity} Guests` : `${countOccupants} Guests`}
+                </p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-1">
+
+            <div className="flex items-center gap-1 print:hidden">
               <Dialog open={isAssignOpen} onOpenChange={(open) => {
                 setIsAssignOpen(open);
                 if (!open) setAssignSearch('');
@@ -396,7 +400,7 @@ const DroppableTable = React.memo<{
           </div>
         </CardHeader>
         <CardContent className="pt-4 px-6 pb-6 min-h-[150px]">
-          <div className="space-y-1">
+          <div className="space-y-1 print:hidden">
             <SortableContext items={visibleGuests.map(g => g.id)} strategy={verticalListSortingStrategy}>
               {visibleGuests.map((guest) => (
                 <SortableGuestItem
@@ -412,6 +416,16 @@ const DroppableTable = React.memo<{
                 <Users className="w-8 h-8 mb-2 opacity-20" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Empty Table</span>
               </div>
+            )}
+          </div>
+          <div className="hidden print:block space-y-0.5">
+            {allTableGuests.map(g => (
+              <div key={g.id} className="text-xs text-slate-700">
+                {g.name}{g.is_baby_or_child ? ' (Baby/Child)' : ''}
+              </div>
+            ))}
+            {allTableGuests.length === 0 && (
+              <div className="text-xs text-slate-400 italic">No guests assigned</div>
             )}
           </div>
         </CardContent>
@@ -774,6 +788,8 @@ export default function AdminTables() {
     });
   }, []);
 
+  const handlePrint = () => window.print();
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -809,10 +825,15 @@ export default function AdminTables() {
               </div>
             </div>
 
+            <Button onClick={handlePrint} variant="outline" className="border-slate-200 rounded-2xl h-12 print:hidden">
+              <Printer className="w-4 h-4 mr-2" />
+              Print Seating Chart
+            </Button>
+
             <Dialog open={isAddTableOpen} onOpenChange={setIsAddTableOpen}>
-              <DialogTrigger 
+              <DialogTrigger
               render={
-                <Button className="bg-wedding-gold hover:bg-wedding-gold/80 rounded-2xl h-12">
+                <Button className="bg-wedding-gold hover:bg-wedding-gold/80 rounded-2xl h-12 print:hidden">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Table
                 </Button>
@@ -872,7 +893,7 @@ export default function AdminTables() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 items-end">
+        <div className="flex flex-wrap gap-4 items-end print:hidden">
           <div className="flex-1 min-w-[240px]">
             <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Search</Label>
             <div className="relative mt-1.5">
@@ -947,7 +968,7 @@ export default function AdminTables() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
           {/* Sidebar: Unassigned Guests (Desktop) */}
-          <div className="hidden lg:block lg:col-span-1 sticky top-6">
+          <div className="hidden lg:block lg:col-span-1 sticky top-6 print:hidden">
             <UnassignedContainer
               guests={filteredUnassigned}
               onQuickMove={handleQuickMove}
@@ -962,7 +983,7 @@ export default function AdminTables() {
           </div>
 
           {/* Floating Action Button for Unassigned on Mobile */}
-          <div className="lg:hidden fixed bottom-6 right-6 z-40">
+          <div className="lg:hidden fixed bottom-6 right-6 z-40 print:hidden">
              <Sheet open={isMobileSheetOpen} onOpenChange={setIsMobileSheetOpen}>
                 <SheetTrigger 
                   render={
@@ -1001,8 +1022,8 @@ export default function AdminTables() {
           </div>
 
           {/* Main Area: Tables */}
-          <div className="lg:col-span-3">
-             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="lg:col-span-3 print:col-span-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 print:grid-cols-2 print:gap-4">
               {visibleTables.map((table) => {
                 const allTableGuests = guestsByTable[table.id] ?? EMPTY_GUESTS;
                 const visibleGuests = hasGuestFilter ? allTableGuests.filter(matchesGuestFilters) : allTableGuests;
