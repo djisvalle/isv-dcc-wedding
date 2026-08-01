@@ -52,6 +52,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { handleFirestoreError, OperationType } from '@/lib/firebase';
 import { useGuests } from '@/features/guests/context/GuestsProvider';
@@ -69,7 +70,10 @@ const SortableGuestItem = React.memo<{
   isOverlay?: boolean;
   onQuickMove?: (guestId: string, tableId: string | null) => void;
   availableTables?: Table[];
-}>(({ guest, isOverlay = false, onQuickMove, availableTables = [] }) => {
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (guestId: string) => void;
+}>(({ guest, isOverlay = false, onQuickMove, availableTables = [], selectable = false, selected = false, onToggleSelect }) => {
   const {
     attributes,
     listeners,
@@ -107,6 +111,13 @@ const SortableGuestItem = React.memo<{
       `}
     >
       <div className="flex items-center justify-between gap-2">
+        {selectable && !isOverlay && onToggleSelect && (
+          <Checkbox
+            checked={selected}
+            onCheckedChange={() => onToggleSelect(guest.id)}
+            className="flex-shrink-0"
+          />
+        )}
         <div className="flex items-center gap-2 flex-1 min-w-0" {...attributes} {...listeners}>
           <GripVertical className="w-3 h-3 text-slate-300 flex-shrink-0" />
           <div className="truncate">
@@ -425,6 +436,9 @@ export default function AdminTables() {
   // Mobile unassigned sheet
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
 
+  // Bulk selection of unassigned guests
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   // Filters (drive both the table grid and the guest lists inside it)
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | Table['type']>('all');
@@ -518,6 +532,10 @@ export default function AdminTables() {
     unassignedGuests.filter(matchesGuestFilters)
   , [unassignedGuests, matchesGuestFilters]);
 
+  useEffect(() => {
+    setSelectedIds(prev => prev.filter(id => filteredUnassigned.some(g => g.id === id)));
+  }, [filteredUnassigned]);
+
   const guestsByTable = useMemo(() => {
     const m: Record<string, Guest[]> = {};
     for (const g of guests) {
@@ -528,6 +546,14 @@ export default function AdminTables() {
     for (const k in m) m[k].sort((a, b) => (a.table_order || 0) - (b.table_order || 0));
     return m;
   }, [guests]);
+
+  const tableOccupants = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const table of activeTables) {
+      m[table.id] = (guestsByTable[table.id] ?? EMPTY_GUESTS).filter(g => !g.is_baby_or_child).length;
+    }
+    return m;
+  }, [activeTables, guestsByTable]);
 
   const visibleTables = useMemo(() =>
     activeTables.filter(table => {
@@ -582,6 +608,40 @@ export default function AdminTables() {
       handleFirestoreError(err, OperationType.UPDATE, `guests/${guestId}`);
     }
   }, [guests, activeTables]);
+
+  const handleToggleSelect = useCallback((guestId: string) => {
+    setSelectedIds(prev => prev.includes(guestId) ? prev.filter(id => id !== guestId) : [...prev, guestId]);
+  }, []);
+
+  const handleClearSelection = useCallback(() => setSelectedIds([]), []);
+
+  const handleBulkAssign = useCallback(async (guestIds: string[], tableId: string) => {
+    const table = activeTables.find(t => t.id === tableId);
+    if (!table || guestIds.length === 0) return;
+
+    try {
+      const targetGuests = guests.filter(g =>
+        g.table_type === table.type && (g.table_number || '') === (table.number || '')
+      );
+      let nextOrder = targetGuests.length > 0
+        ? Math.max(...targetGuests.map(g => g.table_order || 0)) + 1
+        : 0;
+
+      const ops = guestIds.map(id => ({ id, order: nextOrder++ }));
+      await commitInChunks(ops, ({ id, order }, batch) => {
+        batch.update(doc(db, 'guests', id), {
+          table_type: table.type,
+          table_number: table.number,
+          table_order: order,
+          updated_at: serverTimestamp()
+        });
+      });
+      toast.success(`${guestIds.length} guest${guestIds.length === 1 ? '' : 's'} assigned`);
+      setSelectedIds([]);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, 'guests');
+    }
+  }, [activeTables, guests]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -893,6 +953,11 @@ export default function AdminTables() {
               onQuickMove={handleQuickMove}
               availableTables={activeTables}
               hasFilter={hasGuestFilter}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+              onClearSelection={handleClearSelection}
+              onBulkAssign={handleBulkAssign}
+              tableOccupants={tableOccupants}
             />
           </div>
 
@@ -924,6 +989,11 @@ export default function AdminTables() {
                       availableTables={activeTables}
                       hasFilter={hasGuestFilter}
                       isMobile
+                      selectedIds={selectedIds}
+                      onToggleSelect={handleToggleSelect}
+                      onClearSelection={handleClearSelection}
+                      onBulkAssign={handleBulkAssign}
+                      tableOccupants={tableOccupants}
                     />
                   </div>
                 </SheetContent>
@@ -1005,7 +1075,12 @@ const UnassignedContainer: React.FC<{
   availableTables: Table[];
   hasFilter: boolean;
   isMobile?: boolean;
-}> = ({ guests, onQuickMove, availableTables, hasFilter, isMobile = false }) => {
+  selectedIds: string[];
+  onToggleSelect: (guestId: string) => void;
+  onClearSelection: () => void;
+  onBulkAssign: (guestIds: string[], tableId: string) => void;
+  tableOccupants: Record<string, number>;
+}> = ({ guests, onQuickMove, availableTables, hasFilter, isMobile = false, selectedIds, onToggleSelect, onClearSelection, onBulkAssign, tableOccupants }) => {
   const { setNodeRef, isOver } = useSortable({
     id: 'unassigned-container',
     data: {
@@ -1023,22 +1098,66 @@ const UnassignedContainer: React.FC<{
         ${!isMobile && isOver ? 'border-wedding-gold bg-wedding-gold/5 ring-1 ring-wedding-gold shadow-lg scale-[1.02]' : ''}
       `}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-serif text-xl text-slate-800">Unassigned</h3>
-        <span className="text-[10px] px-2 py-1 bg-white text-slate-400 rounded-full border border-slate-100 font-bold">
-          {guests.length}
-        </span>
-      </div>
+      {selectedIds.length > 0 ? (
+        <div className="flex items-center justify-between mb-4 gap-2">
+          <span className="text-xs font-bold text-slate-600 whitespace-nowrap">{selectedIds.length} selected</span>
+          <div className="flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button size="sm" className="h-8 rounded-lg bg-wedding-gold hover:bg-wedding-gold/80 text-xs">
+                    Assign to table
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] uppercase text-slate-400 font-bold">
+                  Assign {selectedIds.length} guest{selectedIds.length === 1 ? '' : 's'} to...
+                </DropdownMenuLabel>
+                {availableTables.map(table => {
+                  const capacity = getEffectiveCapacity(table);
+                  const occupants = tableOccupants[table.id] ?? 0;
+                  const label = table.type === 'bridal' ? 'Bridal Table' : table.type === 'vip' ? `VIP ${table.number}` : `Regular ${table.number}`;
+                  const occupancyLabel = capacity !== undefined ? `${occupants}/${capacity}` : `${occupants}`;
+                  return (
+                    <DropdownMenuItem
+                      key={table.id}
+                      className="flex justify-between items-center text-xs"
+                      onClick={() => onBulkAssign(selectedIds, table.id)}
+                    >
+                      <span>{label}</span>
+                      <span className="text-slate-400">{occupancyLabel}</span>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button size="sm" variant="ghost" className="h-8 text-xs text-slate-500" onClick={onClearSelection}>
+              Clear
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-serif text-xl text-slate-800">Unassigned</h3>
+          <span className="text-[10px] px-2 py-1 bg-white text-slate-400 rounded-full border border-slate-100 font-bold">
+            {guests.length}
+          </span>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto pr-1">
         <SortableContext items={guests.map(g => g.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-1">
             {guests.map((guest) => (
-              <SortableGuestItem 
-                key={guest.id} 
-                guest={guest} 
+              <SortableGuestItem
+                key={guest.id}
+                guest={guest}
                 onQuickMove={onQuickMove}
                 availableTables={availableTables}
+                selectable
+                selected={selectedIds.includes(guest.id)}
+                onToggleSelect={onToggleSelect}
               />
             ))}
             {guests.length === 0 && (
