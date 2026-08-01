@@ -91,3 +91,68 @@ verification only, consistent with the whole overhaul.
   longer offer "Move to Waiting List" anywhere.
 - `npx tsc --noEmit` and `npm run build` both pass clean, and the grep
   sweep above returns zero hits.
+
+## Results
+
+Final verification (Task 4) performed 2026-08-01, after Tasks 1–3 (removal
+of `AdminBudget`/`AdminReports`/`AdminWaitingList` and their routes/nav
+items; removal of the embedded "Move to Waiting List" workflow from the
+Guest List page; deletion of the orphaned `SuppliersProvider`/
+`PaymentsProvider`/`WaitingListProvider` and their `features/budget`/
+`features/waitingList` folders) were each implemented, reviewed, and
+committed with zero unresolved findings.
+
+**`npx tsc --noEmit` (whole project):** zero errors, zero output.
+
+**`npx eslint . --report-unused-disable-directives --max-warnings 0`:**
+zero output (exit 0). Same caveat as noted in sub-project 2b's Results
+section: this repo's `eslint.config.js` applies no rules to `.ts`/`.tsx`
+files (a pre-existing gap), so a clean lint run is expected but not
+meaningful evidence of correctness on its own — `tsc` and the build are the
+signals that matter here.
+
+**`npm run build`:** succeeded (`vite v6.4.2`, "2737 modules transformed",
+"✓ built in 13.09s"). `AdminBudget`, `AdminReports`, and `AdminWaitingList`
+no longer appear as chunks in the build output at all — confirming full
+removal rather than an empty/dead chunk left behind. `AdminGuests`'s chunk
+is marginally smaller than sub-project 2b's recorded figure (978.15 kB vs
+979.42 kB previously), consistent with the removed
+`handleMoveToWaitingList` handler/button/prop being dead code eliminated.
+The build emits the same pre-existing chunk-size warning noted in prior
+sub-projects' Results sections ("Some chunks are larger than 500 kB after
+minification", flagging `EditableCell-*.js` at 546.38 kB and
+`AdminGuests-*.js` at 978.15 kB) — both predate this sub-project and are
+not treated as a blocking signal here.
+
+**Grep sweep, removed symbols/paths:**
+`grep -rn "AdminBudget\|AdminReports\|AdminWaitingList\|batchMoveToWaitingList\|WaitingListEntry\|onMoveToWaiting\|SuppliersProvider\|PaymentsProvider\|WaitingListProvider\|features/budget\|features/waitingList" src/`
+produced no output, confirming no remaining reference anywhere in `src/`
+to any of the three removed pages, the removed waiting-list workflow
+symbols, or the three orphaned providers/feature folders.
+
+**Grep sweep, removed route strings:**
+`grep -n "'waiting-list'\|'budget'\|'reports'" src/App.tsx`
+produced no output, confirming the three `<Route>`/`lazy()` entries for
+these pages are gone from the router.
+
+**Nav item count:** `src/components/admin/AdminLayout.tsx`'s `navItems`
+array (shared by the desktop sidebar and mobile sheet nav) has exactly 5
+entries, in order: Dashboard (`/admin`), Invitations (`/admin/invites`),
+Guest List (`/admin/guests`), Tables (`/admin/tables`), Settings
+(`/admin/settings`). `AdminLayout`'s provider nesting is back to just
+`GuestsProvider`/`InvitesProvider` around `<Outlet/>` — no trace of the
+three sub-project-2b providers.
+
+**Not verified (no browser automation available in this environment):** a
+human must do a live browser walkthrough before treating this removal as
+fully verified in production, specifically:
+
+- Clicking through the admin nav to confirm all 3 removed pages
+  (Budget & Payments, Reports, Waiting List) are actually gone from the
+  UI — no dead links, no residual nav entries, and that navigating
+  directly to `/admin/budget`, `/admin/reports`, or `/admin/waiting-list`
+  falls through to the app's normal not-found/redirect behavior.
+- The Guest List page's remaining bulk-action bar and per-row quick
+  actions still work end-to-end (select/bulk-edit/bulk-delete, per-row
+  edit/delete, etc.) now that the "Move to Waiting List" button/handler/prop
+  have been removed from both `AdminGuests.tsx` and `GuestRow.tsx`.
