@@ -33,16 +33,24 @@ interface DroppableTableProps {
   availableTables: Table[];
   unassignedGuests: Guest[];
   onUpdateCapacity: (tableId: string, capacity: number | undefined) => void;
+  isFilteredOut?: boolean;
 }
 
-export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTableGuests, visibleGuests, hasGuestFilter, onRemoveTable, onQuickMove, availableTables, unassignedGuests, onUpdateCapacity }) => {
+export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTableGuests, visibleGuests, hasGuestFilter, onRemoveTable, onQuickMove, availableTables, unassignedGuests, onUpdateCapacity, isFilteredOut = false }) => {
   const { setNodeRef, isOver } = useSortable({
     id: table.id,
     data: {
       type: 'table',
       table,
       isContainer: true
-    }
+    },
+    // Filtered-out tables stay mounted (for print) but hidden via CSS. A
+    // `display:none` element still reports a valid (zero-sized) rect to
+    // dnd-kit's collision detection, so without this it can remain a live
+    // drop target that a drag can silently resolve onto while invisible.
+    // Disabling it (this container was never used as a drag source anyway)
+    // removes it from collision detection entirely.
+    disabled: isFilteredOut
   });
 
   const [isAssignOpen, setIsAssignOpen] = useState(false);

@@ -668,6 +668,7 @@ export default function AdminTables() {
                       availableTables={activeTables}
                       unassignedGuests={unassignedGuests}
                       onUpdateCapacity={handleUpdateCapacity}
+                      isFilteredOut={isFilteredOut}
                     />
                   </div>
                 );
