@@ -64,29 +64,27 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-serif">RSVP Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex">
-              <div
-                className="h-full bg-emerald-500"
-                style={{ width: `${stats.totalGuests > 0 ? (stats.attendingGuests / stats.totalGuests) * 100 : 0}%` }}
-              />
-              <div
-                className="h-full bg-rose-500"
-                style={{ width: `${stats.totalGuests > 0 ? (stats.declinedGuests / stats.totalGuests) * 100 : 0}%` }}
-              />
-            </div>
-            <div className="flex justify-between mt-4 text-xs font-semibold text-slate-400">
-              <span>{stats.totalGuests > 0 ? Math.round((stats.attendingGuests / stats.totalGuests) * 100) : 0}% Attending</span>
-              <span>{stats.totalGuests > 0 ? Math.round((stats.declinedGuests / stats.totalGuests) * 100) : 0}% Declined</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-none shadow-sm rounded-3xl overflow-hidden mt-12">
+        <CardHeader>
+          <CardTitle className="font-serif">RSVP Progress</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex">
+            <div
+              className="h-full bg-emerald-500"
+              style={{ width: `${stats.totalGuests > 0 ? (stats.attendingGuests / stats.totalGuests) * 100 : 0}%` }}
+            />
+            <div
+              className="h-full bg-rose-500"
+              style={{ width: `${stats.totalGuests > 0 ? (stats.declinedGuests / stats.totalGuests) * 100 : 0}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-4 text-xs font-semibold text-slate-400">
+            <span>{stats.totalGuests > 0 ? Math.round((stats.attendingGuests / stats.totalGuests) * 100) : 0}% Attending</span>
+            <span>{stats.totalGuests > 0 ? Math.round((stats.declinedGuests / stats.totalGuests) * 100) : 0}% Declined</span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
