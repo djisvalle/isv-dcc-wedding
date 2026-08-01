@@ -976,7 +976,7 @@ export default function AdminGuests() {
               <ChevronLeft className="w-4 h-4 mr-2" />
               Previous
             </Button>
-            <div className="flex items-center gap-1 overflow-x-auto max-w-[200px] md:max-w-none">
+            <div className="flex items-center gap-1 overflow-x-auto overflow-y-hidden max-w-[200px] md:max-w-none">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                 <Button
                   key={page}
