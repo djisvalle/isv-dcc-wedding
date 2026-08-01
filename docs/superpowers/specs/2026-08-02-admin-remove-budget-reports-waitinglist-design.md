@@ -105,11 +105,14 @@ committed with zero unresolved findings.
 **`npx tsc --noEmit` (whole project):** zero errors, zero output.
 
 **`npx eslint . --report-unused-disable-directives --max-warnings 0`:**
-zero output (exit 0). Same caveat as noted in sub-project 2b's Results
-section: this repo's `eslint.config.js` applies no rules to `.ts`/`.tsx`
-files (a pre-existing gap), so a clean lint run is expected but not
-meaningful evidence of correctness on its own — `tsc` and the build are the
-signals that matter here.
+zero output (exit 0). `eslint.config.js` has been fully functional since
+commit `eba9a2ee` ("fix: make eslint.config.js actually lint .ts/.tsx and
+clean up 50 surfaced warnings"), fixed earlier in this branch's history and
+an ancestor of this sub-project — its `files: ['**/*.{ts,tsx}']` glob
+genuinely targets every `.ts`/`.tsx` file and applies `@eslint/js` +
+`typescript-eslint` recommended rules plus custom `react-hooks`/
+`react-refresh`/`no-unused-vars` rules. This clean, zero-warning run is a
+real, meaningful verification signal, not a no-op.
 
 **`npm run build`:** succeeded (`vite v6.4.2`, "2737 modules transformed",
 "✓ built in 13.09s"). `AdminBudget`, `AdminReports`, and `AdminWaitingList`
