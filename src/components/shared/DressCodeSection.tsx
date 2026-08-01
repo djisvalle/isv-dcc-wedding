@@ -1,11 +1,9 @@
 import { motion } from 'motion/react';
-import { SectionDecors } from './DecorationLayer';
 
 export default function DressCodeSection() {
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden">
-      <SectionDecors.DressCode />
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "0px 0px -50px 0px" }}
@@ -22,9 +20,11 @@ export default function DressCodeSection() {
             <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Gentlemen</h4>
             <div className="p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
               <div className="mb-8 overflow-hidden rounded-2xl aspect-[3/4] max-w-[160px] mx-auto border border-wedding-gold/10 shadow-sm group">
-                <img 
-                  src="/men-attire.svg" 
-                  alt="Men's formal attire suggestion" 
+                <img
+                  src="/men-attire.webp"
+                  loading="lazy"
+                  decoding="async"
+                  alt="Men's formal attire suggestion"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   referrerPolicy="no-referrer"
                 />
@@ -43,9 +43,11 @@ export default function DressCodeSection() {
             <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Ladies</h4>
             <div className="p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
               <div className="mb-8 overflow-hidden rounded-2xl aspect-[3/4] max-w-[160px] mx-auto border border-wedding-gold/10 shadow-sm group">
-                <img 
-                  src="/women-attire.svg" 
-                  alt="Women's formal attire suggestion" 
+                <img
+                  src="/women-attire.webp"
+                  loading="lazy"
+                  decoding="async"
+                  alt="Women's formal attire suggestion"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   referrerPolicy="no-referrer"
                 />

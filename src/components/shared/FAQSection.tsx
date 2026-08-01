@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, X, ZoomIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { SectionDecors } from './DecorationLayer';
+import { useDeadline } from '@/features/rsvp/hooks/useRsvpInvite';
 
 interface FAQItemProps {
   question: string;
@@ -15,11 +13,17 @@ interface FAQItemProps {
 
 const FAQItem: React.FC<FAQItemProps> = ({ question, answer, image, onImageClick }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
+
+  const toggleOpen = () => {
+    setIsOpen(prev => !prev);
+    setHasOpened(true);
+  };
 
   return (
     <div className="border-b border-wedding-gold/10 last:border-0">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleOpen}
         className="w-full py-6 flex items-center justify-between text-left group transition-all"
       >
         <span className="font-serif text-lg md:text-xl text-wedding-dark group-hover:text-wedding-gold transition-colors pr-8">
@@ -42,16 +46,16 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer, image, onImageClick
           <div className="font-serif italic text-wedding-dark/60 leading-relaxed md:text-lg whitespace-pre-line">
             {answer}
           </div>
-          {image && (
-            <div 
+          {image && hasOpened && (
+            <div
               className="mt-4 rounded-xl overflow-hidden border border-wedding-gold/20 shadow-sm relative group/image cursor-zoom-in"
               onClick={() => onImageClick?.(image)}
             >
-              <img 
-                src={image} 
-                alt="Overview" 
+              <img
+                src={image}
+                alt="Overview"
                 className="w-full h-auto transition-transform duration-500 group-hover/image:scale-105"
-                loading="eager"
+                loading="lazy"
                 decoding="async"
               />
               <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover/image:opacity-100">
@@ -68,31 +72,12 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer, image, onImageClick
 }
 
 export default function FAQSection() {
-  const [deadlineDate, setDeadlineDate] = useState<string>('');
+  const { data: deadline } = useDeadline();
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchDeadline = async () => {
-      try {
-        const docRef = doc(db, 'settings', 'rsvp_deadline');
-        const snap = await getDoc(docRef);
-        if (snap.exists()) {
-          const val = snap.data().value;
-          if (val) {
-            const date = new Date(val);
-            setDeadlineDate(date.toLocaleDateString('en-US', { 
-              month: 'long', 
-              day: 'numeric', 
-              year: 'numeric' 
-            }));
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch deadline:', err);
-      }
-    };
-    fetchDeadline();
-  }, []);
+  const deadlineDate = deadline?.date
+    ? deadline.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : '';
 
   const faqs = [
     {
@@ -118,7 +103,6 @@ export default function FAQSection() {
 
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden" id="faq-section">
-      <SectionDecors.FAQ />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}

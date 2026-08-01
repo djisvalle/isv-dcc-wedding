@@ -1,46 +1,48 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle
+} from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Edit2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, Copy, X, MessageSquare } from 'lucide-react';
-import { 
-  collection, 
-  onSnapshot, 
-  doc, 
-  updateDoc, 
-  deleteDoc, 
-  addDoc, 
-  serverTimestamp, 
-  query, 
-  where, 
-  getDocs,
+import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import {
+  collection,
+  doc,
+  updateDoc,
+  deleteDoc,
+  addDoc,
+  serverTimestamp,
   getDoc,
-  writeBatch,
-  DocumentSnapshot,
-  QuerySnapshot
+  arrayUnion,
+  arrayRemove,
+  DocumentSnapshot
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
-import * as xlsx from 'xlsx';
 import ExcelJS from 'exceljs';
-import { 
+import { parseExcelRows, downloadExcel } from '@/lib/excel';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -53,35 +55,20 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Hourglass } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Guest {
-  id: string;
-  name: string;
-  nickname?: string;
-  role: string | null;
-  invite_id: string | null;
-  is_coming: boolean | null;
-  invite_name?: string | null;
-  updated_at: any;
-  table_type?: 'bridal' | 'vip' | 'regular';
-  table_number?: string;
-  import_order?: number;
-  is_baby_or_child?: boolean;
-  parent_name?: string;
-}
+import { useGuests } from '@/features/guests/context/GuestsProvider';
+import { useInvites } from '@/features/invites/context/InvitesProvider';
+import { batchDeleteGuests, batchUpdateGuestStatus, batchImportGuests } from '@/features/guests/api/guestsApi';
+import { useDebounce } from '@/hooks/useDebounce';
+import { GuestRow } from '@/components/admin/guests/GuestRow';
+import type { Guest } from '@/features/guests/types';
 
 const TABLE_TYPES = [
   { id: 'bridal', label: 'Bridal Table' },
   { id: 'vip', label: 'VIP Table' },
   { id: 'regular', label: 'Regular Table' }
 ];
-
-interface Invite {
-  id: string;
-  name: string;
-}
 
 const GUEST_ROLES = [
   'Groom',
@@ -116,9 +103,8 @@ const ROLE_PRIORITY: Record<string, number> = {
 };
 
 export default function AdminGuests() {
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { guests, loading } = useGuests();
+  const { invites } = useInvites();
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
@@ -160,46 +146,25 @@ export default function AdminGuests() {
   });
 
   useEffect(() => {
-    const unsubInvites = onSnapshot(collection(db, 'invites'), (snap: QuerySnapshot) => {
-      setInvites(snap.docs.map(d => ({ id: d.id, name: d.data().name } as Invite)));
-    });
-
-    const unsubGuests = onSnapshot(collection(db, 'guests'), (snap: QuerySnapshot) => {
-      setGuests(snap.docs.map(d => ({ id: d.id, ...d.data() } as Guest)));
-      setLoading(false);
-    }, (err) => {
-      handleFirestoreError(err, OperationType.LIST, 'guests');
-    });
-
     getDoc(doc(db, 'settings', 'invite_message_template')).then((snap: DocumentSnapshot) => {
       if (snap.exists()) {
         setMessageTemplate(snap.data().value);
       }
     });
-
-    return () => {
-      unsubInvites();
-      unsubGuests();
-    };
   }, []);
 
-  const copyMessage = (guest: Guest) => {
-    // 1. Resolve Name
+  const copyMessage = useCallback((guest: Guest) => {
     const inviteGroup = invites.find(i => i.id === guest.invite_id);
     const displayName = inviteGroup?.name || guest.nickname || guest.name;
-
-    // 2. Resolve link
     const link = `${window.location.origin}/?inviteUrl=${guest.invite_id || guest.id}`;
-    
-    // 3. Replace template
     const message = messageTemplate
       .replace('<name>', displayName)
       .replace('<link>', link);
     navigator.clipboard.writeText(message);
     toast.success('Message copied to clipboard');
-  };
+  }, [invites, messageTemplate]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
       const data = guests.map(g => ({
         Name: g.name,
@@ -213,12 +178,24 @@ export default function AdminGuests() {
         LastUpdated: g.updated_at ? (g.updated_at.seconds ? new Date(g.updated_at.seconds * 1000).toLocaleString() : new Date(g.updated_at).toLocaleString()) : 'N/A'
       }));
 
-      const worksheet = xlsx.utils.json_to_sheet(data);
-      const workbook = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(workbook, worksheet, 'Guests');
-      xlsx.writeFile(workbook, 'wedding_guest_list.xlsx');
+      await downloadExcel(
+        data,
+        [
+          { header: 'Name', key: 'Name', width: 25 },
+          { header: 'Nickname', key: 'Nickname', width: 20 },
+          { header: 'Role', key: 'Role', width: 20 },
+          { header: 'Group', key: 'Group', width: 25 },
+          { header: 'InviteID', key: 'InviteID', width: 20 },
+          { header: 'TableType', key: 'TableType', width: 15 },
+          { header: 'TableNumber', key: 'TableNumber', width: 15 },
+          { header: 'Response', key: 'Response', width: 15 },
+          { header: 'LastUpdated', key: 'LastUpdated', width: 20 },
+        ],
+        'Guests',
+        'wedding_guest_list.xlsx'
+      );
       toast.success('Guest list exported successfully');
-    } catch (err) {
+    } catch {
       toast.error('Failed to export guest list');
     }
   };
@@ -230,7 +207,7 @@ export default function AdminGuests() {
         ? Math.max(...guests.map(g => g.import_order || 0)) 
         : -1;
 
-      await addDoc(collection(db, 'guests'), {
+      const guestRef = await addDoc(collection(db, 'guests'), {
         name: newGuest.name,
         nickname: newGuest.nickname || null,
         role: newGuest.role || null,
@@ -243,6 +220,11 @@ export default function AdminGuests() {
         import_order: maxOrder + 1,
         updated_at: serverTimestamp()
       });
+      if (newGuest.invite_id) {
+        await updateDoc(doc(db, 'invites', newGuest.invite_id), {
+          guest_ids: arrayUnion(guestRef.id)
+        });
+      }
       toast.success('Guest added successfully');
       setNewGuest({ name: '', nickname: '', role: '', invite_id: '', table_type: '' as any, table_number: '', is_baby_or_child: false, parent_name: '' });
       setIsAddOpen(false);
@@ -256,17 +238,32 @@ export default function AdminGuests() {
     e.preventDefault();
     if (!editingGuest) return;
     try {
+      const previousInviteId = guests.find(g => g.id === editingGuest.id)?.invite_id || null;
+      const nextInviteId = editingGuest.invite_id || null;
+
       await updateDoc(doc(db, 'guests', editingGuest.id), {
-        name: editingGuest.name,
-        nickname: editingGuest.nickname || null,
         role: editingGuest.role || null,
-        invite_id: editingGuest.invite_id || null,
+        invite_id: nextInviteId,
         table_type: editingGuest.table_type || null,
         table_number: editingGuest.table_number || null,
         is_baby_or_child: editingGuest.is_baby_or_child || false,
         parent_name: editingGuest.parent_name || null,
         updated_at: serverTimestamp()
       });
+
+      if (previousInviteId !== nextInviteId) {
+        if (previousInviteId) {
+          await updateDoc(doc(db, 'invites', previousInviteId), {
+            guest_ids: arrayRemove(editingGuest.id)
+          });
+        }
+        if (nextInviteId) {
+          await updateDoc(doc(db, 'invites', nextInviteId), {
+            guest_ids: arrayUnion(editingGuest.id)
+          });
+        }
+      }
+
       toast.success('Guest updated successfully');
       setIsEditOpen(false);
     } catch (err) {
@@ -275,72 +272,59 @@ export default function AdminGuests() {
     }
   };
 
-  const handleDeleteGuest = async (id: string) => {
+  const handleDeleteGuest = useCallback(async (id: string) => {
     try {
+      const inviteId = guests.find(g => g.id === id)?.invite_id || null;
       await deleteDoc(doc(db, 'guests', id));
+      if (inviteId) {
+        await updateDoc(doc(db, 'invites', inviteId), { guest_ids: arrayRemove(id) });
+      }
       toast.success('Guest deleted successfully');
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `guests/${id}`);
       toast.error('Failed to delete guest');
     }
-  };
+  }, [guests]);
+
+  const handleEditClick = useCallback((guest: Guest) => {
+    setEditingGuest(guest);
+    setIsEditOpen(true);
+  }, []);
+
+  const onUpdateField = useCallback(async (id: string, field: 'name' | 'nickname', value: string) => {
+    try {
+      await updateDoc(doc(db, 'guests', id), {
+        [field]: field === 'nickname' && !value ? null : value,
+        updated_at: serverTimestamp()
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `guests/${id}`);
+      toast.error(`Failed to update ${field}`);
+    }
+  }, []);
 
   const handleBulkDelete = async () => {
     try {
-      for (const id of selectedIds) {
-        await deleteDoc(doc(db, 'guests', id));
-      }
+      const targets = guests
+        .filter(g => selectedIds.includes(g.id))
+        .map(g => ({ id: g.id, invite_id: g.invite_id }));
+      await batchDeleteGuests(targets);
       toast.success('Guests deleted successfully');
       setSelectedIds([]);
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete guests');
     }
   };
 
-  const handleUpdateStatus = async (ids: string[], status: boolean | null) => {
+  const handleUpdateStatus = useCallback(async (ids: string[], status: boolean | null) => {
     try {
-      for (const id of ids) {
-        await updateDoc(doc(db, 'guests', id), {
-          is_coming: status,
-          updated_at: serverTimestamp()
-        });
-      }
+      await batchUpdateGuestStatus(ids, status);
       toast.success('Status updated successfully');
       if (ids.length > 1) setSelectedIds([]);
-    } catch (err) {
+    } catch {
       toast.error('Failed to update status');
     }
-  };
-
-  const handleMoveToWaitingList = async (ids: string[]) => {
-    try {
-      const batch = writeBatch(db);
-      for (const id of ids) {
-        const guest = guests.find(g => g.id === id);
-        if (!guest) continue;
-
-        // 1. Add to Waiting List
-        const waitingRef = doc(collection(db, 'waiting_list'));
-        batch.set(waitingRef, {
-          name: guest.name,
-          role: guest.role || 'Guest',
-          notes: 'Moved from guest list',
-          priority: 3,
-          created_at: serverTimestamp()
-        });
-
-        // 2. Delete from Guests
-        batch.delete(doc(db, 'guests', id));
-      }
-      await batch.commit();
-      toast.success('Guests moved to waiting list');
-      setSelectedIds([]);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, 'guests/move_to_waiting');
-      toast.error('Failed to move guests');
-      console.error(err);
-    }
-  };
+  }, []);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -350,36 +334,25 @@ export default function AdminGuests() {
     try {
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = xlsx.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = xlsx.utils.sheet_to_json(sheet) as any[];
+        const rows = await parseExcelRows(e.target?.result as ArrayBuffer) as any[];
 
-        let index = 0;
-        for (const row of rows) {
-          if (row.name) {
-            await addDoc(collection(db, 'guests'), {
-              name: row.name,
-              role: row.role || null,
-              invite_id: row.inviteId || null,
-              is_coming: null,
-              import_order: index++,
-              updated_at: serverTimestamp()
-            });
-          }
-        }
+        await batchImportGuests(
+          rows
+            .filter(row => row.name)
+            .map(row => ({ name: row.name, role: row.role || null, invite_id: row.inviteId || null }))
+        );
         toast.success('Successfully imported guest list');
         setIsUploadOpen(false);
       };
       reader.readAsArrayBuffer(file);
-    } catch (err) {
+    } catch {
       toast.error('Failed to upload file');
     } finally {
       setUploading(false);
     }
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
@@ -388,63 +361,66 @@ export default function AdminGuests() {
     }
   } as any);
 
-  const guestsWithInviteName = guests.map(g => ({
-    ...g,
-    invite_name: invites.find(i => i.id === g.invite_id)?.name
-  }));
+  const debouncedSearch = useDebounce(search, 300);
 
-  const filteredGuests = guestsWithInviteName.filter(g => {
-    const searchMatch = (g.name?.toLowerCase() || '').includes(search.toLowerCase()) || 
-      (g.nickname?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (g.invite_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (g.role?.toLowerCase() || '').includes(search.toLowerCase());
-    
-    const statusMatch = statusFilter === 'all' || 
-      (statusFilter === 'attending' && g.is_coming === true) ||
-      (statusFilter === 'declined' && g.is_coming === false) ||
-      (statusFilter === 'pending' && g.is_coming === null);
+  const sortedGuests = useMemo(() => {
+    const guestsWithInviteName = guests.map(g => ({
+      ...g,
+      invite_name: invites.find(i => i.id === g.invite_id)?.name
+    }));
 
-    const roleMatch = roleFilter === 'all' || g.role === roleFilter || (roleFilter === 'guest' && !g.role);
-    
-    const tableMatch = tableFilter === 'all' || 
-      (tableFilter === 'assigned' && g.table_type) ||
-      (tableFilter === 'unassigned' && !g.table_type) ||
-      g.table_type === tableFilter;
-      
-    return searchMatch && statusMatch && roleMatch && tableMatch;
-  });
+    const filteredGuests = guestsWithInviteName.filter(g => {
+      const searchMatch = (g.name?.toLowerCase() || '').includes(debouncedSearch.toLowerCase()) ||
+        (g.nickname?.toLowerCase() || '').includes(debouncedSearch.toLowerCase()) ||
+        (g.invite_name?.toLowerCase() || '').includes(debouncedSearch.toLowerCase()) ||
+        (g.role?.toLowerCase() || '').includes(debouncedSearch.toLowerCase());
 
-  const sortedGuests = [...filteredGuests].sort((a, b) => {
-    if (sortField === 'role') {
-      const aPriority = a.role ? (ROLE_PRIORITY[a.role] || 99) : 11;
-      const bPriority = b.role ? (ROLE_PRIORITY[b.role] || 99) : 11;
-      
-      if (aPriority !== bPriority) {
-        return sortDirection === 'asc' ? aPriority - bPriority : bPriority - aPriority;
+      const statusMatch = statusFilter === 'all' ||
+        (statusFilter === 'attending' && g.is_coming === true) ||
+        (statusFilter === 'declined' && g.is_coming === false) ||
+        (statusFilter === 'pending' && g.is_coming === null);
+
+      const roleMatch = roleFilter === 'all' || g.role === roleFilter || (roleFilter === 'guest' && !g.role);
+
+      const tableMatch = tableFilter === 'all' ||
+        (tableFilter === 'assigned' && g.table_type) ||
+        (tableFilter === 'unassigned' && !g.table_type) ||
+        g.table_type === tableFilter;
+
+      return searchMatch && statusMatch && roleMatch && tableMatch;
+    });
+
+    return [...filteredGuests].sort((a, b) => {
+      if (sortField === 'role') {
+        const aPriority = a.role ? (ROLE_PRIORITY[a.role] || 99) : 11;
+        const bPriority = b.role ? (ROLE_PRIORITY[b.role] || 99) : 11;
+
+        if (aPriority !== bPriority) {
+          return sortDirection === 'asc' ? aPriority - bPriority : bPriority - aPriority;
+        }
+        return a.name.localeCompare(b.name);
       }
-      // If same priority, alphabetize by name
-      return a.name.localeCompare(b.name);
-    }
 
-    const aVal = a[sortField as keyof Guest] ?? 0;
-    const bVal = b[sortField as keyof Guest] ?? 0;
+      const aVal = a[sortField as keyof Guest] ?? 0;
+      const bVal = b[sortField as keyof Guest] ?? 0;
 
-    let comparison = 0;
-    
-    if (sortField === 'updated_at') {
-      const aTime = (a.updated_at?.seconds || 0);
-      const bTime = (b.updated_at?.seconds || 0);
-      comparison = aTime - bTime;
-    } else if (typeof aVal === 'number' && typeof bVal === 'number') {
-      comparison = aVal - bVal;
-    } else {
-      const aStr = String(aVal || '').toLowerCase();
-      const bStr = String(bVal || '').toLowerCase();
-      comparison = aStr.localeCompare(bStr);
-    }
+      let comparison = 0;
 
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
+      if (sortField === 'updated_at') {
+        const aTime = (a.updated_at?.seconds || 0);
+        const bTime = (b.updated_at?.seconds || 0);
+        comparison = aTime - bTime;
+      } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+        comparison = aVal - bVal;
+      } else {
+        const aStr = String(aVal || '').toLowerCase();
+        const bStr = String(bVal || '').toLowerCase();
+        comparison = aStr.localeCompare(bStr);
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [guests, invites, debouncedSearch, statusFilter, roleFilter, tableFilter, sortField, sortDirection]);
 
   const totalPages = Math.ceil(sortedGuests.length / itemsPerPage);
   const paginatedGuests = sortedGuests.slice(
@@ -469,11 +445,11 @@ export default function AdminGuests() {
     }
   };
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => 
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
-  };
+  }, []);
 
   return (
     <div className="space-y-8 pb-20">
@@ -497,10 +473,6 @@ export default function AdminGuests() {
               <Button onClick={() => handleUpdateStatus(selectedIds, null)} variant="outline" className="text-slate-400 border-slate-100 hover:bg-slate-50">
                 <UserMinus className="w-4 h-4 mr-2" />
                 Clear
-              </Button>
-              <Button onClick={() => handleMoveToWaitingList(selectedIds)} variant="outline" className="text-amber-600 border-amber-100 hover:bg-amber-50">
-                <Hourglass className="w-4 h-4 mr-2" />
-                Move to Waiting List
               </Button>
               <Button onClick={handleBulkDelete} variant="destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -972,178 +944,17 @@ export default function AdminGuests() {
                 </TableCell>
               </TableRow>
             ) : paginatedGuests.map((guest) => (
-              <TableRow key={guest.id} className="group hover:bg-slate-50/50 transition-colors">
-                <TableCell className="px-8">
-                  <Checkbox 
-                    checked={selectedIds.includes(guest.id)}
-                    onCheckedChange={() => toggleSelect(guest.id)}
-                  />
-                </TableCell>
-                <TableCell className="py-6 px-8 text-xs font-mono text-slate-400">
-                  {guest.import_order !== undefined ? guest.import_order + 1 : '-'}
-                </TableCell>
-                <TableCell className="py-6 px-8">
-                  <div className="font-semibold text-slate-700">{guest.name}</div>
-                  {guest.nickname && (
-                    <div className="text-[10px] text-slate-400 italic">"{guest.nickname}"</div>
-                  )}
-                  {(guest.table_type || guest.table_number) && (
-                    <div className="mt-1 flex gap-1">
-                      <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded uppercase font-bold">
-                        {guest.table_type === 'bridal' ? 'Bridal Table' : guest.table_type === 'vip' ? `VIP ${guest.table_number || ''}` : `Reg ${guest.table_number || ''}`}
-                      </span>
-                    </div>
-                  )}
-                  {guest.updated_at && (
-                    <div className="text-[10px] text-slate-400 mt-1 uppercase tracking-tighter">
-                      Updated {guest.updated_at.seconds ? new Date(guest.updated_at.seconds * 1000).toLocaleDateString() : new Date(guest.updated_at).toLocaleDateString()}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="py-6 px-8">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <code className="text-[10px] px-1.5 py-0.5 bg-wedding-gold/10 text-wedding-gold rounded truncate max-w-[120px]" title={guest.invite_id || `ind-${guest.id.substring(0, 5)}`}>
-                        {guest.invite_id || `ind-${guest.id.substring(0, 5)}`}
-                      </code>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6"
-                        onClick={() => {
-                          const link = `${window.location.origin}/rsvp/${guest.invite_id || guest.id}`;
-                          navigator.clipboard.writeText(link);
-                          toast.success(guest.invite_id ? 'Group Link copied' : 'Link copied');
-                        }}
-                        title={guest.invite_id ? "Copy Group RSVP Link" : "Copy RSVP Link"}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    {guest.invite_id && (
-                      <div className="flex items-center gap-2">
-                        <code className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded truncate max-w-[120px]" title={`ind-${guest.id.substring(0, 5)}`}>
-                          ind-{guest.id.substring(0, 5)}
-                        </code>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6 text-slate-400 hover:text-slate-600"
-                          onClick={() => {
-                            const link = `${window.location.origin}/rsvp/${guest.id}`;
-                            navigator.clipboard.writeText(link);
-                            toast.success('Individual Link copied');
-                          }}
-                          title="Copy Individual RSVP Link"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="py-6 px-8">
-                  {guest.role ? (
-                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-medium">
-                      {guest.role}
-                    </span>
-                  ) : (
-                    <span className="text-slate-300 italic text-xs">Guest</span>
-                  )}
-                </TableCell>
-                <TableCell className="py-6 px-8 text-slate-500 italic font-serif">
-                  {guest.invite_name || <span className="text-slate-300 opacity-50">Unassigned</span>}
-                </TableCell>
-                <TableCell className="py-6 px-8">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-[100px]">
-                      {guest.is_coming === true ? (
-                        <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-sm">
-                          <UserCheck className="w-4 h-4" /> Attending
-                        </div>
-                      ) : guest.is_coming === false ? (
-                        <div className="flex items-center gap-1.5 text-rose-500 font-semibold text-sm">
-                          <UserX className="w-4 h-4" /> Declined
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 text-slate-400 font-medium text-sm italic">
-                          <UserMinus className="w-4 h-4" /> Pending
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className={`h-7 w-7 rounded-full ${guest.is_coming === true ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-emerald-600'}`}
-                        onClick={() => handleUpdateStatus([guest.id], true)}
-                        title="Mark as Attending"
-                      >
-                        <UserCheck className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className={`h-7 w-7 rounded-full ${guest.is_coming === false ? 'text-rose-500 bg-rose-50' : 'text-slate-400 hover:text-rose-500'}`}
-                        onClick={() => handleUpdateStatus([guest.id], false)}
-                        title="Mark as Declined"
-                      >
-                        <UserX className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className={`h-7 w-7 rounded-full ${guest.is_coming === null ? 'text-slate-600 bg-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
-                        onClick={() => handleUpdateStatus([guest.id], null)}
-                        title="Mark as Pending"
-                      >
-                        <UserMinus className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="py-6 px-8 text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleMoveToWaitingList([guest.id])}
-                      className="text-slate-400 hover:text-amber-600 hover:bg-amber-50"
-                      title="Move to Waiting List"
-                    >
-                      <Hourglass className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => {
-                        setEditingGuest(guest);
-                        setIsEditOpen(true);
-                      }}
-                      className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleDeleteGuest(guest.id)}
-                      className="text-slate-400 hover:text-rose-500 hover:bg-rose-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => copyMessage(guest)}
-                      className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
-                      title="Copy Message"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
+              <GuestRow
+                key={guest.id}
+                guest={guest}
+                selected={selectedIds.includes(guest.id)}
+                onToggleSelect={toggleSelect}
+                onUpdateStatus={handleUpdateStatus}
+                onUpdateField={onUpdateField}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteGuest}
+                onCopyMessage={copyMessage}
+              />
             ))}
           </TableBody>
         </Table>
@@ -1192,29 +1003,12 @@ export default function AdminGuests() {
         </div>
       )}
 
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Guest</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditGuest} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input 
-                  required 
-                  value={editingGuest?.name || ''} 
-                  onChange={e => setEditingGuest(prev => prev ? ({ ...prev, name: e.target.value }) : null)} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Nickname</Label>
-                <Input 
-                  value={editingGuest?.nickname || ''} 
-                  onChange={e => setEditingGuest(prev => prev ? ({ ...prev, nickname: e.target.value }) : null)} 
-                />
-              </div>
-            </div>
+      <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <SheetContent className="data-[side=right]:sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Edit {editingGuest?.name}</SheetTitle>
+          </SheetHeader>
+          <form onSubmit={handleEditGuest} className="space-y-4 px-4 pb-4 overflow-y-auto flex-1">
             <div className="space-y-2">
               <Label>Role</Label>
               <select 
@@ -1369,8 +1163,8 @@ export default function AdminGuests() {
             </div>
             <Button type="submit" className="w-full bg-wedding-gold">Save Changes</Button>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

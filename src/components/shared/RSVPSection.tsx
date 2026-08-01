@@ -1,170 +1,64 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2, Heart } from 'lucide-react';
-import { doc, getDoc, getDocs, collection, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db, OperationType, handleFirestoreError } from '@/lib/firebase';
-import { SectionDecors } from './DecorationLayer';
-
-interface Guest {
-  id: string;
-  name: string;
-  nickname?: string;
-  is_coming: boolean | null;
-  import_order?: number;
-  is_baby_or_child?: boolean;
-  parent_name?: string;
-}
-
-interface Invite {
-  id: string;
-  name: string;
-  nickname?: string;
-}
+import { useRsvpInvite } from '@/features/rsvp/hooks/useRsvpInvite';
+import { useSubmitRsvp } from '@/features/rsvp/hooks/useSubmitRsvp';
+import type { Guest } from '@/features/rsvp/types';
+import RsvpSkeleton from './RsvpSkeleton';
 
 interface RSVPSectionProps {
   inviteId: string;
 }
 
 export default function RSVPSection({ inviteId }: RSVPSectionProps) {
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [invite, setInvite] = useState<Invite | null>(null);
+  const { invite, guests: serverGuests, isPastDeadline, loading, error } = useRsvpInvite(inviteId);
+  const submitMutation = useSubmitRsvp(inviteId);
   const [guests, setGuests] = useState<Guest[]>([]);
-  const [initialGuests, setInitialGuests] = useState<Guest[]>([]);
   const [completed, setCompleted] = useState(false);
-  const [isPastDeadline, setIsPastDeadline] = useState(false);
-  const [deadlineDate, setDeadlineDate] = useState<Date | null>(null);
 
   useEffect(() => {
-    async function fetchInvite() {
-      if (!inviteId) return;
-      setLoading(true);
-      try {
-        // Fetch deadline
-        const deadlineRef = doc(db, 'settings', 'rsvp_deadline');
-        const deadlineSnap = await getDoc(deadlineRef).catch(err => {
-          handleFirestoreError(err, OperationType.GET, 'settings/rsvp_deadline');
-          throw err;
-        });
+    setGuests(prev => (prev.length === 0 || completed ? serverGuests : prev));
+  }, [serverGuests, completed]);
 
-        if (deadlineSnap.exists()) {
-          const deadlineStr = deadlineSnap.data().value;
-          if (deadlineStr) {
-            const date = new Date(deadlineStr);
-            setDeadlineDate(date);
-            if (date < new Date()) {
-              setIsPastDeadline(true);
-            }
-          }
-        }
-
-        const inviteRef = doc(db, 'invites', inviteId);
-        const inviteSnap = await getDoc(inviteRef).catch(err => {
-          handleFirestoreError(err, OperationType.GET, `invites/${inviteId}`);
-          throw err;
-        });
-        
-        if (inviteSnap.exists()) {
-          const inviteData = { id: inviteSnap.id, ...inviteSnap.data() } as Invite;
-          setInvite(inviteData);
-
-          const guestsRef = collection(db, 'guests');
-          const q = query(guestsRef, where('invite_id', '==', inviteId));
-          const guestSnap = await getDocs(q).catch(err => {
-            handleFirestoreError(err, OperationType.LIST, 'guests (filtered)');
-            throw err;
-          });
-          
-          const guestData = guestSnap.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Guest)).sort((a, b) => (a.import_order || 0) - (b.import_order || 0));
-          
-          setGuests(guestData);
-          setInitialGuests(JSON.parse(JSON.stringify(guestData)));
-        } else {
-          // Check if it's an individual guest ID
-          const guestRef = doc(db, 'guests', inviteId);
-          const guestSnap = await getDoc(guestRef).catch(err => {
-            handleFirestoreError(err, OperationType.GET, `guests/${inviteId}`);
-            throw err;
-          });
-
-          if (guestSnap.exists()) {
-            const guestData = {
-              id: guestSnap.id,
-              ...guestSnap.data()
-            } as Guest;
-            
-            setInvite({ 
-              id: guestSnap.id, 
-              name: guestData.name,
-              nickname: guestData.nickname 
-            } as Invite);
-            
-            setGuests([guestData]);
-            setInitialGuests([JSON.parse(JSON.stringify(guestData))]);
-          } else {
-            throw new Error('Invite not found');
-          }
-        }
-      } catch (err) {
-        console.error("RSVP fetch error:", err);
-        toast.error("Could not find your invitation. Please check the link.");
-      } finally {
-        setLoading(false);
-      }
+  useEffect(() => {
+    if (error) {
+      console.error('RSVP fetch error:', error);
+      toast.error('Could not find your invitation. Please check the link.');
     }
-    fetchInvite();
-  }, [inviteId]);
+  }, [error]);
 
   const handleToggleGuest = (id: string, val: boolean) => {
-    setGuests(prev => prev.map(g => g.id === id ? { ...g, is_coming: val } : g));
+    setGuests(prev => prev.map(g => (g.id === id ? { ...g, is_coming: val } : g)));
   };
 
   const handleSubmit = async () => {
-    if (!inviteId) return;
-    setSubmitting(true);
-    try {
-      const changedGuests = guests.filter(guest => {
-        const initial = initialGuests.find(ig => ig.id === guest.id);
+    const changedGuests = guests
+      .filter(guest => {
+        const initial = serverGuests.find(sg => sg.id === guest.id);
         return initial && initial.is_coming !== guest.is_coming;
-      });
+      })
+      .map(g => ({ id: g.id, is_coming: g.is_coming }));
 
-      if (changedGuests.length === 0) {
-        toast.info("No changes to save.");
-        setCompleted(true);
-        return;
-      }
-
-      for (const guest of changedGuests) {
-        const guestRef = doc(db, 'guests', guest.id);
-        await updateDoc(guestRef, {
-          is_coming: guest.is_coming,
-          updated_at: serverTimestamp()
-        });
-      }
-      toast.success("Thank you! Your RSVP has been saved.");
+    if (changedGuests.length === 0) {
+      toast.info('No changes to save.');
       setCompleted(true);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `guests/multiple`);
-      toast.error("Failed to save RSVP. Please try again.");
-    } finally {
-      setSubmitting(false);
+      return;
+    }
+
+    try {
+      await submitMutation.mutateAsync(changedGuests);
+      toast.success('Thank you! Your RSVP has been saved.');
+      setCompleted(true);
+    } catch {
+      toast.error('Failed to save RSVP. Please try again.');
     }
   };
 
   if (loading) {
-    return (
-      <div className="py-20 flex flex-col items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-wedding-gold mb-4" />
-        <p className="font-sans text-xs tracking-widest uppercase opacity-40">Loading Invitation...</p>
-      </div>
-    );
+    return <RsvpSkeleton />;
   }
 
   if (!invite) return null;
@@ -194,7 +88,6 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
 
   return (
     <div id="rsvp" className="py-12 md:py-20 px-6 md:px-8 relative overflow-hidden">
-      <SectionDecors.RSVP />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -267,11 +160,11 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
                   
                   <Button
                     size="lg"
-                    disabled={submitting || guests.every(g => g.is_coming === null)}
+                    disabled={submitMutation.isPending || guests.every(g => g.is_coming === null)}
                     onClick={handleSubmit}
                     className="w-full bg-wedding-dark hover:bg-wedding-dark/95 text-white rounded-full py-7 md:py-9 text-lg md:text-xl font-serif tracking-[0.2em] transition-all shadow-xl disabled:opacity-20 active:scale-95"
                   >
-                    {submitting ? (
+                    {submitMutation.isPending ? (
                       <div className="flex items-center gap-3">
                         <Loader2 className="animate-spin w-5 h-5" />
                         <span>Confirming...</span>

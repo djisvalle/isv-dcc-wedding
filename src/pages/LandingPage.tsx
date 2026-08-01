@@ -7,8 +7,7 @@ import ProgramSection from '@/components/shared/ProgramSection';
 import GiftsSection from '@/components/shared/GiftsSection';
 import FAQSection from '@/components/shared/FAQSection';
 import RSVPSection from '@/components/shared/RSVPSection';
-import { useEffect, useRef } from 'react';
-import { SectionDecors } from '@/components/shared/DecorationLayer';
+import { useRef } from 'react';
 
 export default function LandingPage() {
   const [searchParams] = useSearchParams();
@@ -29,8 +28,6 @@ export default function LandingPage() {
           <div className="absolute top-10 left-10 w-64 h-64 border-2 border-wedding-gold rounded-full blur-3xl hidden md:block" />
           <div className="absolute bottom-10 right-10 w-96 h-96 border-2 border-wedding-gold rounded-full blur-3xl hidden md:block" />
         </div>
-
-        <SectionDecors.Hero />
 
         <motion.div
           initial={{ opacity: 0, y: 30 }}
