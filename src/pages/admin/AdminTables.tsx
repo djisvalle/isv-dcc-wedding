@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   Users,
@@ -56,61 +56,9 @@ import { handleFirestoreError, OperationType } from '@/lib/firebase';
 import { useGuests } from '@/features/guests/context/GuestsProvider';
 import { commitInChunks } from '@/lib/firestoreBatch';
 import type { Guest } from '@/features/guests/types';
-
-interface Table {
-  id: string; // key: type-number
-  type: 'bridal' | 'vip' | 'regular';
-  number: string;
-}
-
-const TABLE_TYPES = [
-  { id: 'bridal', label: 'Bridal Table' },
-  { id: 'vip', label: 'VIP Table' },
-  { id: 'regular', label: 'Regular Table' }
-] as const;
+import { Table, TABLE_TYPES, mergeTables, TABLE_LAYOUT_SETTING_ID, persistTableLayout } from '@/components/admin/tables/types';
 
 const EMPTY_GUESTS: Guest[] = [];
-const TABLE_TYPE_ORDER = ['bridal', 'vip', 'regular'];
-
-function sortTables(tables: Table[]): Table[] {
-  return [...tables].sort((a, b) => {
-    const aOrder = TABLE_TYPE_ORDER.indexOf(a.type);
-    const bOrder = TABLE_TYPE_ORDER.indexOf(b.type);
-    if (aOrder !== bOrder) return aOrder - bOrder;
-    return (a.number || '').localeCompare(b.number || '', undefined, { numeric: true });
-  });
-}
-
-/** Dedupes by id (first occurrence wins) across any number of table lists, then sorts. */
-function mergeTables(...lists: Table[][]): Table[] {
-  const byId: Record<string, Table> = {};
-  for (const list of lists) {
-    for (const t of list) {
-      if (!byId[t.id]) byId[t.id] = t;
-    }
-  }
-  return sortTables(Object.values(byId));
-}
-
-const TABLE_LAYOUT_SETTING_ID = 'table_layout';
-
-/**
- * Tables with guests seated are re-derivable from the guests themselves, but
- * an empty table (created ahead of assigning anyone) only exists in local
- * component state — so it silently disappeared on refresh. Persisting the
- * full active table list here means empty tables survive a reload.
- */
-async function persistTableLayout(tables: Table[]) {
-  try {
-    await setDoc(doc(db, 'settings', TABLE_LAYOUT_SETTING_ID), {
-      key: TABLE_LAYOUT_SETTING_ID,
-      value: JSON.stringify(tables.map(({ id, type, number }) => ({ id, type, number }))),
-      updated_at: new Date().toISOString()
-    });
-  } catch (err) {
-    handleFirestoreError(err, OperationType.UPDATE, `settings/${TABLE_LAYOUT_SETTING_ID}`);
-  }
-}
 
 // --- Sub-components for DnD ---
 
