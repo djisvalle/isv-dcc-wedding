@@ -170,13 +170,15 @@ const SortableGuestItem = React.memo<{
 
 const DroppableTable = React.memo<{
   table: Table;
-  tableGuests: Guest[];
+  allTableGuests: Guest[];
+  visibleGuests: Guest[];
+  hasGuestFilter: boolean;
   onRemoveTable: (id: string) => void;
   onQuickMove: (guestId: string, tableId: string | null) => void;
   availableTables: Table[];
   unassignedGuests: Guest[];
   onUpdateCapacity: (tableId: string, capacity: number | undefined) => void;
-}>(({ table, tableGuests, onRemoveTable, onQuickMove, availableTables, unassignedGuests, onUpdateCapacity }) => {
+}>(({ table, allTableGuests, visibleGuests, hasGuestFilter, onRemoveTable, onQuickMove, availableTables, unassignedGuests, onUpdateCapacity }) => {
   const { setNodeRef, isOver } = useSortable({
     id: table.id,
     data: { 
@@ -191,7 +193,7 @@ const DroppableTable = React.memo<{
   const [isEditingCapacity, setIsEditingCapacity] = useState(false);
   const [capacityDraft, setCapacityDraft] = useState('');
 
-  const countOccupants = tableGuests.filter(g => !g.is_baby_or_child).length;
+  const countOccupants = allTableGuests.filter(g => !g.is_baby_or_child).length;
   const capacity = getEffectiveCapacity(table);
   const status = getCapacityStatus(countOccupants, capacity);
 
@@ -257,6 +259,11 @@ const DroppableTable = React.memo<{
                 <CardTitle className="text-lg font-serif text-slate-900">
                   {getTableTitle(table.type, table.number)}
                 </CardTitle>
+                {hasGuestFilter && countOccupants > 0 && (
+                  <p className="text-[9px] text-wedding-gold/80 font-bold uppercase tracking-widest">
+                    {visibleGuests.filter(g => !g.is_baby_or_child).length} of {countOccupants} shown
+                  </p>
+                )}
                 <div className="mt-0.5">
                   {isEditingCapacity ? (
                     <Input
@@ -364,7 +371,7 @@ const DroppableTable = React.memo<{
                 </DialogContent>
               </Dialog>
 
-              {tableGuests.length === 0 && table.type !== 'bridal' && (
+              {allTableGuests.length === 0 && table.type !== 'bridal' && (
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -379,17 +386,17 @@ const DroppableTable = React.memo<{
         </CardHeader>
         <CardContent className="pt-4 px-6 pb-6 min-h-[150px]">
           <div className="space-y-1">
-            <SortableContext items={tableGuests.map(g => g.id)} strategy={verticalListSortingStrategy}>
-              {tableGuests.map((guest) => (
-                <SortableGuestItem 
-                  key={guest.id} 
-                  guest={guest} 
+            <SortableContext items={visibleGuests.map(g => g.id)} strategy={verticalListSortingStrategy}>
+              {visibleGuests.map((guest) => (
+                <SortableGuestItem
+                  key={guest.id}
+                  guest={guest}
                   onQuickMove={onQuickMove}
                   availableTables={availableTables}
                 />
               ))}
             </SortableContext>
-            {tableGuests.length === 0 && (
+            {visibleGuests.length === 0 && (
               <div className="flex flex-col items-center justify-center py-8 text-slate-300 border-2 border-dashed border-slate-50 rounded-2xl">
                 <Users className="w-8 h-8 mb-2 opacity-20" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Empty Table</span>
@@ -418,8 +425,11 @@ export default function AdminTables() {
   // Mobile unassigned sheet
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
 
-  // Search state for unassigned guests
-  const [guestSearch, setGuestSearch] = useState('');
+  // Filters (drive both the table grid and the guest lists inside it)
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | Table['type']>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all'); // 'all' | 'guest' (no role) | an actual role string
+  const [capacityFilter, setCapacityFilter] = useState<'all' | 'room' | 'full' | 'over'>('all');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -486,13 +496,27 @@ export default function AdminTables() {
       .sort((a,b) => (a.table_order || 0) - (b.table_order || 0))
   , [guests]);
 
+  const availableRoles = useMemo(() => {
+    const roles = new Set<string>();
+    guests.forEach(g => { if (g.role) roles.add(g.role); });
+    return Array.from(roles).sort();
+  }, [guests]);
+
+  const matchesGuestFilters = useCallback((g: Guest) => {
+    const q = search.toLowerCase();
+    const searchMatch = !search ||
+      g.name.toLowerCase().includes(q) ||
+      (g.nickname ? g.nickname.toLowerCase().includes(q) : false) ||
+      (g.role ? g.role.toLowerCase().includes(q) : false);
+    const roleMatch = roleFilter === 'all' || (roleFilter === 'guest' ? !g.role : g.role === roleFilter);
+    return searchMatch && roleMatch;
+  }, [search, roleFilter]);
+
+  const hasGuestFilter = search.trim() !== '' || roleFilter !== 'all';
+
   const filteredUnassigned = useMemo(() =>
-    unassignedGuests.filter(g =>
-      g.name.toLowerCase().includes(guestSearch.toLowerCase()) ||
-      (g.nickname && g.nickname.toLowerCase().includes(guestSearch.toLowerCase())) ||
-      (g.role && g.role.toLowerCase().includes(guestSearch.toLowerCase()))
-    )
-  , [unassignedGuests, guestSearch]);
+    unassignedGuests.filter(matchesGuestFilters)
+  , [unassignedGuests, matchesGuestFilters]);
 
   const guestsByTable = useMemo(() => {
     const m: Record<string, Guest[]> = {};
@@ -504,6 +528,24 @@ export default function AdminTables() {
     for (const k in m) m[k].sort((a, b) => (a.table_order || 0) - (b.table_order || 0));
     return m;
   }, [guests]);
+
+  const visibleTables = useMemo(() =>
+    activeTables.filter(table => {
+      if (typeFilter !== 'all' && table.type !== typeFilter) return false;
+
+      const tableGuests = guestsByTable[table.id] ?? EMPTY_GUESTS;
+      const occupants = tableGuests.filter(g => !g.is_baby_or_child).length;
+      const status = getCapacityStatus(occupants, getEffectiveCapacity(table));
+      if (capacityFilter !== 'all' && status !== capacityFilter) return false;
+
+      // A table with guests but none matching the active search/role filter
+      // hides; an empty table always stays visible (still a valid, useful
+      // drop target while searching) as long as type/capacity match.
+      if (hasGuestFilter && tableGuests.length > 0 && !tableGuests.some(matchesGuestFilters)) return false;
+
+      return true;
+    })
+  , [activeTables, guestsByTable, typeFilter, capacityFilter, hasGuestFilter, matchesGuestFilters]);
 
   const handleQuickMove = useCallback(async (guestId: string, tableId: string | null) => {
     try {
@@ -770,15 +812,87 @@ export default function AdminTables() {
           </div>
         </div>
 
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[240px]">
+            <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Search</Label>
+            <div className="relative mt-1.5">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                className="pl-11 h-11 bg-white border-none shadow-sm rounded-xl"
+                placeholder="Search by name, nickname, or role..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5 min-w-[150px]">
+            <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Table Type</Label>
+            <select
+              className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm"
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value as 'all' | Table['type'])}
+            >
+              <option value="all">All Types</option>
+              {TABLE_TYPES.map(t => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5 min-w-[150px]">
+            <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Role</Label>
+            <select
+              className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm"
+              value={roleFilter}
+              onChange={e => setRoleFilter(e.target.value)}
+            >
+              <option value="all">All Roles</option>
+              <option value="guest">Guest</option>
+              {availableRoles.map(role => (
+                <option key={role} value={role}>{role}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5 min-w-[150px]">
+            <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Capacity</Label>
+            <select
+              className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm"
+              value={capacityFilter}
+              onChange={e => setCapacityFilter(e.target.value as 'all' | 'room' | 'full' | 'over')}
+            >
+              <option value="all">All Tables</option>
+              <option value="room">Has Room</option>
+              <option value="full">Full</option>
+              <option value="over">Overbooked</option>
+            </select>
+          </div>
+
+          {(search || typeFilter !== 'all' || roleFilter !== 'all' || capacityFilter !== 'all') && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSearch('');
+                setTypeFilter('all');
+                setRoleFilter('all');
+                setCapacityFilter('all');
+              }}
+              className="h-11 px-4 rounded-xl text-slate-500"
+            >
+              Clear Filters
+            </Button>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
           {/* Sidebar: Unassigned Guests (Desktop) */}
           <div className="hidden lg:block lg:col-span-1 sticky top-6">
-            <UnassignedContainer 
-              guests={filteredUnassigned} 
+            <UnassignedContainer
+              guests={filteredUnassigned}
               onQuickMove={handleQuickMove}
               availableTables={activeTables}
-              search={guestSearch}
-              onSearchChange={setGuestSearch}
+              hasFilter={hasGuestFilter}
             />
           </div>
 
@@ -801,15 +915,14 @@ export default function AdminTables() {
                 />
                 <SheetContent side="right" className="w-[85vw] sm:max-w-md p-0 rounded-l-3xl overflow-hidden border-none shadow-2xl">
                   <div className="h-full bg-slate-50">
-                    <UnassignedContainer 
-                      guests={filteredUnassigned} 
+                    <UnassignedContainer
+                      guests={filteredUnassigned}
                       onQuickMove={(guestId, tableId) => {
                         handleQuickMove(guestId, tableId);
                         setIsMobileSheetOpen(false);
                       }}
                       availableTables={activeTables}
-                      search={guestSearch}
-                      onSearchChange={setGuestSearch}
+                      hasFilter={hasGuestFilter}
                       isMobile
                     />
                   </div>
@@ -820,24 +933,44 @@ export default function AdminTables() {
           {/* Main Area: Tables */}
           <div className="lg:col-span-3">
              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {activeTables.map((table) => (
-                <DroppableTable
-                  key={table.id}
-                  table={table}
-                  tableGuests={guestsByTable[table.id] ?? EMPTY_GUESTS}
-                  onRemoveTable={handleRemoveTable}
-                  onQuickMove={handleQuickMove}
-                  availableTables={activeTables}
-                  unassignedGuests={unassignedGuests}
-                  onUpdateCapacity={handleUpdateCapacity}
-                />
-              ))}
-              
+              {visibleTables.map((table) => {
+                const allTableGuests = guestsByTable[table.id] ?? EMPTY_GUESTS;
+                const visibleGuests = hasGuestFilter ? allTableGuests.filter(matchesGuestFilters) : allTableGuests;
+                return (
+                  <DroppableTable
+                    key={table.id}
+                    table={table}
+                    allTableGuests={allTableGuests}
+                    visibleGuests={visibleGuests}
+                    hasGuestFilter={hasGuestFilter}
+                    onRemoveTable={handleRemoveTable}
+                    onQuickMove={handleQuickMove}
+                    availableTables={activeTables}
+                    unassignedGuests={unassignedGuests}
+                    onUpdateCapacity={handleUpdateCapacity}
+                  />
+                );
+              })}
+
               {activeTables.length === 0 && (
                 <div className="col-span-full py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-400">
                   <TableIcon className="w-12 h-12 mb-4 opacity-20" />
                   <p className="font-serif text-xl mb-1 text-slate-600">No tables created yet</p>
                   <p className="text-sm">Click "Add Table" to start organizing</p>
+                </div>
+              )}
+
+              {activeTables.length > 0 && visibleTables.length === 0 && (
+                <div className="col-span-full py-20 bg-white rounded-3xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-400">
+                  <Search className="w-12 h-12 mb-4 opacity-20" />
+                  <p className="font-serif text-xl mb-1 text-slate-600">No tables match your filters</p>
+                  <Button
+                    variant="ghost"
+                    className="mt-2 text-wedding-gold"
+                    onClick={() => { setSearch(''); setTypeFilter('all'); setRoleFilter('all'); setCapacityFilter('all'); }}
+                  >
+                    Clear Filters
+                  </Button>
                 </div>
               )}
             </div>
@@ -866,14 +999,13 @@ export default function AdminTables() {
   );
 }
 
-const UnassignedContainer: React.FC<{ 
-  guests: Guest[]; 
+const UnassignedContainer: React.FC<{
+  guests: Guest[];
   onQuickMove: (guestId: string, tableId: string | null) => void;
   availableTables: Table[];
-  search: string;
-  onSearchChange: (val: string) => void;
+  hasFilter: boolean;
   isMobile?: boolean;
-}> = ({ guests, onQuickMove, availableTables, search, onSearchChange, isMobile = false }) => {
+}> = ({ guests, onQuickMove, availableTables, hasFilter, isMobile = false }) => {
   const { setNodeRef, isOver } = useSortable({
     id: 'unassigned-container',
     data: {
@@ -898,16 +1030,6 @@ const UnassignedContainer: React.FC<{
         </span>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-        <Input 
-          className="pl-9 h-10 bg-white border-none shadow-sm rounded-xl text-xs" 
-          placeholder="Search name..."
-          value={search}
-          onChange={e => onSearchChange(e.target.value)}
-        />
-      </div>
-      
       <div className="flex-1 overflow-y-auto pr-1">
         <SortableContext items={guests.map(g => g.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-1">
@@ -921,8 +1043,17 @@ const UnassignedContainer: React.FC<{
             ))}
             {guests.length === 0 && (
               <div className="text-center py-12 text-slate-300">
-                <UserCheck className="w-12 h-12 mx-auto mb-2 opacity-10" />
-                <p className="text-xs uppercase tracking-widest font-bold">Done!</p>
+                {hasFilter ? (
+                  <>
+                    <Search className="w-12 h-12 mx-auto mb-2 opacity-10" />
+                    <p className="text-xs uppercase tracking-widest font-bold">No matches</p>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-12 h-12 mx-auto mb-2 opacity-10" />
+                    <p className="text-xs uppercase tracking-widest font-bold">Done!</p>
+                  </>
+                )}
               </div>
             )}
           </div>
