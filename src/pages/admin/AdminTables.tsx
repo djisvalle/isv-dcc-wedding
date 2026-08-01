@@ -14,7 +14,8 @@ import {
   Table as TableIcon,
   UserCheck,
   Search,
-  UserX
+  UserX,
+  AlertTriangle
 } from 'lucide-react';
 import {
   DndContext, 
@@ -57,7 +58,7 @@ import { useGuests } from '@/features/guests/context/GuestsProvider';
 import { commitInChunks } from '@/lib/firestoreBatch';
 import type { Guest } from '@/features/guests/types';
 import { Table, TABLE_TYPES, mergeTables, TABLE_LAYOUT_SETTING_ID, persistTableLayout } from '@/components/admin/tables/types';
-import { DEFAULT_CAPACITY } from '@/components/admin/tables/capacity';
+import { DEFAULT_CAPACITY, getEffectiveCapacity, getCapacityStatus } from '@/components/admin/tables/capacity';
 
 const EMPTY_GUESTS: Guest[] = [];
 
@@ -174,7 +175,8 @@ const DroppableTable = React.memo<{
   onQuickMove: (guestId: string, tableId: string | null) => void;
   availableTables: Table[];
   unassignedGuests: Guest[];
-}>(({ table, tableGuests, onRemoveTable, onQuickMove, availableTables, unassignedGuests }) => {
+  onUpdateCapacity: (tableId: string, capacity: number | undefined) => void;
+}>(({ table, tableGuests, onRemoveTable, onQuickMove, availableTables, unassignedGuests, onUpdateCapacity }) => {
   const { setNodeRef, isOver } = useSortable({
     id: table.id,
     data: { 
@@ -186,8 +188,34 @@ const DroppableTable = React.memo<{
 
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [assignSearch, setAssignSearch] = useState('');
+  const [isEditingCapacity, setIsEditingCapacity] = useState(false);
+  const [capacityDraft, setCapacityDraft] = useState('');
 
-  const filteredUnassigned = unassignedGuests.filter(g => 
+  const countOccupants = tableGuests.filter(g => !g.is_baby_or_child).length;
+  const capacity = getEffectiveCapacity(table);
+  const status = getCapacityStatus(countOccupants, capacity);
+
+  const startEditCapacity = () => {
+    setCapacityDraft(capacity !== undefined ? String(capacity) : '');
+    setIsEditingCapacity(true);
+  };
+
+  const commitCapacity = () => {
+    setIsEditingCapacity(false);
+    const trimmed = capacityDraft.trim();
+    if (trimmed === '') {
+      onUpdateCapacity(table.id, undefined);
+      return;
+    }
+    const parsed = parseInt(trimmed, 10);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      toast.error('Capacity must be a positive number');
+      return;
+    }
+    onUpdateCapacity(table.id, parsed);
+  };
+
+  const filteredUnassigned = unassignedGuests.filter(g =>
     g.name.toLowerCase().includes(assignSearch.toLowerCase()) ||
     (g.nickname && g.nickname.toLowerCase().includes(assignSearch.toLowerCase()))
   );
@@ -210,13 +238,11 @@ const DroppableTable = React.memo<{
     }
   };
 
-  const countOccupants = tableGuests.filter(g => !g.is_baby_or_child).length;
-
   return (
     <div ref={setNodeRef} className="h-full">
       <Card className={`
         h-full border-slate-200/60 shadow-sm transition-all rounded-3xl overflow-hidden group
-        ${isOver ? 'ring-2 ring-wedding-gold scale-[1.02] bg-wedding-gold/5' : ''}
+        ${isOver ? 'ring-2 ring-wedding-gold scale-[1.02] bg-wedding-gold/5' : status === 'over' ? 'ring-2 ring-rose-300' : ''}
       `}>
         <CardHeader className={`
           pb-4 border-b border-slate-50
@@ -231,9 +257,51 @@ const DroppableTable = React.memo<{
                 <CardTitle className="text-lg font-serif text-slate-900">
                   {getTableTitle(table.type, table.number)}
                 </CardTitle>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                  {countOccupants} {countOccupants === 1 ? 'Guest' : 'Guests'}
-                </p>
+                <div className="mt-0.5">
+                  {isEditingCapacity ? (
+                    <Input
+                      autoFocus
+                      type="number"
+                      min={1}
+                      value={capacityDraft}
+                      onChange={e => setCapacityDraft(e.target.value)}
+                      onFocus={e => e.target.select()}
+                      onBlur={commitCapacity}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { e.preventDefault(); commitCapacity(); }
+                        if (e.key === 'Escape') { e.preventDefault(); setIsEditingCapacity(false); }
+                      }}
+                      placeholder="Uncapped"
+                      className="h-6 w-24 px-2 text-xs"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={startEditCapacity}
+                      title="Click to edit capacity"
+                      className="text-[10px] text-slate-400 font-bold uppercase tracking-widest hover:text-wedding-gold transition-colors inline-flex items-center gap-1"
+                    >
+                      {capacity !== undefined
+                        ? `${countOccupants} / ${capacity} Guest${capacity === 1 ? '' : 's'}`
+                        : `${countOccupants} Guest${countOccupants === 1 ? '' : 's'} · Uncapped`}
+                      {status === 'over' && (
+                        <span title={`${countOccupants - (capacity ?? 0)} over capacity`}>
+                          <AlertTriangle className="w-3 h-3 text-rose-500" />
+                        </span>
+                      )}
+                    </button>
+                  )}
+                  {capacity !== undefined && (
+                    <div className="mt-1 h-1 w-24 rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          status === 'over' ? 'bg-rose-500' : status === 'full' ? 'bg-amber-400' : 'bg-wedding-gold'
+                        }`}
+                        style={{ width: `${Math.min((countOccupants / capacity) * 100, 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -596,6 +664,14 @@ export default function AdminTables() {
     toast.success('Table removed');
   }, []);
 
+  const handleUpdateCapacity = useCallback((tableId: string, capacity: number | undefined) => {
+    setActiveTables(prev => {
+      const updated = prev.map(t => t.id === tableId ? { ...t, capacity } : t);
+      persistTableLayout(updated);
+      return updated;
+    });
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -753,6 +829,7 @@ export default function AdminTables() {
                   onQuickMove={handleQuickMove}
                   availableTables={activeTables}
                   unassignedGuests={unassignedGuests}
+                  onUpdateCapacity={handleUpdateCapacity}
                 />
               ))}
               
