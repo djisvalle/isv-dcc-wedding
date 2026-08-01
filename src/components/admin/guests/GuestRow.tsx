@@ -2,7 +2,7 @@ import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Copy, UserCheck, UserX, UserMinus, Edit2, Trash2, MessageSquare, Hourglass } from 'lucide-react';
+import { Copy, UserCheck, UserX, UserMinus, Edit2, Trash2, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { EditableCell } from '@/components/admin/EditableCell';
 import type { Guest } from '@/features/guests/types';
@@ -12,7 +12,6 @@ interface GuestRowProps {
   selected: boolean;
   onToggleSelect: (id: string) => void;
   onUpdateStatus: (ids: string[], status: boolean | null) => void;
-  onMoveToWaiting: (ids: string[]) => void;
   onUpdateField: (id: string, field: 'name' | 'nickname', value: string) => void;
   onEdit: (guest: Guest) => void;
   onDelete: (id: string) => void;
@@ -24,7 +23,6 @@ function GuestRowComponent({
   selected,
   onToggleSelect,
   onUpdateStatus,
-  onMoveToWaiting,
   onUpdateField,
   onEdit,
   onDelete,
@@ -174,15 +172,6 @@ function GuestRowComponent({
       </TableCell>
       <TableCell className="py-6 px-8 text-right">
         <div className="flex justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onMoveToWaiting([guest.id])}
-            className="text-slate-400 hover:text-amber-600 hover:bg-amber-50"
-            title="Move to Waiting List"
-          >
-            <Hourglass className="w-4 h-4" />
-          </Button>
           <Button
             variant="ghost"
             size="icon"

@@ -53,11 +53,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Hourglass } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGuests } from '@/features/guests/context/GuestsProvider';
 import { useInvites } from '@/features/invites/context/InvitesProvider';
-import { batchDeleteGuests, batchUpdateGuestStatus, batchImportGuests, batchMoveToWaitingList } from '@/features/guests/api/guestsApi';
+import { batchDeleteGuests, batchUpdateGuestStatus, batchImportGuests } from '@/features/guests/api/guestsApi';
 import { useDebounce } from '@/hooks/useDebounce';
 import { GuestRow } from '@/components/admin/guests/GuestRow';
 import type { Guest } from '@/features/guests/types';
@@ -283,20 +283,6 @@ export default function AdminGuests() {
     }
   }, []);
 
-  const handleMoveToWaitingList = useCallback(async (ids: string[]) => {
-    try {
-      const entries = ids
-        .map(id => guests.find(g => g.id === id))
-        .filter((g): g is Guest => !!g)
-        .map(g => ({ id: g.id, name: g.name, role: g.role }));
-      await batchMoveToWaitingList(entries);
-      toast.success('Guests moved to waiting list');
-      setSelectedIds([]);
-    } catch {
-      toast.error('Failed to move guests');
-    }
-  }, [guests]);
-
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
@@ -447,10 +433,6 @@ export default function AdminGuests() {
               <Button onClick={() => handleUpdateStatus(selectedIds, null)} variant="outline" className="text-slate-400 border-slate-100 hover:bg-slate-50">
                 <UserMinus className="w-4 h-4 mr-2" />
                 Clear
-              </Button>
-              <Button onClick={() => handleMoveToWaitingList(selectedIds)} variant="outline" className="text-amber-600 border-amber-100 hover:bg-amber-50">
-                <Hourglass className="w-4 h-4 mr-2" />
-                Move to Waiting List
               </Button>
               <Button onClick={handleBulkDelete} variant="destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -928,7 +910,6 @@ export default function AdminGuests() {
                 selected={selectedIds.includes(guest.id)}
                 onToggleSelect={toggleSelect}
                 onUpdateStatus={handleUpdateStatus}
-                onMoveToWaiting={handleMoveToWaitingList}
                 onUpdateField={onUpdateField}
                 onEdit={handleEditClick}
                 onDelete={handleDeleteGuest}
