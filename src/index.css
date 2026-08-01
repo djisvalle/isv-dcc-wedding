@@ -144,6 +144,11 @@
     }
   html {
     @apply font-sans;
+    /* Always reserve + render the scrollbar track, so it never visibly
+       appears/disappears when content height changes (e.g. paginating a
+       table to a page with fewer rows). scrollbar-gutter:stable alone only
+       reserves the space but still lets the scrollbar itself pop in/out. */
+    overflow-y: scroll;
     scrollbar-gutter: stable;
     }
 }
