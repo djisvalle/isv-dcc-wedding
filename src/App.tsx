@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import LandingPage from '@/pages/LandingPage';
 
 const AdminLayout = lazy(() => import('@/components/admin/AdminLayout'));
+const AdminDataProviders = lazy(() => import('@/components/admin/AdminDataProviders'));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminInvites = lazy(() => import('@/pages/admin/AdminInvites'));
 const AdminGuests = lazy(() => import('@/pages/admin/AdminGuests'));
@@ -45,10 +46,15 @@ export default function App() {
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="invites" element={<AdminInvites />} />
-              <Route path="guests" element={<AdminGuests />} />
-              <Route path="tables" element={<AdminTables />} />
+              {/* Only these four pages read guests/invites; scoping the
+                  realtime providers here (rather than around all of /admin)
+                  keeps Settings from holding open an unused listener. */}
+              <Route element={<AdminDataProviders />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="invites" element={<AdminInvites />} />
+                <Route path="guests" element={<AdminGuests />} />
+                <Route path="tables" element={<AdminTables />} />
+              </Route>
               <Route path="settings" element={<AdminSettings />} />
             </Route>
 

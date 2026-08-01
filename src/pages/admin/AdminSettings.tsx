@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { toDatetimeLocalValue } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   Save,
@@ -31,7 +32,13 @@ export default function AdminSettings() {
       try {
         const deadlineSnap = await getDoc(doc(db, 'settings', 'rsvp_deadline'));
         if (deadlineSnap.exists()) {
-          setDeadline(deadlineSnap.data().value);
+          const value = deadlineSnap.data().value;
+          if (value instanceof Timestamp) {
+            setDeadline(toDatetimeLocalValue(value.toDate()));
+          } else if (typeof value === 'string' && value) {
+            // Pre-migration format: already a raw datetime-local string.
+            setDeadline(value);
+          }
         }
 
         const templateSnap = await getDoc(doc(db, 'settings', 'invite_message_template'));
@@ -51,9 +58,17 @@ export default function AdminSettings() {
   const handleSaveDeadline = async () => {
     setSavingDeadline(true);
     try {
+      // Stored as a real Timestamp (not a string) so Firestore rules can
+      // enforce it server-side, not just hide the UI once it has passed.
+      const parsed = deadline ? new Date(deadline) : null;
+      if (parsed && isNaN(parsed.getTime())) {
+        toast.error('Invalid deadline date');
+        return;
+      }
+
       await setDoc(doc(db, 'settings', 'rsvp_deadline'), {
         key: 'rsvp_deadline',
-        value: deadline,
+        value: parsed,
         updated_at: new Date().toISOString()
       });
       toast.success('RSVP deadline saved');

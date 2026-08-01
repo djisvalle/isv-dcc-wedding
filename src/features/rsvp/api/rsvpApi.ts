@@ -1,12 +1,9 @@
 import {
   doc,
   getDoc,
-  getDocs,
-  collection,
-  query,
-  where,
   writeBatch,
   serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from '@/lib/firebase';
 import type { Guest, Invite, RsvpDeadline } from '../types';
@@ -22,7 +19,14 @@ export async function fetchDeadline(): Promise<RsvpDeadline> {
     return { date: null, isPastDeadline: false };
   }
 
-  const date = new Date(snap.data().value);
+  const value = snap.data().value;
+  // Pre-migration deadlines were stored as a raw datetime-local string;
+  // new ones are a real Timestamp so Firestore rules can enforce them too.
+  const date = value instanceof Timestamp ? value.toDate() : new Date(value);
+  if (isNaN(date.getTime())) {
+    return { date: null, isPastDeadline: false };
+  }
+
   return { date, isPastDeadline: date < new Date() };
 }
 
@@ -40,16 +44,21 @@ export async function fetchInvite(inviteId: string): Promise<InviteWithGuests> {
 
   if (inviteSnap.exists()) {
     const invite = { id: inviteSnap.id, ...inviteSnap.data() } as Invite;
+    const guestIds = (inviteSnap.data().guest_ids as string[] | undefined) ?? [];
 
-    const guestsRef = collection(db, 'guests');
-    const q = query(guestsRef, where('invite_id', '==', inviteId));
-    const guestSnap = await getDocs(q).catch(err => {
-      handleFirestoreError(err, OperationType.LIST, 'guests (filtered)');
+    // Guests are fetched by ID (one `get` per guest) rather than a `list`
+    // query: Firestore rules restrict `list` on `guests` to admins so the
+    // collection can't be scraped, but per-doc `get` stays open.
+    const guestSnaps = await Promise.all(
+      guestIds.map(id => getDoc(doc(db, 'guests', id)))
+    ).catch(err => {
+      handleFirestoreError(err, OperationType.GET, 'guests (by invite.guest_ids)');
       throw err;
     });
 
-    const guests = guestSnap.docs
-      .map(d => ({ id: d.id, ...d.data() } as Guest))
+    const guests = guestSnaps
+      .filter(snap => snap.exists())
+      .map(snap => ({ id: snap.id, ...snap.data() } as Guest))
       .sort((a, b) => (a.import_order ?? 0) - (b.import_order ?? 0));
 
     return { invite, guests };

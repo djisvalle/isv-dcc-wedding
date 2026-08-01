@@ -31,15 +31,17 @@ import {
   doc,
   setDoc,
   updateDoc,
-  deleteDoc,
   getDocs,
   getDoc,
   serverTimestamp,
+  arrayUnion,
+  arrayRemove,
   DocumentSnapshot
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { generateInviteId } from '@/lib/utils';
-import * as xlsx from 'xlsx';
+import { commitInChunks } from '@/lib/firestoreBatch';
+import { parseExcelRows, downloadExcel } from '@/lib/excel';
 import {
   Popover,
   PopoverContent,
@@ -109,16 +111,16 @@ export default function AdminInvites() {
   const handleClearAllData = async () => {
     setClearing(true);
     try {
-      // Delete all guests
       const guestSnap = await getDocs(collection(db, 'guests'));
-      const deleteGuestPromises = guestSnap.docs.map(d => deleteDoc(doc(db, 'guests', d.id)));
-      
-      // Delete all invites
       const inviteSnap = await getDocs(collection(db, 'invites'));
-      const deleteInvitePromises = inviteSnap.docs.map(d => deleteDoc(doc(db, 'invites', d.id)));
-      
-      await Promise.all([...deleteGuestPromises, ...deleteInvitePromises]);
-      
+
+      await commitInChunks(guestSnap.docs, (d, batch) => {
+        batch.delete(doc(db, 'guests', d.id));
+      });
+      await commitInChunks(inviteSnap.docs, (d, batch) => {
+        batch.delete(doc(db, 'invites', d.id));
+      });
+
       toast.success('All data has been cleared successfully');
       setIsClearOpen(false);
     } catch (err) {
@@ -137,25 +139,24 @@ export default function AdminInvites() {
     try {
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = xlsx.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = xlsx.utils.sheet_to_json(sheet) as any[];
+        const rows = await parseExcelRows(e.target?.result as ArrayBuffer) as any[];
 
-        let rowIndex = 0;
-        for (const row of rows) {
-          const inviteId = row.inviteId || generateInviteId();
-          const name = row.inviteName || row.name;
-          if (!name) continue;
-
-          const guestNames = row.guests ? String(row.guests).split(',').map((s: string) => s.trim()) : [row.name];
-          await createInviteWithGuests(
-            inviteId,
-            { name, import_order: rowIndex++ },
-            guestNames,
-            row.role || null
-          );
-        }
+        // Each row creates an independent invite, so they can run concurrently
+        // instead of one round-trip at a time.
+        const validRows = rows.filter(row => row.inviteName || row.name);
+        await Promise.all(
+          validRows.map((row, rowIndex) => {
+            const inviteId = row.inviteId || generateInviteId();
+            const name = row.inviteName || row.name;
+            const guestNames = row.guests ? String(row.guests).split(',').map((s: string) => s.trim()) : [row.name];
+            return createInviteWithGuests(
+              inviteId,
+              { name, import_order: rowIndex },
+              guestNames,
+              row.role || null
+            );
+          })
+        );
         toast.success('Successfully imported invitations');
         setIsBulkOpen(false);
       };
@@ -250,13 +251,15 @@ export default function AdminInvites() {
   const addGuestsToInvite = async () => {
     if (selectedGuestIds.length === 0 || !editingInvite) return;
     try {
-      const promises = selectedGuestIds.map(id => 
-        updateDoc(doc(db, 'guests', id), {
+      await commitInChunks(selectedGuestIds, (id, batch) => {
+        batch.update(doc(db, 'guests', id), {
           invite_id: editingInvite.id,
           updated_at: serverTimestamp()
-        })
-      );
-      await Promise.all(promises);
+        });
+      });
+      await updateDoc(doc(db, 'invites', editingInvite.id), {
+        guest_ids: arrayUnion(...selectedGuestIds)
+      });
       toast.success(`${selectedGuestIds.length} guest(s) added to invite`);
       setSelectedGuestIds([]);
     } catch {
@@ -270,6 +273,11 @@ export default function AdminInvites() {
         invite_id: null,
         updated_at: serverTimestamp()
       });
+      if (guest.invite_id) {
+        await updateDoc(doc(db, 'invites', guest.invite_id), {
+          guest_ids: arrayRemove(guest.id)
+        });
+      }
       toast.success('Guest removed from invite');
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `guests/${guest.id}`);
@@ -420,27 +428,33 @@ export default function AdminInvites() {
                 </div>
               </div>
               <div className="flex justify-center gap-2">
-                <Button 
-                  variant="link" 
-                  size="sm" 
+                <Button
+                  variant="link"
+                  size="sm"
                   onClick={() => {
                     const data = [
                       { inviteName: "The Smith Family", guests: "John Smith, Jane Smith, Alice Smith", inviteId: "smith-family" },
                       { inviteName: "Mr. Israel Valle", guests: "Israel Valle", inviteId: "israel-valle" }
                     ];
-                    const worksheet = xlsx.utils.json_to_sheet(data);
-                    const workbook = xlsx.utils.book_new();
-                    xlsx.utils.book_append_sheet(workbook, worksheet, 'Template');
-                    xlsx.writeFile(workbook, 'invites_template.xlsx');
+                    downloadExcel(
+                      data,
+                      [
+                        { header: 'inviteName', key: 'inviteName', width: 25 },
+                        { header: 'guests', key: 'guests', width: 40 },
+                        { header: 'inviteId', key: 'inviteId', width: 20 },
+                      ],
+                      'Template',
+                      'invites_template.xlsx'
+                    );
                   }}
                   className="text-wedding-gold"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download Template
                 </Button>
-                <Button 
-                  variant="link" 
-                  size="sm" 
+                <Button
+                  variant="link"
+                  size="sm"
                   onClick={() => {
                     const data = invites.map(i => {
                       const inviteGuests = guests.filter(g => g.invite_id === i.id);
@@ -451,10 +465,17 @@ export default function AdminInvites() {
                         guestCount: inviteGuests.length
                       };
                     });
-                    const worksheet = xlsx.utils.json_to_sheet(data);
-                    const workbook = xlsx.utils.book_new();
-                    xlsx.utils.book_append_sheet(workbook, worksheet, 'Invitations');
-                    xlsx.writeFile(workbook, 'wedding_invitations_backup.xlsx');
+                    downloadExcel(
+                      data,
+                      [
+                        { header: 'inviteId', key: 'inviteId', width: 20 },
+                        { header: 'inviteName', key: 'inviteName', width: 25 },
+                        { header: 'guests', key: 'guests', width: 40 },
+                        { header: 'guestCount', key: 'guestCount', width: 12 },
+                      ],
+                      'Invitations',
+                      'wedding_invitations_backup.xlsx'
+                    );
                   }}
                   className="text-slate-500"
                 >

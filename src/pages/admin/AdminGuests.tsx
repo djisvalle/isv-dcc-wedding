@@ -35,11 +35,13 @@ import {
   addDoc,
   serverTimestamp,
   getDoc,
+  arrayUnion,
+  arrayRemove,
   DocumentSnapshot
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
-import * as xlsx from 'xlsx';
 import ExcelJS from 'exceljs';
+import { parseExcelRows, downloadExcel } from '@/lib/excel';
 import {
   Popover,
   PopoverContent,
@@ -162,7 +164,7 @@ export default function AdminGuests() {
     toast.success('Message copied to clipboard');
   }, [invites, messageTemplate]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
       const data = guests.map(g => ({
         Name: g.name,
@@ -176,10 +178,22 @@ export default function AdminGuests() {
         LastUpdated: g.updated_at ? (g.updated_at.seconds ? new Date(g.updated_at.seconds * 1000).toLocaleString() : new Date(g.updated_at).toLocaleString()) : 'N/A'
       }));
 
-      const worksheet = xlsx.utils.json_to_sheet(data);
-      const workbook = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(workbook, worksheet, 'Guests');
-      xlsx.writeFile(workbook, 'wedding_guest_list.xlsx');
+      await downloadExcel(
+        data,
+        [
+          { header: 'Name', key: 'Name', width: 25 },
+          { header: 'Nickname', key: 'Nickname', width: 20 },
+          { header: 'Role', key: 'Role', width: 20 },
+          { header: 'Group', key: 'Group', width: 25 },
+          { header: 'InviteID', key: 'InviteID', width: 20 },
+          { header: 'TableType', key: 'TableType', width: 15 },
+          { header: 'TableNumber', key: 'TableNumber', width: 15 },
+          { header: 'Response', key: 'Response', width: 15 },
+          { header: 'LastUpdated', key: 'LastUpdated', width: 20 },
+        ],
+        'Guests',
+        'wedding_guest_list.xlsx'
+      );
       toast.success('Guest list exported successfully');
     } catch {
       toast.error('Failed to export guest list');
@@ -193,7 +207,7 @@ export default function AdminGuests() {
         ? Math.max(...guests.map(g => g.import_order || 0)) 
         : -1;
 
-      await addDoc(collection(db, 'guests'), {
+      const guestRef = await addDoc(collection(db, 'guests'), {
         name: newGuest.name,
         nickname: newGuest.nickname || null,
         role: newGuest.role || null,
@@ -206,6 +220,11 @@ export default function AdminGuests() {
         import_order: maxOrder + 1,
         updated_at: serverTimestamp()
       });
+      if (newGuest.invite_id) {
+        await updateDoc(doc(db, 'invites', newGuest.invite_id), {
+          guest_ids: arrayUnion(guestRef.id)
+        });
+      }
       toast.success('Guest added successfully');
       setNewGuest({ name: '', nickname: '', role: '', invite_id: '', table_type: '' as any, table_number: '', is_baby_or_child: false, parent_name: '' });
       setIsAddOpen(false);
@@ -219,15 +238,32 @@ export default function AdminGuests() {
     e.preventDefault();
     if (!editingGuest) return;
     try {
+      const previousInviteId = guests.find(g => g.id === editingGuest.id)?.invite_id || null;
+      const nextInviteId = editingGuest.invite_id || null;
+
       await updateDoc(doc(db, 'guests', editingGuest.id), {
         role: editingGuest.role || null,
-        invite_id: editingGuest.invite_id || null,
+        invite_id: nextInviteId,
         table_type: editingGuest.table_type || null,
         table_number: editingGuest.table_number || null,
         is_baby_or_child: editingGuest.is_baby_or_child || false,
         parent_name: editingGuest.parent_name || null,
         updated_at: serverTimestamp()
       });
+
+      if (previousInviteId !== nextInviteId) {
+        if (previousInviteId) {
+          await updateDoc(doc(db, 'invites', previousInviteId), {
+            guest_ids: arrayRemove(editingGuest.id)
+          });
+        }
+        if (nextInviteId) {
+          await updateDoc(doc(db, 'invites', nextInviteId), {
+            guest_ids: arrayUnion(editingGuest.id)
+          });
+        }
+      }
+
       toast.success('Guest updated successfully');
       setIsEditOpen(false);
     } catch (err) {
@@ -238,13 +274,17 @@ export default function AdminGuests() {
 
   const handleDeleteGuest = useCallback(async (id: string) => {
     try {
+      const inviteId = guests.find(g => g.id === id)?.invite_id || null;
       await deleteDoc(doc(db, 'guests', id));
+      if (inviteId) {
+        await updateDoc(doc(db, 'invites', inviteId), { guest_ids: arrayRemove(id) });
+      }
       toast.success('Guest deleted successfully');
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `guests/${id}`);
       toast.error('Failed to delete guest');
     }
-  }, []);
+  }, [guests]);
 
   const handleEditClick = useCallback((guest: Guest) => {
     setEditingGuest(guest);
@@ -265,7 +305,10 @@ export default function AdminGuests() {
 
   const handleBulkDelete = async () => {
     try {
-      await batchDeleteGuests(selectedIds);
+      const targets = guests
+        .filter(g => selectedIds.includes(g.id))
+        .map(g => ({ id: g.id, invite_id: g.invite_id }));
+      await batchDeleteGuests(targets);
       toast.success('Guests deleted successfully');
       setSelectedIds([]);
     } catch {
@@ -291,10 +334,7 @@ export default function AdminGuests() {
     try {
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = xlsx.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = xlsx.utils.sheet_to_json(sheet) as any[];
+        const rows = await parseExcelRows(e.target?.result as ArrayBuffer) as any[];
 
         await batchImportGuests(
           rows

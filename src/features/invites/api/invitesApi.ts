@@ -1,4 +1,4 @@
-import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 
 export async function createInviteWithGuests(
@@ -20,6 +20,13 @@ export async function createInviteWithGuests(
     return;
   }
 
+  // Pre-generate refs so guest_ids can be written alongside the guest docs
+  // themselves (public RSVP reads rely on this array, not a `list` query).
+  // arrayUnion (rather than a plain array) keeps this additive in case
+  // inviteId matches an invite that already has guests.
+  const guestRefs = validNames.map(() => doc(collection(db, 'guests')));
+  const guestIds = guestRefs.map(ref => ref.id);
+
   // 499 guests per chunk leaves room for the invite write in the first batch.
   const GUEST_CHUNK = 499;
   let guestIndex = 0;
@@ -27,10 +34,10 @@ export async function createInviteWithGuests(
     const slice = validNames.slice(i, i + GUEST_CHUNK);
     const batch = writeBatch(db);
     if (i === 0) {
-      batch.set(inviteRef, { ...inviteData, created_at: serverTimestamp() }, { merge: true });
+      batch.set(inviteRef, { ...inviteData, guest_ids: arrayUnion(...guestIds), created_at: serverTimestamp() }, { merge: true });
     }
-    for (const name of slice) {
-      const guestRef = doc(collection(db, 'guests'));
+    slice.forEach((name, sliceIndex) => {
+      const guestRef = guestRefs[i + sliceIndex];
       batch.set(guestRef, {
         name,
         invite_id: inviteId,
@@ -39,7 +46,7 @@ export async function createInviteWithGuests(
         import_order: guestIndex++,
         updated_at: serverTimestamp()
       });
-    }
+    });
     await batch.commit().catch(err => {
       handleFirestoreError(err, OperationType.CREATE, `invites/${inviteId}`);
       throw err;

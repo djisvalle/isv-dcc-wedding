@@ -25,7 +25,8 @@ service cloud.firestore {
     function isValidInvite(data) {
       return data.keys().hasAll(['name']) &&
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             (!data.keys().hasAny(['import_order']) || data.import_order == null || data.import_order is number);
+             (!data.keys().hasAny(['import_order']) || data.import_order == null || data.import_order is number) &&
+             (!data.keys().hasAny(['guest_ids']) || data.guest_ids == null || (data.guest_ids is list && data.guest_ids.size() <= 500));
     }
 
     function isValidGuest(data) {
@@ -38,13 +39,31 @@ service cloud.firestore {
              (!data.keys().hasAny(['table_number']) || data.table_number == null || (data.table_number is string && data.table_number.size() <= 50)) &&
              (!data.keys().hasAny(['table_order']) || data.table_order == null || data.table_order is number) &&
              (!data.keys().hasAny(['import_order']) || data.import_order == null || data.import_order is number) &&
-             (!data.keys().hasAny(['is_coming']) || data.is_coming == null || data.is_coming is bool);
+             (!data.keys().hasAny(['is_coming']) || data.is_coming == null || data.is_coming is bool) &&
+             (!data.keys().hasAny(['is_baby_or_child']) || data.is_baby_or_child == null || data.is_baby_or_child is bool) &&
+             (!data.keys().hasAny(['parent_name']) || data.parent_name == null || (data.parent_name is string && data.parent_name.size() <= 100));
     }
 
-    function isValidSetting(data) {
+    function isValidSetting(settingId, data) {
       return data.keys().hasAll(['key', 'value']) &&
              data.key is string && data.key.size() > 0 &&
-             data.value is string && data.value.size() >= 0;
+             (
+               (settingId == 'rsvp_deadline' && (data.value == null || data.value is timestamp)) ||
+               (settingId != 'rsvp_deadline' && data.value is string && data.value.size() >= 0)
+             );
+    }
+
+    // RSVP writes from the public (non-admin) branch are blocked once the
+    // deadline has passed. Anything other than a real timestamp on the
+    // deadline doc (missing, null, or a pre-migration string value) is
+    // treated as "no deadline set" rather than blocking every RSVP.
+    function isBeforeRsvpDeadline() {
+      let deadlinePath = /databases/$(database)/documents/settings/rsvp_deadline;
+      return !exists(deadlinePath) ||
+             !('value' in get(deadlinePath).data) ||
+             get(deadlinePath).data.value == null ||
+             !(get(deadlinePath).data.value is timestamp) ||
+             request.time < get(deadlinePath).data.value;
     }
 
     function isValidSupplier(data) {
@@ -89,18 +108,22 @@ service cloud.firestore {
     }
 
     match /guests/{guestId} {
-      allow list: if true;
-      
-      allow get: if isAdmin() || resource.data.invite_id != null;
+      // Guest doc IDs are unguessable Firestore auto-IDs, so a single-doc get
+      // is only reachable by someone who already has that guest's RSVP link.
+      // `list` stays admin-only so the collection can't be scraped/enumerated.
+      allow get: if true;
+      allow list: if isAdmin();
 
-      allow create: if isAdmin() && isValidGuest(incoming()) && 
+      allow create: if isAdmin() && isValidGuest(incoming()) &&
                     (!incoming().keys().hasAny(['updated_at']) || incoming().updated_at == request.time);
       
       allow update: if (isAdmin() && isValidGuest(incoming()) && incoming().updated_at == request.time)
         || (
-          // RSVP Action: only allow 'is_coming' and 'updated_at' to be changed
+          // RSVP Action: only allow 'is_coming' and 'updated_at' to be changed,
+          // and only before the RSVP deadline (admins are exempt above).
           incoming().diff(existing()).affectedKeys().hasOnly(['is_coming', 'updated_at']) &&
-          incoming().updated_at == request.time
+          incoming().updated_at == request.time &&
+          isBeforeRsvpDeadline()
         );
         
       allow delete: if isAdmin();
@@ -108,7 +131,7 @@ service cloud.firestore {
 
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidSetting(incoming());
+      allow write: if isAdmin() && isValidSetting(settingId, incoming());
     }
 
     match /suppliers/{supplierId} {
