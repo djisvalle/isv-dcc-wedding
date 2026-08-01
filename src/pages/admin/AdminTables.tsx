@@ -615,7 +615,7 @@ export default function AdminTables() {
           </div>
           
           <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-6 bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100">
+            <div className="flex items-center gap-6 bg-white px-6 py-3 rounded-3xl shadow-sm border border-slate-100">
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Tables</span>
                 <span className="text-2xl font-serif text-wedding-gold">{activeTables.length}</span>
