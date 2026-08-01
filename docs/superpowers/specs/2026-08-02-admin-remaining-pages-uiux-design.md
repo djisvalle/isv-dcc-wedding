@@ -90,3 +90,64 @@ pattern in each of these three files stays as-is for the split
   no page that visibly reads as "more default shadcn" than the others.
 - No new fields, no new UI library, no rebrand.
 - `npx tsc --noEmit` and `npm run build` both pass clean.
+
+## Results
+
+All three tasks were each implemented, reviewed, and committed with zero
+unresolved findings:
+
+- **Task 1** (`4ba91466`, "fix: split AdminSettings shared save button,
+  polish card layout") — split `AdminSettings`' single `handleSave()` /
+  shared `saving` boolean into independent `handleSaveDeadline()` /
+  `handleSaveMessage()` handlers and `savingDeadline` / `savingMessage`
+  booleans, so the RSVP Deadline card and Invite Message Template card
+  each write only their own `settings/*` Firestore document and show a
+  loading spinner only on their own button; plus visual polish on the
+  card layout.
+- **Task 2** (`9f7206d5`, "fix: AdminDashboard RSVP Progress card spans
+  full width instead of half") — fixed the RSVP Progress card's grid
+  placement so it spans the full width of the dashboard instead of
+  sharing a row at half width.
+- **Task 3** (this task, `e1d708c9`, "style: AdminTables header stat pill
+  rounding consistency") — bumped the "Tables / Unassigned" count pill in
+  `AdminTables`' page header from `rounded-2xl` to `rounded-3xl`, matching
+  the `rounded-3xl` used by every card on that page and by
+  `AdminSettings`/`AdminDashboard`'s cards after Tasks 1–2.
+
+**`npx tsc --noEmit` (scoped to `AdminTables.tsx`, Task 3 Step 2):** zero
+errors, zero output.
+
+**`npx eslint src/pages/admin/AdminTables.tsx --report-unused-disable-directives --max-warnings 0`
+(Task 3 Step 2):** zero output (exit 0).
+
+**`npx tsc --noEmit` (whole project, Task 3 Step 4):** zero errors, zero
+output.
+
+**`npx eslint . --report-unused-disable-directives --max-warnings 0`
+(whole project, Task 3 Step 4):** zero output (exit 0).
+
+**`npm run build` (Task 3 Step 4):** succeeded (`vite v6.4.2`, "2737
+modules transformed", "✓ built in 13.14s"). `AdminTables-DMk9KTeB.js`
+(106.60 kB) reflects the one-`className` edit; `AdminDashboard-CJYgf5dd.js`
+(3.80 kB) and `AdminSettings-DLGqw9K2.js` (5.14 kB) reflect Tasks 1–2's
+changes carried over from prior commits. The build emits the same
+pre-existing chunk-size warning noted in every prior sub-project's Results
+section ("Some chunks are larger than 500 kB after minification",
+flagging `EditableCell-*.js` at 546.08 kB and `AdminGuests-*.js` at
+978.19 kB) — both predate this sub-project and are not treated as a
+blocking signal here.
+
+**Not verified (no browser automation available in this environment):** a
+human must do a live browser walkthrough before treating this pass as
+fully verified in production, specifically:
+
+- `AdminSettings`' two cards genuinely save independently — edit both the
+  RSVP Deadline and Invite Message Template fields, save only one card,
+  refresh the page, and confirm the other field's Firestore value did not
+  change.
+- `AdminDashboard`'s RSVP Progress card renders full-width on a desktop
+  viewport (not sharing a row at half width).
+- `AdminTables`' drag-and-drop still works visually unchanged — this task
+  only touched one `className` string (the header stat pill's rounding)
+  on that page, but a human should confirm dragging guests between tables
+  still looks and behaves as before.
