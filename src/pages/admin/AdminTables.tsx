@@ -57,6 +57,7 @@ import { useGuests } from '@/features/guests/context/GuestsProvider';
 import { commitInChunks } from '@/lib/firestoreBatch';
 import type { Guest } from '@/features/guests/types';
 import { Table, TABLE_TYPES, mergeTables, TABLE_LAYOUT_SETTING_ID, persistTableLayout } from '@/components/admin/tables/types';
+import { DEFAULT_CAPACITY } from '@/components/admin/tables/capacity';
 
 const EMPTY_GUESTS: Guest[] = [];
 
@@ -340,7 +341,11 @@ export default function AdminTables() {
   const [activeTables, setActiveTables] = useState<Table[]>([]);
   const [activeGuestId, setActiveGuestId] = useState<string | null>(null);
   const [isAddTableOpen, setIsAddTableOpen] = useState(false);
-  const [newTable, setNewTable] = useState<{ type: 'bridal' | 'vip' | 'regular', number: string }>({ type: 'regular', number: '' });
+  const [newTable, setNewTable] = useState<{ type: Table['type']; number: string; capacity: string }>({
+    type: 'regular',
+    number: '',
+    capacity: String(DEFAULT_CAPACITY.regular ?? '')
+  });
   
   // Mobile unassigned sheet
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
@@ -570,11 +575,15 @@ export default function AdminTables() {
       toast.error('This table already exists');
       return;
     }
-    const updated = mergeTables(activeTables, [{ id, ...newTable }]);
+    const parsedCapacity = newTable.capacity.trim() === '' ? undefined : parseInt(newTable.capacity, 10);
+    const capacity = parsedCapacity !== undefined && !Number.isNaN(parsedCapacity) && parsedCapacity > 0
+      ? parsedCapacity
+      : undefined;
+    const updated = mergeTables(activeTables, [{ id, type: newTable.type, number: newTable.number, capacity }]);
     setActiveTables(updated);
     persistTableLayout(updated);
     setIsAddTableOpen(false);
-    setNewTable({ type: 'regular', number: '' });
+    setNewTable({ type: 'regular', number: '', capacity: String(DEFAULT_CAPACITY.regular ?? '') });
     toast.success('Table added');
   };
 
@@ -640,8 +649,18 @@ export default function AdminTables() {
                     <Label>Table Category</Label>
                     <select 
                       className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                      value={newTable.type} 
-                      onChange={e => setNewTable(prev => ({ ...prev, type: e.target.value as any }))}
+                      value={newTable.type}
+                      onChange={e => {
+                        const type = e.target.value as Table['type'];
+                        setNewTable(prev => {
+                          const wasAtDefault = prev.capacity === String(DEFAULT_CAPACITY[prev.type] ?? '');
+                          return {
+                            ...prev,
+                            type,
+                            capacity: wasAtDefault ? String(DEFAULT_CAPACITY[type] ?? '') : prev.capacity
+                          };
+                        });
+                      }}
                     >
                       {TABLE_TYPES.map(type => (
                         <option key={type.id} value={type.id}>{type.label}</option>
@@ -650,12 +669,22 @@ export default function AdminTables() {
                   </div>
                   <div className="space-y-2">
                     <Label>Table Number/Identifier</Label>
-                    <Input 
+                    <Input
                       required={newTable.type !== 'bridal'}
                       disabled={newTable.type === 'bridal'}
-                      value={newTable.number} 
-                      onChange={e => setNewTable(prev => ({ ...prev, number: e.target.value }))} 
+                      value={newTable.number}
+                      onChange={e => setNewTable(prev => ({ ...prev, number: e.target.value }))}
                       placeholder="e.g., 1, 2, A, B..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Capacity</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={newTable.capacity}
+                      onChange={e => setNewTable(prev => ({ ...prev, capacity: e.target.value }))}
+                      placeholder="Uncapped"
                     />
                   </div>
                   <Button type="submit" className="w-full bg-wedding-gold">Create Table</Button>
