@@ -1,17 +1,14 @@
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { 
-  Users, 
-  Ticket, 
-  LayoutDashboard, 
-  LogOut, 
-  Menu, 
+import {
+  Users,
+  Ticket,
+  LayoutDashboard,
+  LogOut,
+  Menu,
   Loader2,
   Settings,
-  LayoutGrid,
-  Wallet,
-  BarChart3,
-  Hourglass
+  LayoutGrid
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -21,9 +18,6 @@ import { auth } from '@/lib/firebase';
 import { useEffect, Suspense } from 'react';
 import { GuestsProvider } from '@/features/guests/context/GuestsProvider';
 import { InvitesProvider } from '@/features/invites/context/InvitesProvider';
-import { SuppliersProvider } from '@/features/budget/context/SuppliersProvider';
-import { PaymentsProvider } from '@/features/budget/context/PaymentsProvider';
-import { WaitingListProvider } from '@/features/waitingList/context/WaitingListProvider';
 
 export default function AdminLayout() {
   const { user, isAdmin, loading } = useAuth();
@@ -46,10 +40,7 @@ export default function AdminLayout() {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
     { label: 'Invitations', icon: Ticket, path: '/admin/invites' },
     { label: 'Guest List', icon: Users, path: '/admin/guests' },
-    { label: 'Waiting List', icon: Hourglass, path: '/admin/waiting-list' },
     { label: 'Tables', icon: LayoutGrid, path: '/admin/tables' },
-    { label: 'Budget & Payments', icon: Wallet, path: '/admin/budget' },
-    { label: 'Reports', icon: BarChart3, path: '/admin/reports' },
     { label: 'Settings', icon: Settings, path: '/admin/settings' },
   ];
 
@@ -140,22 +131,16 @@ export default function AdminLayout() {
 
         <GuestsProvider>
           <InvitesProvider>
-            <SuppliersProvider>
-              <PaymentsProvider>
-                <WaitingListProvider>
-                  <Suspense fallback={<Loader2 className="w-8 h-8 animate-spin text-wedding-gold mx-auto mt-20" />}>
-                    <motion.div
-                       key={location.pathname}
-                       initial={{ opacity: 0, y: 10 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       transition={{ duration: 0.3 }}
-                    >
-                      <Outlet />
-                    </motion.div>
-                  </Suspense>
-                </WaitingListProvider>
-              </PaymentsProvider>
-            </SuppliersProvider>
+            <Suspense fallback={<Loader2 className="w-8 h-8 animate-spin text-wedding-gold mx-auto mt-20" />}>
+              <motion.div
+                 key={location.pathname}
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ duration: 0.3 }}
+              >
+                <Outlet />
+              </motion.div>
+            </Suspense>
           </InvitesProvider>
         </GuestsProvider>
       </main>

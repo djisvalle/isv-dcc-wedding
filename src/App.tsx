@@ -10,9 +10,6 @@ const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminInvites = lazy(() => import('@/pages/admin/AdminInvites'));
 const AdminGuests = lazy(() => import('@/pages/admin/AdminGuests'));
 const AdminTables = lazy(() => import('@/pages/admin/AdminTables'));
-const AdminBudget = lazy(() => import('@/pages/admin/AdminBudget'));
-const AdminReports = lazy(() => import('@/pages/admin/AdminReports'));
-const AdminWaitingList = lazy(() => import('@/pages/admin/AdminWaitingList'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
 const AdminLogin = lazy(() => import('@/pages/admin/AdminLogin'));
 
@@ -52,9 +49,6 @@ export default function App() {
               <Route path="invites" element={<AdminInvites />} />
               <Route path="guests" element={<AdminGuests />} />
               <Route path="tables" element={<AdminTables />} />
-              <Route path="waiting-list" element={<AdminWaitingList />} />
-              <Route path="budget" element={<AdminBudget />} />
-              <Route path="reports" element={<AdminReports />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
 
