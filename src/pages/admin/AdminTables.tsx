@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   Users,
@@ -70,6 +70,47 @@ const TABLE_TYPES = [
 ] as const;
 
 const EMPTY_GUESTS: Guest[] = [];
+const TABLE_TYPE_ORDER = ['bridal', 'vip', 'regular'];
+
+function sortTables(tables: Table[]): Table[] {
+  return [...tables].sort((a, b) => {
+    const aOrder = TABLE_TYPE_ORDER.indexOf(a.type);
+    const bOrder = TABLE_TYPE_ORDER.indexOf(b.type);
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return (a.number || '').localeCompare(b.number || '', undefined, { numeric: true });
+  });
+}
+
+/** Dedupes by id (first occurrence wins) across any number of table lists, then sorts. */
+function mergeTables(...lists: Table[][]): Table[] {
+  const byId: Record<string, Table> = {};
+  for (const list of lists) {
+    for (const t of list) {
+      if (!byId[t.id]) byId[t.id] = t;
+    }
+  }
+  return sortTables(Object.values(byId));
+}
+
+const TABLE_LAYOUT_SETTING_ID = 'table_layout';
+
+/**
+ * Tables with guests seated are re-derivable from the guests themselves, but
+ * an empty table (created ahead of assigning anyone) only exists in local
+ * component state — so it silently disappeared on refresh. Persisting the
+ * full active table list here means empty tables survive a reload.
+ */
+async function persistTableLayout(tables: Table[]) {
+  try {
+    await setDoc(doc(db, 'settings', TABLE_LAYOUT_SETTING_ID), {
+      key: TABLE_LAYOUT_SETTING_ID,
+      value: JSON.stringify(tables.map(({ id, type, number }) => ({ id, type, number }))),
+      updated_at: new Date().toISOString()
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, `settings/${TABLE_LAYOUT_SETTING_ID}`);
+  }
+}
 
 // --- Sub-components for DnD ---
 
@@ -392,22 +433,31 @@ export default function AdminTables() {
       }
     });
 
-    setActiveTables(prev => {
-      // Merge with existing active tables to preserve newly created empty tables
-      const combined = { ...tablesFromGuests };
-      prev.forEach(t => {
-        if (!combined[t.id]) combined[t.id] = t;
-      });
-
-      return Object.values(combined).sort((a, b) => {
-        const order = ['bridal', 'vip', 'regular'];
-        const aOrder = order.indexOf(a.type);
-        const bOrder = order.indexOf(b.type);
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return (a.number || '').localeCompare(b.number || '', undefined, { numeric: true });
-      });
-    });
+    // Merge with existing active tables (e.g. empty tables loaded from
+    // Firestore, or ones created earlier this session) to avoid dropping them.
+    setActiveTables(prev => mergeTables(Object.values(tablesFromGuests), prev));
   }, [guests]);
+
+  // Load any previously-saved table layout once on mount, so tables with no
+  // guests assigned yet (not derivable from guest docs) survive a refresh.
+  useEffect(() => {
+    let cancelled = false;
+    getDoc(doc(db, 'settings', TABLE_LAYOUT_SETTING_ID)).then(snap => {
+      if (cancelled || !snap.exists()) return;
+      const raw = snap.data().value;
+      if (typeof raw !== 'string') return;
+      try {
+        const saved = JSON.parse(raw);
+        if (!Array.isArray(saved)) return;
+        setActiveTables(prev => mergeTables(prev, saved));
+      } catch {
+        // Malformed layout data shouldn't block the page from loading.
+      }
+    }).catch(err => {
+      handleFirestoreError(err, OperationType.GET, `settings/${TABLE_LAYOUT_SETTING_ID}`);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const unassignedGuests = useMemo(() => 
     guests
@@ -572,23 +622,20 @@ export default function AdminTables() {
       toast.error('This table already exists');
       return;
     }
-    setActiveTables(prev => {
-      const updated = [...prev, { id, ...newTable }];
-      return updated.sort((a,b) => {
-           const order = ['bridal', 'vip', 'regular'];
-           const aOrder = order.indexOf(a.type);
-           const bOrder = order.indexOf(b.type);
-           if (aOrder !== bOrder) return aOrder - bOrder;
-           return (a.number || '').localeCompare(b.number || '', undefined, { numeric: true });
-      });
-    });
+    const updated = mergeTables(activeTables, [{ id, ...newTable }]);
+    setActiveTables(updated);
+    persistTableLayout(updated);
     setIsAddTableOpen(false);
     setNewTable({ type: 'regular', number: '' });
     toast.success('Table added');
   };
 
   const handleRemoveTable = useCallback((id: string) => {
-    setActiveTables(prev => prev.filter(t => t.id !== id));
+    setActiveTables(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      persistTableLayout(updated);
+      return updated;
+    });
     toast.success('Table removed');
   }, []);
 
