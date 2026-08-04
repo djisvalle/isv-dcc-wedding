@@ -37,7 +37,14 @@ export async function batchDeleteGuests(guests: DeletableGuest[]): Promise<void>
 export async function batchUpdateGuestStatus(ids: string[], status: boolean | null): Promise<void> {
   if (ids.length === 0) return;
   await commitInChunks(ids, (id, batch) => {
-    batch.update(doc(db, 'guests', id), { is_coming: status, updated_at: serverTimestamp() });
+    batch.update(doc(db, 'guests', id), {
+      is_coming: status,
+      updated_at: serverTimestamp(),
+      // A guest no longer marked attending shouldn't stay parked in a seat:
+      // if they're later flipped back to attending, they'd otherwise
+      // silently reappear at a table that may since be reassigned.
+      ...(status !== true && { table_type: null, table_number: null, table_order: null }),
+    });
   }).catch(err => {
     handleFirestoreError(err, OperationType.UPDATE, 'guests/multiple');
     throw err;

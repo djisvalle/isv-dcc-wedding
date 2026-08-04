@@ -36,6 +36,7 @@ import {
   serverTimestamp,
   arrayUnion,
   arrayRemove,
+  writeBatch,
   DocumentSnapshot
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
@@ -62,6 +63,7 @@ import { useInvites } from '@/features/invites/context/InvitesProvider';
 import { createInviteWithGuests, deleteInviteAndUnassignGuests } from '@/features/invites/api/invitesApi';
 import { useDebounce } from '@/hooks/useDebounce';
 import { InviteRow } from '@/components/admin/invites/InviteRow';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import type { Guest } from '@/features/guests/types';
 import type { Invite, InviteWithCounts } from '@/features/invites/types';
 
@@ -76,6 +78,7 @@ export default function AdminInvites() {
   const [clearing, setClearing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [deleteInviteId, setDeleteInviteId] = useState<string | null>(null);
   const [messageTemplate, setMessageTemplate] = useState('');
 
   // Sorting state
@@ -251,15 +254,25 @@ export default function AdminInvites() {
   const addGuestsToInvite = async () => {
     if (selectedGuestIds.length === 0 || !editingInvite) return;
     try {
-      await commitInChunks(selectedGuestIds, (id, batch) => {
-        batch.update(doc(db, 'guests', id), {
-          invite_id: editingInvite.id,
-          updated_at: serverTimestamp()
-        });
-      });
-      await updateDoc(doc(db, 'invites', editingInvite.id), {
-        guest_ids: arrayUnion(...selectedGuestIds)
-      });
+      const inviteId = editingInvite.id;
+      // The invite's guest_ids update rides in the same batch as the first
+      // chunk of guest updates (499 leaves room for it) so the two writes
+      // can't succeed independently of each other.
+      await commitInChunks(
+        selectedGuestIds,
+        (id, batch) => {
+          batch.update(doc(db, 'guests', id), {
+            invite_id: inviteId,
+            updated_at: serverTimestamp()
+          });
+        },
+        499,
+        (batch) => {
+          batch.update(doc(db, 'invites', inviteId), {
+            guest_ids: arrayUnion(...selectedGuestIds)
+          });
+        }
+      );
       toast.success(`${selectedGuestIds.length} guest(s) added to invite`);
       setSelectedGuestIds([]);
     } catch {
@@ -269,15 +282,17 @@ export default function AdminInvites() {
 
   const removeGuestFromInvite = async (guest: Guest) => {
     try {
-      await updateDoc(doc(db, 'guests', guest.id), {
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'guests', guest.id), {
         invite_id: null,
         updated_at: serverTimestamp()
       });
       if (guest.invite_id) {
-        await updateDoc(doc(db, 'invites', guest.invite_id), {
+        batch.update(doc(db, 'invites', guest.invite_id), {
           guest_ids: arrayRemove(guest.id)
         });
       }
+      await batch.commit();
       toast.success('Guest removed from invite');
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `guests/${guest.id}`);
@@ -287,9 +302,22 @@ export default function AdminInvites() {
 
   const debouncedSearch = useDebounce(search, 300);
 
+  // Grouped once per guests change instead of re-filtering the full guests
+  // array for every invite (which is O(invites x guests) below).
+  const guestsByInvite = useMemo(() => {
+    const m = new Map<string, Guest[]>();
+    for (const g of guests) {
+      if (!g.invite_id) continue;
+      const list = m.get(g.invite_id);
+      if (list) list.push(g);
+      else m.set(g.invite_id, [g]);
+    }
+    return m;
+  }, [guests]);
+
   const sortedInvites = useMemo((): InviteWithCounts[] => {
     const invitesWithCounts: InviteWithCounts[] = invites.map(invite => {
-      const inviteGuestsList = guests.filter(g => g.invite_id === invite.id);
+      const inviteGuestsList = guestsByInvite.get(invite.id) ?? [];
       return {
         ...invite,
         guest_count: inviteGuestsList.length,
@@ -333,7 +361,7 @@ export default function AdminInvites() {
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [invites, guests, debouncedSearch, statusFilter, sortField, sortDirection]);
+  }, [invites, guestsByInvite, debouncedSearch, statusFilter, sortField, sortDirection]);
 
   const totalPages = Math.ceil(sortedInvites.length / itemsPerPage);
   const paginatedInvites = sortedInvites.slice(
@@ -457,7 +485,7 @@ export default function AdminInvites() {
                   size="sm"
                   onClick={() => {
                     const data = invites.map(i => {
-                      const inviteGuests = guests.filter(g => g.invite_id === i.id);
+                      const inviteGuests = guestsByInvite.get(i.id) ?? [];
                       return {
                         inviteId: i.id,
                         inviteName: i.name,
@@ -668,7 +696,7 @@ export default function AdminInvites() {
                 onCopyMessage={copyMessage}
                 onUpdateName={onUpdateName}
                 onEdit={handleEditClick}
-                onDelete={handleDeleteInvite}
+                onDelete={setDeleteInviteId}
               />
             ))}
           </TableBody>
@@ -839,6 +867,16 @@ export default function AdminInvites() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <ConfirmDialog
+        open={deleteInviteId !== null}
+        onOpenChange={(open) => !open && setDeleteInviteId(null)}
+        title="Delete this invitation?"
+        description="This permanently removes the invitation group and its RSVP link. Its guests are kept but unassigned, not deleted. This cannot be undone."
+        onConfirm={async () => {
+          if (deleteInviteId) await handleDeleteInvite(deleteInviteId);
+        }}
+      />
     </div>
   );
 }

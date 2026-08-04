@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { BOOTSTRAP_ADMIN_EMAILS } from './adminEmails';
 
 interface AuthContextType {
   user: User | null;
@@ -22,8 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         const adminRef = doc(db, 'admins', user.uid);
         const adminSnap = await getDoc(adminRef);
-        const adminEmails = ['israelvalle48@gmail.com', 'debcarumba@gmail.com', 'joshj.alzate77@gmail.com'];
-        setIsAdmin(adminSnap.exists() || (user.email ? adminEmails.includes(user.email) : false));
+        setIsAdmin(adminSnap.exists() || (user.email ? BOOTSTRAP_ADMIN_EMAILS.includes(user.email) : false));
       } else {
         setIsAdmin(false);
       }

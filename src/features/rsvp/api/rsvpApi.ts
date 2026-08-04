@@ -93,6 +93,11 @@ export async function submitRsvp(changes: GuestStatusChange[]): Promise<void> {
     batch.update(doc(db, 'guests', change.id), {
       is_coming: change.is_coming,
       updated_at: serverTimestamp(),
+      // Declining/pending guests give up their seat rather than leaving a
+      // stale table assignment that would silently reappear if they later
+      // re-confirm as attending. Firestore rules only allow the public path
+      // to null these fields (never set them), matching this.
+      ...(change.is_coming !== true && { table_type: null, table_number: null, table_order: null }),
     });
   }
 

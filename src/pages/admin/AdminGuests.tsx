@@ -31,12 +31,11 @@ import {
   collection,
   doc,
   updateDoc,
-  deleteDoc,
-  addDoc,
   serverTimestamp,
   getDoc,
   arrayUnion,
   arrayRemove,
+  writeBatch,
   DocumentSnapshot
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
@@ -62,6 +61,7 @@ import { useInvites } from '@/features/invites/context/InvitesProvider';
 import { batchDeleteGuests, batchUpdateGuestStatus, batchImportGuests } from '@/features/guests/api/guestsApi';
 import { useDebounce } from '@/hooks/useDebounce';
 import { GuestRow } from '@/components/admin/guests/GuestRow';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import type { Guest } from '@/features/guests/types';
 
 const TABLE_TYPES = [
@@ -83,6 +83,15 @@ const GUEST_ROLES = [
   'Groomsman',
   'Bridesmaid'
 ];
+
+const EDITABLE_GUEST_FIELDS = [
+  'role',
+  'invite_id',
+  'table_type',
+  'table_number',
+  'is_baby_or_child',
+  'parent_name',
+] as const satisfies readonly (keyof Guest)[];
 
 const ROLE_PRIORITY: Record<string, number> = {
   'Groom': 1,
@@ -108,9 +117,15 @@ export default function AdminGuests() {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+  // Snapshot taken when the edit sheet opened; used to diff against the draft
+  // on save so untouched fields aren't blindly overwritten with stale values
+  // if the guest changed elsewhere while the sheet was open.
+  const [originalEditingGuest, setOriginalEditingGuest] = useState<Guest | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [deleteGuestId, setDeleteGuestId] = useState<string | null>(null);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [messageTemplate, setMessageTemplate] = useState('');
 
@@ -153,8 +168,13 @@ export default function AdminGuests() {
     });
   }, []);
 
+  // Built once per invites change instead of re-scanning the invites array
+  // with .find() for every guest (which is O(guests x invites) in the spots
+  // below).
+  const inviteById = useMemo(() => new Map(invites.map(i => [i.id, i])), [invites]);
+
   const copyMessage = useCallback((guest: Guest) => {
-    const inviteGroup = invites.find(i => i.id === guest.invite_id);
+    const inviteGroup = guest.invite_id ? inviteById.get(guest.invite_id) : undefined;
     const displayName = inviteGroup?.name || guest.nickname || guest.name;
     const link = `${window.location.origin}/?inviteUrl=${guest.invite_id || guest.id}`;
     const message = messageTemplate
@@ -162,7 +182,7 @@ export default function AdminGuests() {
       .replace('<link>', link);
     navigator.clipboard.writeText(message);
     toast.success('Message copied to clipboard');
-  }, [invites, messageTemplate]);
+  }, [inviteById, messageTemplate]);
 
   const handleExport = async () => {
     try {
@@ -170,7 +190,7 @@ export default function AdminGuests() {
         Name: g.name,
         Nickname: g.nickname || '',
         Role: g.role || 'Guest',
-        Group: invites.find(i => i.id === g.invite_id)?.name || 'Unassigned',
+        Group: (g.invite_id ? inviteById.get(g.invite_id)?.name : undefined) || 'Unassigned',
         InviteID: g.invite_id || g.id,
         TableType: g.table_type || 'N/A',
         TableNumber: g.table_number || 'N/A',
@@ -203,11 +223,13 @@ export default function AdminGuests() {
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const maxOrder = guests.length > 0 
-        ? Math.max(...guests.map(g => g.import_order || 0)) 
+      const maxOrder = guests.length > 0
+        ? Math.max(...guests.map(g => g.import_order || 0))
         : -1;
 
-      const guestRef = await addDoc(collection(db, 'guests'), {
+      const guestRef = doc(collection(db, 'guests'));
+      const batch = writeBatch(db);
+      batch.set(guestRef, {
         name: newGuest.name,
         nickname: newGuest.nickname || null,
         role: newGuest.role || null,
@@ -221,10 +243,11 @@ export default function AdminGuests() {
         updated_at: serverTimestamp()
       });
       if (newGuest.invite_id) {
-        await updateDoc(doc(db, 'invites', newGuest.invite_id), {
+        batch.update(doc(db, 'invites', newGuest.invite_id), {
           guest_ids: arrayUnion(guestRef.id)
         });
       }
+      await batch.commit();
       toast.success('Guest added successfully');
       setNewGuest({ name: '', nickname: '', role: '', invite_id: '', table_type: '' as any, table_number: '', is_baby_or_child: false, parent_name: '' });
       setIsAddOpen(false);
@@ -236,34 +259,55 @@ export default function AdminGuests() {
 
   const handleEditGuest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingGuest) return;
+    if (!editingGuest || !originalEditingGuest) return;
     try {
-      const previousInviteId = guests.find(g => g.id === editingGuest.id)?.invite_id || null;
-      const nextInviteId = editingGuest.invite_id || null;
-
-      await updateDoc(doc(db, 'guests', editingGuest.id), {
-        role: editingGuest.role || null,
-        invite_id: nextInviteId,
-        table_type: editingGuest.table_type || null,
-        table_number: editingGuest.table_number || null,
-        is_baby_or_child: editingGuest.is_baby_or_child || false,
-        parent_name: editingGuest.parent_name || null,
-        updated_at: serverTimestamp()
-      });
-
-      if (previousInviteId !== nextInviteId) {
-        if (previousInviteId) {
-          await updateDoc(doc(db, 'invites', previousInviteId), {
-            guest_ids: arrayRemove(editingGuest.id)
-          });
-        }
-        if (nextInviteId) {
-          await updateDoc(doc(db, 'invites', nextInviteId), {
-            guest_ids: arrayUnion(editingGuest.id)
-          });
+      // Only write fields the admin actually changed in this sheet. A field
+      // left untouched is never included in the patch, so a concurrent
+      // change to it elsewhere (e.g. a table reassignment from the Tables
+      // page while this sheet was open) isn't silently reverted back to the
+      // value that was on screen when the sheet was opened.
+      const patch: Record<string, unknown> = {};
+      for (const field of EDITABLE_GUEST_FIELDS) {
+        const draftVal = editingGuest[field];
+        const draft = draftVal === '' || draftVal === undefined ? null : draftVal;
+        const originalVal = originalEditingGuest[field];
+        const original = originalVal === '' || originalVal === undefined ? null : originalVal;
+        if (draft !== original) {
+          patch[field] = draft;
         }
       }
 
+      if (Object.keys(patch).length === 0) {
+        setIsEditOpen(false);
+        return;
+      }
+
+      patch.updated_at = serverTimestamp();
+
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'guests', editingGuest.id), patch);
+
+      if ('invite_id' in patch) {
+        // Based on the live guest doc, not the (possibly stale) snapshot
+        // taken when the sheet opened, so arrayRemove targets whichever
+        // invite this guest is actually in right now.
+        const previousInviteId = guests.find(g => g.id === editingGuest.id)?.invite_id || null;
+        const nextInviteId = patch.invite_id as string | null;
+        if (previousInviteId !== nextInviteId) {
+          if (previousInviteId) {
+            batch.update(doc(db, 'invites', previousInviteId), {
+              guest_ids: arrayRemove(editingGuest.id)
+            });
+          }
+          if (nextInviteId) {
+            batch.update(doc(db, 'invites', nextInviteId), {
+              guest_ids: arrayUnion(editingGuest.id)
+            });
+          }
+        }
+      }
+
+      await batch.commit();
       toast.success('Guest updated successfully');
       setIsEditOpen(false);
     } catch (err) {
@@ -275,10 +319,12 @@ export default function AdminGuests() {
   const handleDeleteGuest = useCallback(async (id: string) => {
     try {
       const inviteId = guests.find(g => g.id === id)?.invite_id || null;
-      await deleteDoc(doc(db, 'guests', id));
+      const batch = writeBatch(db);
+      batch.delete(doc(db, 'guests', id));
       if (inviteId) {
-        await updateDoc(doc(db, 'invites', inviteId), { guest_ids: arrayRemove(id) });
+        batch.update(doc(db, 'invites', inviteId), { guest_ids: arrayRemove(id) });
       }
+      await batch.commit();
       toast.success('Guest deleted successfully');
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `guests/${id}`);
@@ -288,6 +334,7 @@ export default function AdminGuests() {
 
   const handleEditClick = useCallback((guest: Guest) => {
     setEditingGuest(guest);
+    setOriginalEditingGuest(guest);
     setIsEditOpen(true);
   }, []);
 
@@ -366,7 +413,7 @@ export default function AdminGuests() {
   const sortedGuests = useMemo(() => {
     const guestsWithInviteName = guests.map(g => ({
       ...g,
-      invite_name: invites.find(i => i.id === g.invite_id)?.name
+      invite_name: g.invite_id ? inviteById.get(g.invite_id)?.name : undefined
     }));
 
     const filteredGuests = guestsWithInviteName.filter(g => {
@@ -420,13 +467,21 @@ export default function AdminGuests() {
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [guests, invites, debouncedSearch, statusFilter, roleFilter, tableFilter, sortField, sortDirection]);
+  }, [guests, inviteById, debouncedSearch, statusFilter, roleFilter, tableFilter, sortField, sortDirection]);
 
   const totalPages = Math.ceil(sortedGuests.length / itemsPerPage);
   const paginatedGuests = sortedGuests.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Selection is scoped to what's currently on screen. Without this, a
+  // selection made before changing the search/filters/page would keep acting
+  // on guests no longer visible, while the bulk action bar kept showing a
+  // stale count as if they still were.
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [debouncedSearch, statusFilter, roleFilter, tableFilter, currentPage]);
 
   const handleSort = (field: keyof Guest | 'invite_name') => {
     if (sortField === field) {
@@ -474,7 +529,7 @@ export default function AdminGuests() {
                 <UserMinus className="w-4 h-4 mr-2" />
                 Clear
               </Button>
-              <Button onClick={handleBulkDelete} variant="destructive">
+              <Button onClick={() => setIsBulkDeleteOpen(true)} variant="destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </Button>
@@ -952,7 +1007,7 @@ export default function AdminGuests() {
                 onUpdateStatus={handleUpdateStatus}
                 onUpdateField={onUpdateField}
                 onEdit={handleEditClick}
-                onDelete={handleDeleteGuest}
+                onDelete={setDeleteGuestId}
                 onCopyMessage={copyMessage}
               />
             ))}
@@ -1165,6 +1220,24 @@ export default function AdminGuests() {
           </form>
         </SheetContent>
       </Sheet>
+
+      <ConfirmDialog
+        open={deleteGuestId !== null}
+        onOpenChange={(open) => !open && setDeleteGuestId(null)}
+        title="Delete this guest?"
+        description="This permanently removes the guest and their RSVP response. This cannot be undone."
+        onConfirm={async () => {
+          if (deleteGuestId) await handleDeleteGuest(deleteGuestId);
+        }}
+      />
+
+      <ConfirmDialog
+        open={isBulkDeleteOpen}
+        onOpenChange={setIsBulkDeleteOpen}
+        title={`Delete ${selectedIds.length} guest${selectedIds.length === 1 ? '' : 's'}?`}
+        description="This permanently removes the selected guests and their RSVP responses. This cannot be undone."
+        onConfirm={handleBulkDelete}
+      />
     </div>
   );
 }

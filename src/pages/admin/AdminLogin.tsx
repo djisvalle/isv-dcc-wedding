@@ -6,6 +6,7 @@ import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
+import { BOOTSTRAP_ADMIN_EMAILS } from '@/lib/adminEmails';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -21,8 +22,7 @@ export default function AdminLogin() {
       // Check if user is admin or should be bootstrapped
       const adminRef = doc(db, 'admins', user.uid);
       const adminSnap = await getDoc(adminRef);
-      const adminEmails = ['israelvalle48@gmail.com', 'debcarumba@gmail.com', 'joshj.alzate77@gmail.com'];
-      const isBootstrappedAdmin = user.email && adminEmails.includes(user.email);
+      const isBootstrappedAdmin = user.email && BOOTSTRAP_ADMIN_EMAILS.includes(user.email);
 
       if (!adminSnap.exists()) {
         if (isBootstrappedAdmin) {
