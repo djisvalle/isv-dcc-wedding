@@ -1,39 +1,33 @@
 import { motion } from 'motion/react';
-import { Heart, Music, Utensils, Film, Sparkles } from 'lucide-react';
+import { Heart, Music, Utensils, Sparkles } from 'lucide-react';
 
 const programItems = [
   {
-    time: "4:00 PM",
+    time: "3:00 PM",
     event: "Ceremony",
     description: "The exchange of vows",
     icon: Heart
   },
   {
-    time: "5:30 PM",
+    time: "4:00 PM",
     event: "Cocktail Hour",
     description: "Drinks and appetizers",
     icon: Music
   },
   {
-    time: "7:00 PM",
+    time: "5:00 PM",
     event: "Reception",
     description: "Grand entrance and festivities",
     icon: Sparkles
   },
   {
-    time: "7:30 PM",
+    time: "6:00 PM",
     event: "Dinner",
     description: "A celebration feast",
     icon: Utensils
   },
   {
     time: "9:00 PM",
-    event: "SDE",
-    description: "Same Day Edit screening",
-    icon: Film
-  },
-  {
-    time: "9:30 PM",
     event: "End",
     description: "Thank you for celebrating with us",
     icon: Heart
@@ -57,8 +51,8 @@ export default function ProgramSection() {
 
         <div className="relative max-w-2xl mx-auto mt-12">
           {/* Vertical Timeline Line */}
-          <div className="absolute left-8 md:left-1/2 top-4 bottom-4 w-px bg-wedding-gold/20 md:-translate-x-1/2" />
-          
+          <div className="absolute left-1/2 top-4 bottom-4 w-px bg-wedding-gold/20 -translate-x-1/2" />
+
           <div className="space-y-12">
             {programItems.map((item, index) => (
               <motion.div
@@ -67,20 +61,20 @@ export default function ProgramSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className={`relative flex items-start md:items-center gap-8 md:gap-x-16 ${
-                  index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
+                className={`relative flex items-center ${
+                  index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'
                 }`}
               >
                 {/* Icon Circle */}
-                <div className="relative z-10 flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-white border border-wedding-gold/20 shadow-sm md:absolute md:left-1/2 md:-translate-x-1/2">
+                <div className="absolute z-10 flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-white border border-wedding-gold/20 shadow-sm left-1/2 -translate-x-1/2">
                   <item.icon className="w-5 h-5 text-wedding-gold" />
                 </div>
 
                 {/* Content */}
-                <div className={`flex-1 md:w-1/2 md:max-w-[400px] ${
-                  index % 2 === 0 
-                  ? 'text-left md:text-right md:pr-16' 
-                  : 'text-left md:pl-16'
+                <div className={`flex-none w-1/2 max-w-[400px] ${
+                  index % 2 === 0
+                  ? 'text-right pr-8 md:pr-16'
+                  : 'text-left pl-8 md:pl-16'
                 }`}>
                   <span className="font-sans font-bold text-wedding-gold text-sm tracking-[0.2em] uppercase block mb-1">
                     {item.time}
