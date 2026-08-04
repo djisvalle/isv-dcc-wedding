@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Button } from '@/components/ui/button';
 import { Search, UserCheck } from 'lucide-react';
 import {
@@ -7,7 +8,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuLabel
+  DropdownMenuLabel,
+  DropdownMenuGroup
 } from '@/components/ui/dropdown-menu';
 import { SortableGuestItem } from './SortableGuestItem';
 import { getEffectiveCapacity } from './capacity';
@@ -27,7 +29,7 @@ interface UnassignedContainerProps {
   onBulkAssign: (guestIds: string[], tableId: string) => void;
 }
 
-export const UnassignedContainer: React.FC<UnassignedContainerProps> = ({
+export const UnassignedContainer = React.memo<UnassignedContainerProps>(({
   guests,
   onQuickMove,
   availableTables,
@@ -45,6 +47,23 @@ export const UnassignedContainer: React.FC<UnassignedContainerProps> = ({
       isContainer: true,
       type: 'unassigned'
     }
+  });
+
+  // This list can run into the hundreds of guests before RSVPs settle, and
+  // dnd-kit's sortable reflow re-renders many sibling rows per drag frame —
+  // rendering only what's actually on screen (plus a small overscan buffer)
+  // keeps that cost bounded regardless of list size.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: guests.length,
+    getScrollElement: () => scrollRef.current,
+    // Rows vary in height (an extra line when a guest has a nickname) —
+    // this is only the pre-layout guess; measureElement below corrects it
+    // per row once rendered, keyed by guest id so a measurement never gets
+    // misapplied to a different guest after the list reorders or filters.
+    estimateSize: () => 60,
+    overscan: 10,
+    getItemKey: (index) => guests[index].id,
   });
 
   return (
@@ -69,25 +88,27 @@ export const UnassignedContainer: React.FC<UnassignedContainerProps> = ({
                 }
               />
               <DropdownMenuContent align="end" className="w-56 rounded-xl">
-                <DropdownMenuLabel className="text-[10px] uppercase text-slate-400 font-bold">
-                  Assign {selectedIds.length} guest{selectedIds.length === 1 ? '' : 's'} to...
-                </DropdownMenuLabel>
-                {availableTables.map(table => {
-                  const capacity = getEffectiveCapacity(table);
-                  const occupants = tableOccupants[table.id] ?? 0;
-                  const label = table.type === 'bridal' ? 'Bridal Table' : table.type === 'vip' ? `VIP ${table.number}` : `Regular ${table.number}`;
-                  const occupancyLabel = capacity !== undefined ? `${occupants}/${capacity}` : `${occupants}`;
-                  return (
-                    <DropdownMenuItem
-                      key={table.id}
-                      className="flex justify-between items-center text-xs"
-                      onClick={() => onBulkAssign(selectedIds, table.id)}
-                    >
-                      <span>{label}</span>
-                      <span className="text-slate-400">{occupancyLabel}</span>
-                    </DropdownMenuItem>
-                  );
-                })}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-[10px] uppercase text-slate-400 font-bold">
+                    Assign {selectedIds.length} guest{selectedIds.length === 1 ? '' : 's'} to...
+                  </DropdownMenuLabel>
+                  {availableTables.map(table => {
+                    const capacity = getEffectiveCapacity(table);
+                    const occupants = tableOccupants[table.id] ?? 0;
+                    const label = table.type === 'bridal' ? 'Bridal Table' : table.type === 'vip' ? `VIP ${table.number}` : `Regular ${table.number}`;
+                    const occupancyLabel = capacity !== undefined ? `${occupants}/${capacity}` : `${occupants}`;
+                    return (
+                      <DropdownMenuItem
+                        key={table.id}
+                        className="flex justify-between items-center text-xs"
+                        onClick={() => onBulkAssign(selectedIds, table.id)}
+                      >
+                        <span>{label}</span>
+                        <span className="text-slate-400">{occupancyLabel}</span>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button size="sm" variant="ghost" className="h-8 text-xs text-slate-500" onClick={onClearSelection}>
@@ -104,38 +125,56 @@ export const UnassignedContainer: React.FC<UnassignedContainerProps> = ({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto pr-1">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1">
         <SortableContext items={guests.map(g => g.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-1">
-            {guests.map((guest) => (
-              <SortableGuestItem
-                key={guest.id}
-                guest={guest}
-                onQuickMove={onQuickMove}
-                availableTables={availableTables}
-                selectable
-                selected={selectedIds.includes(guest.id)}
-                onToggleSelect={onToggleSelect}
-              />
-            ))}
-            {guests.length === 0 && (
-              <div className="text-center py-12 text-slate-300">
-                {hasFilter ? (
-                  <>
-                    <Search className="w-12 h-12 mx-auto mb-2 opacity-10" />
-                    <p className="text-xs uppercase tracking-widest font-bold">No matches</p>
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="w-12 h-12 mx-auto mb-2 opacity-10" />
-                    <p className="text-xs uppercase tracking-widest font-bold">Done!</p>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+          {guests.length === 0 ? (
+            <div className="text-center py-12 text-slate-300">
+              {hasFilter ? (
+                <>
+                  <Search className="w-12 h-12 mx-auto mb-2 opacity-10" />
+                  <p className="text-xs uppercase tracking-widest font-bold">No matches</p>
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-12 h-12 mx-auto mb-2 opacity-10" />
+                  <p className="text-xs uppercase tracking-widest font-bold">Done!</p>
+                </>
+              )}
+            </div>
+          ) : (
+            <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const guest = guests[virtualRow.index];
+                return (
+                  <div
+                    key={guest.id}
+                    data-index={virtualRow.index}
+                    ref={rowVirtualizer.measureElement}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualRow.start}px)`
+                    }}
+                  >
+                    <SortableGuestItem
+                      guest={guest}
+                      onQuickMove={onQuickMove}
+                      availableTables={availableTables}
+                      selectable
+                      selected={selectedIds.includes(guest.id)}
+                      onToggleSelect={onToggleSelect}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </SortableContext>
       </div>
     </div>
   );
-};
+});
+
+UnassignedContainer.displayName = 'UnassignedContainer';

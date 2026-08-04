@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   GripVertical,
   Plus,
@@ -14,7 +14,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuLabel
+  DropdownMenuLabel,
+  DropdownMenuGroup
 } from '@/components/ui/dropdown-menu';
 import type { Guest } from '@/features/guests/types';
 import type { Table } from './types';
@@ -64,6 +65,16 @@ export const SortableGuestItem = React.memo<SortableGuestItemProps>(({
 
   const currentTableId = guest.table_type ? `${guest.table_type}-${guest.table_number || ''}` : null;
 
+  // The dropdown's content (a DropdownMenuItem per table) is only ever
+  // visible for whichever single row is currently open, but constructing
+  // it is not free — with dozens of tables and (especially) dozens of
+  // guests in the Unassigned list, building it unconditionally on every
+  // render adds up fast during a drag, when dnd-kit re-renders many
+  // sibling rows per frame to animate the "make room" reflow. Gating it
+  // behind real open state means closed rows (the overwhelming majority
+  // at any moment) skip that work entirely.
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <div
       ref={setNodeRef}
@@ -98,40 +109,44 @@ export const SortableGuestItem = React.memo<SortableGuestItemProps>(({
                 {guest.role}
               </span>
             )}
-            <DropdownMenu>
+            <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <DropdownMenuTrigger
               render={
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover/guest:opacity-100 transition-opacity">
                   <Plus className="w-3 h-3" />
                 </Button>
               }
             />
-              <DropdownMenuContent align="end" className="w-56 rounded-xl">
-                <DropdownMenuLabel className="text-[10px] uppercase text-slate-400 font-bold">Move Guest To...</DropdownMenuLabel>
-                {currentTableId !== null && (
-                   <DropdownMenuItem
-                    className="flex items-center gap-2 text-red-500 text-xs font-medium"
-                    onClick={() => onQuickMove(guest.id, null)}
-                  >
-                    <UserX className="w-3 h-3" />
-                    Unassign Guest
-                  </DropdownMenuItem>
-                )}
-                {availableTables.map(table => (
-                  <DropdownMenuItem
-                    key={table.id}
-                    disabled={table.id === currentTableId}
-                    className="flex justify-between items-center text-xs"
-                    onClick={() => onQuickMove(guest.id, table.id)}
-                  >
-                    <span>
-                      {table.type === 'bridal' ? 'Bridal Table' :
-                       table.type === 'vip' ? `VIP ${table.number}` : `Regular ${table.number}`}
-                    </span>
-                    {table.id === currentTableId && <UserCheck className="w-3 h-3 text-wedding-gold" />}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
+              {isMenuOpen && (
+                <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-[10px] uppercase text-slate-400 font-bold">Move Guest To...</DropdownMenuLabel>
+                    {currentTableId !== null && (
+                       <DropdownMenuItem
+                        className="flex items-center gap-2 text-red-500 text-xs font-medium"
+                        onClick={() => onQuickMove(guest.id, null)}
+                      >
+                        <UserX className="w-3 h-3" />
+                        Unassign Guest
+                      </DropdownMenuItem>
+                    )}
+                    {availableTables.map(table => (
+                      <DropdownMenuItem
+                        key={table.id}
+                        disabled={table.id === currentTableId}
+                        className="flex justify-between items-center text-xs"
+                        onClick={() => onQuickMove(guest.id, table.id)}
+                      >
+                        <span>
+                          {table.type === 'bridal' ? 'Bridal Table' :
+                           table.type === 'vip' ? `VIP ${table.number}` : `Regular ${table.number}`}
+                        </span>
+                        {table.id === currentTableId && <UserCheck className="w-3 h-3 text-wedding-gold" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              )}
             </DropdownMenu>
           </div>
         )}

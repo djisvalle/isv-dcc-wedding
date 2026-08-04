@@ -211,6 +211,21 @@ export default function AdminTables() {
   // table regardless of the active filter — see the map below).
   const visibleTableIds = useMemo(() => new Set(visibleTables.map(t => t.id)), [visibleTables]);
 
+  // handleFirestoreError logs full diagnostics and then re-throws (an
+  // app-wide convention) — but none of this page's write handlers are
+  // awaited by their callers (they're fired from onClick/onDragEnd), so an
+  // uncaught re-throw becomes an unhandled promise rejection instead of a
+  // normal error. In dev that surfaces as a full-page crash overlay, which
+  // reads like the whole app broke. Catching it here keeps the existing
+  // logging intact while turning the failure into an ordinary toast.
+  const reportWriteError = (err: unknown, operationType: OperationType, path: string, friendlyMessage: string) => {
+    try {
+      handleFirestoreError(err, operationType, path);
+    } catch {
+      toast.error(friendlyMessage);
+    }
+  };
+
   const handleQuickMove = useCallback(async (guestId: string, tableId: string | null) => {
     try {
       const guestRef = doc(db, 'guests', guestId);
@@ -243,7 +258,7 @@ export default function AdminTables() {
       });
       toast.success('Assignment updated');
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `guests/${guestId}`);
+      reportWriteError(err, OperationType.UPDATE, `guests/${guestId}`, 'Could not update that guest\'s table — please try again.');
     }
   }, [guests, activeTables]);
 
@@ -277,7 +292,7 @@ export default function AdminTables() {
       toast.success(`${guestIds.length} guest${guestIds.length === 1 ? '' : 's'} assigned`);
       setSelectedIds([]);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'guests');
+      reportWriteError(err, OperationType.UPDATE, 'guests', 'Could not assign those guests — please try again.');
     }
   }, [activeTables, guests]);
 
@@ -372,7 +387,7 @@ export default function AdminTables() {
       });
       toast.success('Arrangement updated');
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `guests`);
+      reportWriteError(err, OperationType.UPDATE, 'guests', 'Could not save that seating change — please try again.');
     }
   };
 
