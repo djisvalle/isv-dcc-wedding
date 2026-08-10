@@ -137,7 +137,7 @@ export function FloorPlanTableNode({ data, selected, width, height }: NodeProps<
       )}
 
       {selected && (
-        <div className="nodrag absolute -bottom-9 left-1/2 -translate-x-1/2 grid grid-cols-2 gap-1 bg-white rounded-2xl shadow-md p-1 print:hidden">
+        <div className="nodrag absolute -bottom-16 left-1/2 -translate-x-1/2 grid grid-cols-2 gap-1 bg-white rounded-2xl shadow-md p-1 print:hidden">
           <button
             type="button"
             onClick={() => onUpdateLayout(table.id, { ...layout, shape: 'round', ...SHAPE_DEFAULT_SIZE.round })}
