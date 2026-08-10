@@ -348,10 +348,22 @@ export default function AdminTables() {
       newList = [...unassignedItems];
     }
 
-    // Find insertion index
+    // Find insertion index. When dropping onto another guest's row, whether
+    // we insert before or after that guest depends on which half of the row
+    // the drop landed on — closestCenter collision detection only tells us
+    // *which* row we're over, not which side of its midpoint, so we compare
+    // the dragged item's translated rect against the target row's rect here.
     let overIndex = -1;
     if (overData?.type === 'guest') {
-      overIndex = newList.findIndex(g => g.id === overId);
+      const baseIndex = newList.findIndex(g => g.id === overId);
+      const activeRect = active.rect.current.translated;
+      const overRect = over.rect;
+      const isBelowOverItem = !!(
+        activeRect &&
+        overRect &&
+        activeRect.top + activeRect.height / 2 > overRect.top + overRect.height / 2
+      );
+      overIndex = baseIndex >= 0 ? baseIndex + (isBelowOverItem ? 1 : 0) : newList.length;
     } else {
       overIndex = newList.length;
     }
