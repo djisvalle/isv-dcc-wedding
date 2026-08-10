@@ -474,6 +474,20 @@ export default function AdminTables() {
     });
   }, []);
 
+  // Batched first-time placement: assigns default layouts to every
+  // currently layout-less table in a single state update + single Firestore
+  // write, instead of one write per table (e.g. every table on first-ever
+  // Floor Plan open).
+  const handleAssignDefaultLayouts = useCallback((entries: Array<{ tableId: string; layout: Table['layout'] }>) => {
+    if (entries.length === 0) return;
+    setActiveTables(prev => {
+      const layoutById = new Map(entries.map(e => [e.tableId, e.layout]));
+      const updated = prev.map(t => layoutById.has(t.id) ? { ...t, layout: layoutById.get(t.id) } : t);
+      persistTableLayout(updated);
+      return updated;
+    });
+  }, []);
+
   const handlePrint = () => window.print();
 
   if (loading) {
@@ -793,6 +807,7 @@ export default function AdminTables() {
                 tables={activeTables}
                 guestsByTable={guestsByTable}
                 onUpdateLayout={handleUpdateLayout}
+                onAssignDefaultLayouts={handleAssignDefaultLayouts}
               />
             </div>
           </div>
