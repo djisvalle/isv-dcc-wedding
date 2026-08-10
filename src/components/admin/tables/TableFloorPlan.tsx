@@ -86,7 +86,7 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
           }
         };
       })
-  , [tables, guestsByTable, onUpdateLayout]);
+  , [tables, guestsByTable, onUpdateLayout, getLastComputedSize]);
 
   // Nodes are held locally so React Flow's own onNodesChange pipeline can
   // apply live drag/selection changes (position updates every pointermove,
@@ -122,6 +122,12 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
 
   const handleNodeDragStart = useCallback((_event: unknown, node: Node) => {
     draggingNodeIds.current.add(node.id);
+    // Clear any stale entry left behind by a prior keyboard arrow-key nudge
+    // on this node (nudges write here too, via the position branch below,
+    // but have no onNodeDragStop to consume the entry) so this drag can't
+    // read a leftover position from an unrelated earlier gesture if it ends
+    // before ever writing its own entry.
+    lastComputedPositionRef.current.delete(node.id);
   }, []);
 
   // Populated via <ReactFlow>'s onInit below. A plain ref (not a hook) so it
@@ -196,14 +202,20 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
 
         const snap = computeAlignmentSnap(active, others, threshold);
         // Only paint guides for genuine in-progress drag frames (dragging:
-        // true). `dragging: false` covers two cases that must NOT paint a
-        // guide: the final mouse-release frame (handleNodeDragStop is about
-        // to clear guideState anyway) and keyboard arrow-key nudges
-        // (useMoveSelectedNodes emits `dragging: false` with no
-        // onNodeDragStop to follow, so a guide painted there would never
-        // clear).
+        // true); clear them for every `dragging: false` frame. That covers
+        // three cases: the final mouse-release frame (handleNodeDragStop is
+        // about to clear guideState anyway, so this is a harmless double
+        // clear), keyboard arrow-key nudges (useMoveSelectedNodes emits
+        // `dragging: false` with no onNodeDragStop to follow, so clearing
+        // here is the only place that happens), and an aborted XYDrag (e.g.
+        // a second touch point mid-drag on a touchscreen) — React Flow never
+        // calls onNodeDragStop in that case either, but it does still emit a
+        // final `dragging: false` position change, which reaches here and
+        // clears a guide that would otherwise stay painted indefinitely.
         if (change.dragging === true) {
           setGuideState({ verticalGuideX: snap.verticalGuideX, horizontalGuideY: snap.horizontalGuideY });
+        } else {
+          setGuideState(null);
         }
 
         const resolved = {
@@ -306,6 +318,8 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
           onClick={() => setGridSnapEnabled(v => !v)}
           variant="outline"
           title={gridSnapEnabled ? 'Turn off snap to grid' : 'Turn on snap to grid'}
+          aria-label={gridSnapEnabled ? 'Turn off snap to grid' : 'Turn on snap to grid'}
+          aria-pressed={gridSnapEnabled}
           className={`rounded-xl h-9 w-9 p-0 border-slate-200 ${gridSnapEnabled ? 'bg-wedding-gold/20 text-wedding-gold border-wedding-gold/40' : 'bg-white text-slate-500'}`}
         >
           <Grid3x3 className="w-4 h-4" />
