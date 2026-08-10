@@ -46,6 +46,27 @@ import { TableFloorPlan } from '@/components/admin/tables/TableFloorPlan';
 
 const EMPTY_GUESTS: Guest[] = [];
 
+// Minimal media-query hook, matching Tailwind's default `md` breakpoint
+// (768px). Used to gate the floor plan canvas so it never mounts below the
+// breakpoint — a CSS-only `hidden`/`md:block` toggle would still mount
+// TableFloorPlan (and run its writing effects) inside a display:none
+// container on phones.
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const handleChange = () => setMatches(mql.matches);
+    handleChange();
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, [query]);
+
+  return matches;
+}
+
 // --- Main Page ---
 
 export default function AdminTables() {
@@ -71,6 +92,19 @@ export default function AdminTables() {
   const [roleFilter, setRoleFilter] = useState<string>('all'); // 'all' | 'guest' (no role) | an actual role string
   const [capacityFilter, setCapacityFilter] = useState<'all' | 'room' | 'full' | 'over'>('all');
   const [view, setView] = useState<'list' | 'floorplan'>('list');
+
+  // Real (not CSS-only) viewport gate for the floor plan canvas — see the
+  // view === 'floorplan' render branch below.
+  const isDesktopViewport = useMediaQuery('(min-width: 768px)');
+
+  // Tracks whether the settings-load effect below has definitively settled
+  // (success, "no saved settings yet", malformed data, or a fetch error) —
+  // NOT whether it found anything. The floor plan canvas (and its
+  // auto-placement effect) must not mount before this is true, otherwise it
+  // can race the async settings load and mistake "not loaded yet" for "no
+  // saved layout", overwriting empty tables/custom capacities/positions that
+  // only live in the not-yet-loaded settings doc.
+  const [layoutLoaded, setLayoutLoaded] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -119,21 +153,38 @@ export default function AdminTables() {
   useEffect(() => {
     let cancelled = false;
     getDoc(doc(db, 'settings', TABLE_LAYOUT_SETTING_ID)).then(snap => {
-      if (cancelled || !snap.exists()) return;
+      if (cancelled) return;
+      if (!snap.exists()) {
+        setLayoutLoaded(true);
+        return;
+      }
       const raw = snap.data().value;
-      if (typeof raw !== 'string') return;
+      if (typeof raw !== 'string') {
+        setLayoutLoaded(true);
+        return;
+      }
       try {
         const saved = JSON.parse(raw);
-        if (!Array.isArray(saved)) return;
+        if (!Array.isArray(saved)) {
+          setLayoutLoaded(true);
+          return;
+        }
         // `saved` must come FIRST: mergeTables is first-occurrence-wins, and
         // `saved` carries the persisted capacity while `prev` (derived from
         // guests) never does. Passing `prev` first would discard the just
         // loaded capacity immediately on mount.
         setActiveTables(prev => mergeTables(saved, prev));
+        setLayoutLoaded(true);
       } catch {
         // Malformed layout data shouldn't block the page from loading.
+        setLayoutLoaded(true);
       }
     }).catch(err => {
+      // Set layoutLoaded before calling handleFirestoreError: that helper
+      // always re-throws (an app-wide convention, logged then surfaced as an
+      // unhandled rejection here since this effect has no caller to await
+      // it), so anything after the call would never run.
+      if (!cancelled) setLayoutLoaded(true);
       handleFirestoreError(err, OperationType.GET, `settings/${TABLE_LAYOUT_SETTING_ID}`);
     });
     return () => { cancelled = true; };
@@ -541,10 +592,12 @@ export default function AdminTables() {
               </div>
             </div>
 
-            <Button onClick={handlePrint} variant="outline" className="border-slate-200 rounded-2xl h-12 print:hidden">
-              <Printer className="w-4 h-4 mr-2" />
-              Print Seating Chart
-            </Button>
+            {view === 'list' && (
+              <Button onClick={handlePrint} variant="outline" className="border-slate-200 rounded-2xl h-12 print:hidden">
+                <Printer className="w-4 h-4 mr-2" />
+                Print Seating Chart
+              </Button>
+            )}
 
             <Dialog open={isAddTableOpen} onOpenChange={setIsAddTableOpen}>
               <DialogTrigger
@@ -798,18 +851,24 @@ export default function AdminTables() {
 
         {view === 'floorplan' && (
           <div className="space-y-4">
-            <div className="md:hidden bg-white rounded-3xl border-2 border-dashed border-slate-100 py-20 text-center text-slate-400">
-              <p className="font-serif text-lg text-slate-600 mb-1">Floor plan editing needs more room</p>
-              <p className="text-sm">This view works best on a larger screen — try a tablet or desktop.</p>
-            </div>
-            <div className="hidden md:block">
+            {!isDesktopViewport ? (
+              <div className="bg-white rounded-3xl border-2 border-dashed border-slate-100 py-20 text-center text-slate-400">
+                <p className="font-serif text-lg text-slate-600 mb-1">Floor plan editing needs more room</p>
+                <p className="text-sm">This view works best on a larger screen — try a tablet or desktop.</p>
+              </div>
+            ) : !layoutLoaded ? (
+              <div className="bg-white rounded-3xl border-2 border-dashed border-slate-100 py-20 text-center text-slate-400">
+                <p className="font-serif text-lg text-slate-600 mb-1">Loading floor plan…</p>
+                <p className="text-sm">Just a moment while we load your saved layout.</p>
+              </div>
+            ) : (
               <TableFloorPlan
                 tables={activeTables}
                 guestsByTable={guestsByTable}
                 onUpdateLayout={handleUpdateLayout}
                 onAssignDefaultLayouts={handleAssignDefaultLayouts}
               />
-            </div>
+            )}
           </div>
         )}
       </div>
