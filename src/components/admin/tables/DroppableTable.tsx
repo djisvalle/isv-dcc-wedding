@@ -83,6 +83,7 @@ export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTable
   const capacity = getEffectiveCapacity(table);
   const status = getCapacityStatus(countOccupants, capacity);
   const isEmptyMatch = hasGuestFilter && allTableGuests.length === 0;
+  const isPartiallyShown = hasGuestFilter && visibleGuests.length !== allTableGuests.length;
 
   const startEditCapacity = () => {
     setCapacityDraft(capacity !== undefined ? String(capacity) : '');
@@ -133,6 +134,7 @@ export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTable
         h-full border-slate-200/60 shadow-sm transition-all rounded-3xl overflow-hidden group
         ${isOver ? 'ring-2 ring-wedding-gold scale-[1.02] bg-wedding-gold/5' : status === 'over' ? 'ring-2 ring-rose-300' : ''}
         ${isEmptyMatch && !isOver ? 'opacity-60' : ''}
+        print:opacity-100
       `}>
         <CardHeader className={`
           pb-4 border-b border-slate-50
@@ -148,12 +150,12 @@ export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTable
                   {getTableTitle(table.type, table.number)}
                 </CardTitle>
                 {hasGuestFilter && countOccupants > 0 && (
-                  <p className="text-[9px] text-wedding-gold/80 font-bold uppercase tracking-widest">
+                  <p className="text-[9px] text-wedding-gold/80 font-bold uppercase tracking-widest print:hidden">
                     {visibleGuests.filter(g => !g.is_baby_or_child).length} of {countOccupants} shown
                   </p>
                 )}
                 {isEmptyMatch && (
-                  <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-widest italic">
+                  <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-widest italic print:hidden">
                     No matches — shown as empty drop target
                   </p>
                 )}
@@ -267,7 +269,7 @@ export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTable
                 </DialogContent>
               </Dialog>
 
-              {allTableGuests.length > 0 && (
+              {allTableGuests.length > 0 && !isPartiallyShown && (
                 <Button
                   variant="ghost"
                   size="icon"
