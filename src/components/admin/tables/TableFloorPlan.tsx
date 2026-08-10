@@ -220,8 +220,16 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
       // undefined) for a resize-originated change — there's no keyboard
       // equivalent to worry about here the way position had, so this can
       // check both frames directly rather than needing the `!== undefined`
-      // widening position needed.
-      if (change.type === 'dimensions' && change.dimensions) {
+      // widening position needed. The `resizing !== undefined` guard itself
+      // is still required, though: React Flow also emits `dimensions`
+      // changes with no `resizing` field at all from plain node
+      // measurement (e.g. updateNodeInternals, re-triggered whenever the
+      // reconciliation effect above rebuilds node objects without
+      // `measured`) — those aren't resize gestures and must pass through
+      // unmodified, or two tables with similar-but-not-identical stored
+      // sizes would silently render snapped together with no resize, no
+      // guide, and no persistence.
+      if (change.type === 'dimensions' && change.dimensions && change.resizing !== undefined) {
         const activeTable = tables.find(t => t.id === change.id);
         if (!activeTable?.layout) return change;
 
@@ -273,8 +281,22 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
     });
   }, [setNodes]);
 
+  // Skip reconstructing a node object (and its `data` object) when its
+  // isSizeMatchTarget value wouldn't actually change. `nodes` is a fresh
+  // array from applyNodeChanges on every pointermove of a drag or resize,
+  // so without this guard this memo would recompute on every frame and
+  // hand React Flow N brand-new node/data objects — even for nodes whose
+  // isSizeMatchTarget didn't change — and React Flow only reuses a node's
+  // internal state on reference identity, so every node's internals (not
+  // just the moving/resizing one) would get rebuilt and re-rendered per
+  // frame. Reusing the existing node object for unaffected nodes keeps
+  // this on par with the drag-performance work in 7d0ebc35.
   const nodesForRender: FloorPlanNode[] = useMemo(() =>
-    nodes.map(n => ({ ...n, data: { ...n.data, isSizeMatchTarget: n.id === guideState?.matchedTableId } }))
+    nodes.map(n => {
+      const isTarget = n.id === guideState?.matchedTableId;
+      if (isTarget === !!n.data.isSizeMatchTarget) return n;
+      return { ...n, data: { ...n.data, isSizeMatchTarget: isTarget } };
+    })
   , [nodes, guideState?.matchedTableId]);
 
   return (
