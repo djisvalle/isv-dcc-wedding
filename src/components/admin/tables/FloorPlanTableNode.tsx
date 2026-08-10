@@ -128,7 +128,7 @@ export function FloorPlanTableNode({ data, selected, width, height }: NodeProps<
 
       {selected && (
         <div
-          className="nodrag absolute -top-8 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-wedding-gold shadow-md cursor-grab active:cursor-grabbing flex items-center justify-center"
+          className="nodrag absolute -top-8 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-wedding-gold shadow-md cursor-grab active:cursor-grabbing flex items-center justify-center print:hidden"
           onPointerDown={handleRotateStart}
           title="Drag to rotate"
         >
@@ -137,7 +137,7 @@ export function FloorPlanTableNode({ data, selected, width, height }: NodeProps<
       )}
 
       {selected && (
-        <div className="nodrag absolute -bottom-9 left-1/2 -translate-x-1/2 grid grid-cols-2 gap-1 bg-white rounded-2xl shadow-md p-1">
+        <div className="nodrag absolute -bottom-9 left-1/2 -translate-x-1/2 grid grid-cols-2 gap-1 bg-white rounded-2xl shadow-md p-1 print:hidden">
           <button
             type="button"
             onClick={() => onUpdateLayout(table.id, { ...layout, shape: 'round', ...SHAPE_DEFAULT_SIZE.round })}
@@ -180,7 +180,7 @@ export function FloorPlanTableNode({ data, selected, width, height }: NodeProps<
           minWidth={60}
           minHeight={60}
           onResizeEnd={handleResizeEnd}
-          className="nodrag !bg-wedding-gold !border-2 !border-white"
+          className="nodrag bg-wedding-gold! border-2! border-white! print:hidden"
           style={{ width: 10, height: 10, borderRadius: 2 }}
         />
       ))}

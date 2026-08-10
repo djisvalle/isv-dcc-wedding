@@ -99,7 +99,15 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
   const reactFlowInstanceRef = useRef<ReactFlowInstance<FloorPlanNode> | null>(null);
 
   const handlePrint = useCallback(() => {
-    reactFlowInstanceRef.current?.fitView({ duration: 0 });
+    // Clear any active selection first so the gold selection ring/border
+    // (and the per-node editing chrome it gates, see FloorPlanTableNode's
+    // print:hidden handles) doesn't appear in the printed output.
+    setNodes(ns => ns.map(n => (n.selected ? { ...n, selected: false } : n)));
+    // Intentionally not awaited: with zero tables on the canvas this promise
+    // never resolves (fitView's resolution requires nodesInitialized, which
+    // requires at least one node), so awaiting it would hang printing
+    // forever in that state. The double-rAF below is the actual paint gate.
+    void reactFlowInstanceRef.current?.fitView({ duration: 0 });
     // Two animation frames give the fit-view's layout change time to paint
     // before the print dialog captures the DOM — a single frame is
     // sometimes too early in some browsers.
@@ -108,7 +116,7 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
         window.print();
       });
     });
-  }, []);
+  }, [setNodes]);
 
   return (
     <div className="h-[70vh] rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden bg-slate-50 relative">
