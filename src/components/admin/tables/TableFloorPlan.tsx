@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ReactFlow, Background, Controls, useNodesState } from '@xyflow/react';
-import type { Node, NodeTypes } from '@xyflow/react';
+import type { Node, NodeTypes, ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Printer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { Guest } from '@/features/guests/types';
 import type { Table } from './types';
 import { getEffectiveCapacity } from './capacity';
@@ -94,22 +96,55 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
     onUpdateLayout(node.id, { ...table.layout, x: node.position.x, y: node.position.y });
   }, [tables, onUpdateLayout]);
 
+  const reactFlowInstanceRef = useRef<ReactFlowInstance<FloorPlanNode> | null>(null);
+
+  const handlePrint = useCallback(() => {
+    reactFlowInstanceRef.current?.fitView({ duration: 0 });
+    // Two animation frames give the fit-view's layout change time to paint
+    // before the print dialog captures the DOM — a single frame is
+    // sometimes too early in some browsers.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+      });
+    });
+  }, []);
+
   return (
-    <div className="h-[70vh] rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden bg-slate-50">
+    <div className="h-[70vh] rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden bg-slate-50 relative">
+      <Button
+        onClick={handlePrint}
+        variant="outline"
+        className="absolute top-3 right-3 z-10 border-slate-200 rounded-xl h-9 bg-white print:hidden"
+      >
+        <Printer className="w-4 h-4 mr-2" />
+        Print Floor Plan
+      </Button>
       <ReactFlow
         nodes={nodes}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
+        onInit={(instance) => { reactFlowInstanceRef.current = instance; }}
         nodesConnectable={false}
         deleteKeyCode={null}
         selectionKeyCode={null}
         multiSelectionKeyCode={null}
         fitView
       >
-        <Background gap={24} />
-        <Controls showInteractive={false} />
+        <Background gap={24} className="print:hidden" />
+        {/*
+          @xyflow/react's own stylesheet sets `.react-flow__controls { display: flex }`
+          unconditionally (no media query) with the same specificity as Tailwind's
+          `print:hidden`. Since that library stylesheet loads after Tailwind's in this
+          app's bundle, it wins the cascade tie even under print media, so a plain
+          `print:hidden` here silently fails to hide the zoom controls when printing.
+          The trailing `!` (Tailwind v4's important-modifier syntax, already used
+          elsewhere in this codebase, e.g. src/components/ui/command.tsx) forces
+          `display: none !important` so it wins regardless of source order.
+        */}
+        <Controls showInteractive={false} className="print:hidden!" />
       </ReactFlow>
     </div>
   );
