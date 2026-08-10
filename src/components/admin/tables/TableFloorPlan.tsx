@@ -9,7 +9,7 @@ import type { Table } from './types';
 import { getEffectiveCapacity } from './capacity';
 import { getDefaultLayout } from './floorPlanDefaults';
 import { FloorPlanTableNode, type FloorPlanNode } from './FloorPlanTableNode';
-import { computeAlignmentSnap, type Bounds } from './snapGuides';
+import { computeAlignmentSnap, computeSizeSnap, type Bounds } from './snapGuides';
 import { GuideLinesOverlay } from './GuideLinesOverlay';
 
 const nodeTypes: NodeTypes = { tableNode: FloorPlanTableNode };
@@ -39,6 +39,34 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
     );
   }, [tables, onAssignDefaultLayouts]);
 
+  // Tracks the last dimensions handleNodesChange computed for each
+  // in-progress resize (post-snap, when a size match applied) so
+  // FloorPlanTableNode's handleResizeEnd can persist that instead of
+  // NodeResizeControl's own onResizeEnd event, which (like
+  // onNodeDragStop for dragging, see lastComputedPositionRef below)
+  // reports its own internally-tracked raw final width/height,
+  // independent of whatever handleNodesChange computes — so without this,
+  // a mid-resize size-match snap is visible while dragging a corner handle
+  // but silently reverts to the raw, unmatched size the instant it's
+  // released. Read via getLastComputedSize (passed through node data,
+  // since the component that needs it — FloorPlanTableNode — is a
+  // different component than the one that owns this ref). Declared here,
+  // above derivedNodes, rather than alongside lastComputedPositionRef
+  // further down: derivedNodes's useMemo callback below closes over
+  // getLastComputedSize, and that callback runs synchronously during this
+  // render, so declaring getLastComputedSize any later in this component
+  // would be a genuine temporal-dead-zone crash, not just a style nit —
+  // confirmed by hitting exactly that "Cannot access 'getLastComputedSize'
+  // before initialization" error when it was first placed further down,
+  // matching this file's other ref-based pattern.
+  const lastComputedSizeRef = useRef<Map<string, { width: number; height: number }>>(new Map());
+
+  const getLastComputedSize = useCallback((tableId: string) => {
+    const value = lastComputedSizeRef.current.get(tableId);
+    lastComputedSizeRef.current.delete(tableId);
+    return value;
+  }, []);
+
   const derivedNodes: FloorPlanNode[] = useMemo(() =>
     tables
       .filter((table): table is Table & { layout: NonNullable<Table['layout']> } => !!table.layout)
@@ -53,7 +81,8 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
             table,
             occupants,
             capacity: getEffectiveCapacity(table),
-            onUpdateLayout
+            onUpdateLayout,
+            getLastComputedSize
           }
         };
       })
@@ -187,6 +216,37 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
         return { ...change, position: resolved };
       }
 
+      // Resize's `resizing` is always explicitly true or false (never
+      // undefined) for a resize-originated change — there's no keyboard
+      // equivalent to worry about here the way position had, so this can
+      // check both frames directly rather than needing the `!== undefined`
+      // widening position needed.
+      if (change.type === 'dimensions' && change.dimensions) {
+        const activeTable = tables.find(t => t.id === change.id);
+        if (!activeTable?.layout) return change;
+
+        const others = tables
+          .filter(t => t.id !== change.id && t.layout)
+          .map(t => ({ id: t.id, width: t.layout!.width, height: t.layout!.height }));
+
+        const snap = computeSizeSnap(change.dimensions.width, change.dimensions.height, others, threshold);
+
+        if (change.resizing === true) {
+          setGuideState({ matchedTableId: snap.matchedWidthId ?? snap.matchedHeightId });
+        } else if (change.resizing === false) {
+          setGuideState(null);
+        }
+
+        const resolvedSize = {
+          width: snap.width ?? change.dimensions.width,
+          height: snap.height ?? change.dimensions.height
+        };
+        lastComputedSizeRef.current.set(change.id, resolvedSize);
+
+        if (snap.width === undefined && snap.height === undefined) return change;
+        return { ...change, dimensions: resolvedSize };
+      }
+
       return change;
     });
 
@@ -213,6 +273,10 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
     });
   }, [setNodes]);
 
+  const nodesForRender: FloorPlanNode[] = useMemo(() =>
+    nodes.map(n => ({ ...n, data: { ...n.data, isSizeMatchTarget: n.id === guideState?.matchedTableId } }))
+  , [nodes, guideState?.matchedTableId]);
+
   return (
     <div className="h-[70vh] rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden bg-slate-50 relative">
       <div className="absolute top-3 right-3 z-10 flex gap-2 print:hidden">
@@ -234,7 +298,7 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
         </Button>
       </div>
       <ReactFlow
-        nodes={nodes}
+        nodes={nodesForRender}
         nodeTypes={nodeTypes}
         onNodesChange={handleNodesChange}
         onNodeDragStart={handleNodeDragStart}

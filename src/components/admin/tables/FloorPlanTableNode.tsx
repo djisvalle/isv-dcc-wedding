@@ -11,12 +11,14 @@ export type FloorPlanNodeData = {
   occupants: number;
   capacity: number | undefined;
   onUpdateLayout: (tableId: string, layout: NonNullable<Table['layout']>) => void;
+  isSizeMatchTarget?: boolean;
+  getLastComputedSize?: (tableId: string) => { width: number; height: number } | undefined;
 };
 
 export type FloorPlanNode = Node<FloorPlanNodeData, 'tableNode'>;
 
 export function FloorPlanTableNode({ data, selected, width, height }: NodeProps<FloorPlanNode>) {
-  const { table, occupants, capacity, onUpdateLayout } = data;
+  const { table, occupants, capacity, onUpdateLayout, isSizeMatchTarget, getLastComputedSize } = data;
   const layout = table.layout;
   const nodeRef = useRef<HTMLDivElement>(null);
   const [liveRotation, setLiveRotation] = useState<number | null>(null);
@@ -89,8 +91,21 @@ export function FloorPlanTableNode({ data, selected, width, height }: NodeProps<
 
   const handleResizeEnd = useCallback((_event: unknown, params: { x: number; y: number; width: number; height: number }) => {
     if (!layout) return;
-    onUpdateLayout(table.id, { ...layout, x: params.x, y: params.y, width: params.width, height: params.height });
-  }, [layout, onUpdateLayout, table.id]);
+    // params carries React Flow's own raw final width/height, independent of
+    // whatever size-matching TableFloorPlan's handleNodesChange computed for
+    // this resize (see that file's lastComputedSizeRef comment) — read the
+    // resolved (possibly snapped) size from there when available, falling
+    // back to the raw params only if nothing was tracked (e.g. a resize with
+    // no movement).
+    const resolvedSize = getLastComputedSize?.(table.id);
+    onUpdateLayout(table.id, {
+      ...layout,
+      x: params.x,
+      y: params.y,
+      width: resolvedSize?.width ?? params.width,
+      height: resolvedSize?.height ?? params.height
+    });
+  }, [layout, onUpdateLayout, table.id, getLastComputedSize]);
 
   if (!layout) return null;
 
@@ -114,7 +129,13 @@ export function FloorPlanTableNode({ data, selected, width, height }: NodeProps<
       <div
         className={`w-full h-full flex flex-col items-center justify-center gap-1 border-2 bg-white shadow-sm transition-shadow ${
           isElliptical ? 'rounded-full' : 'rounded-2xl'
-        } ${selected ? 'border-wedding-gold ring-2 ring-wedding-gold/40' : 'border-slate-200'}`}
+        } ${
+          selected
+            ? 'border-wedding-gold ring-2 ring-wedding-gold/40'
+            : isSizeMatchTarget
+              ? 'border-sky-400 ring-2 ring-sky-300/50'
+              : 'border-slate-200'
+        }`}
         style={{ transform: `rotate(${displayRotation}deg)` }}
       >
         {getTableIcon(table.type)}
