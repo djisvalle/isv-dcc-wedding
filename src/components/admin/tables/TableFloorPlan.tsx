@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlow, Background, Controls, useNodesState } from '@xyflow/react';
-import type { Node, NodeTypes, ReactFlowInstance } from '@xyflow/react';
+import type { Node, NodeChange, NodeTypes, ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Printer, Grid3x3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import type { Table } from './types';
 import { getEffectiveCapacity } from './capacity';
 import { getDefaultLayout } from './floorPlanDefaults';
 import { FloorPlanTableNode, type FloorPlanNode } from './FloorPlanTableNode';
+import { computeAlignmentSnap, type Bounds } from './snapGuides';
+import { GuideLinesOverlay } from './GuideLinesOverlay';
 
 const nodeTypes: NodeTypes = { tableNode: FloorPlanTableNode };
 const EMPTY_GUESTS: Guest[] = [];
@@ -64,6 +66,8 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
   // tracks the cursor and nodes can never become selected.
   const [nodes, setNodes, onNodesChange] = useNodesState<FloorPlanNode>(derivedNodes);
 
+  const [guideState, setGuideState] = useState<{ verticalGuideX?: number; horizontalGuideY?: number; matchedTableId?: string } | null>(null);
+
   // Track which node ids are mid-drag so the reconciliation effect below
   // doesn't stomp on an in-flight drag position with a stale derived one.
   const draggingNodeIds = useRef<Set<string>>(new Set());
@@ -91,14 +95,94 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
     draggingNodeIds.current.add(node.id);
   }, []);
 
+  // Populated via <ReactFlow>'s onInit below. A plain ref (not a hook) so it
+  // can be read imperatively from callbacks defined here in the parent
+  // component that renders <ReactFlow> — that parent scope sits outside the
+  // ReactFlowProvider context <ReactFlow> creates for its own children, so
+  // hooks like useStoreApi()/useReactFlow() aren't callable here (confirmed
+  // via @xyflow/react's source and a runtime "no ReactFlowProvider ancestor"
+  // error when tried). The instance object itself has no such restriction:
+  // its methods (e.g. getViewport(), fitView() used below in handlePrint)
+  // are plain closures already bound to the store at creation time.
+  const reactFlowInstanceRef = useRef<ReactFlowInstance<FloorPlanNode> | null>(null);
+
+  // Tracks the last position handleNodesChange computed for each in-progress
+  // drag (post-snap, when a snap applied) so handleNodeDragStop can persist
+  // that instead of the drag-stop event's own `node.position`. This is
+  // necessary, not cosmetic: confirmed empirically (by logging both values
+  // side by side) that React Flow's onNodeDragStop reports its own
+  // internally-tracked raw pointer position, computed independently of
+  // whatever position onNodesChange returns — so without this ref, a
+  // mid-drag snap is visible while dragging but silently reverts to the
+  // raw, unaligned position the instant the table is dropped, defeating the
+  // point of snapping. Cleared once read so a future unrelated drag can't
+  // accidentally reuse a stale entry.
+  const lastComputedPositionRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
   const handleNodeDragStop = useCallback((_event: unknown, node: Node) => {
     draggingNodeIds.current.delete(node.id);
+    setGuideState(null);
     const table = tables.find(t => t.id === node.id);
     if (!table?.layout) return;
-    onUpdateLayout(node.id, { ...table.layout, x: node.position.x, y: node.position.y });
+    const snapped = lastComputedPositionRef.current.get(node.id);
+    lastComputedPositionRef.current.delete(node.id);
+    const { x, y } = snapped ?? node.position;
+    onUpdateLayout(node.id, { ...table.layout, x, y });
   }, [tables, onUpdateLayout]);
 
-  const reactFlowInstanceRef = useRef<ReactFlowInstance<FloorPlanNode> | null>(null);
+  const SNAP_THRESHOLD_SCREEN_PX = 6;
+
+  // Intercepts the same onNodesChange pipeline that already makes live
+  // drag/resize feedback possible (see the useNodesState comment above) to
+  // add Canva/Figma-style alignment: for every drag-originated position
+  // change (dragging true *or* false — see note below), compare the dragged
+  // table's edges/center against every other table's on each axis
+  // independently, snap to the closest match within threshold, record the
+  // matched coordinate so GuideLinesOverlay can draw it, and stash the
+  // resulting (possibly snapped) position in lastComputedPositionRef so
+  // handleNodeDragStop can persist it on release (see that ref's comment).
+  //
+  // `change.dragging` is checked with `!== undefined` rather than a truthy
+  // check so the snap also applies to the final `dragging: false` change
+  // XYDrag emits on pointer-up (as well as `dragging: true` in-progress
+  // frames) — otherwise that last change would fall through unmodified.
+  const handleNodesChange = useCallback((changes: NodeChange<FloorPlanNode>[]) => {
+    const zoom = reactFlowInstanceRef.current?.getViewport().zoom ?? 1;
+    const threshold = SNAP_THRESHOLD_SCREEN_PX / zoom;
+
+    const adjusted = changes.map(change => {
+      if (change.type === 'position' && change.dragging !== undefined && change.position) {
+        const activeTable = tables.find(t => t.id === change.id);
+        if (!activeTable?.layout) return change;
+
+        const active: Bounds = {
+          x: change.position.x,
+          y: change.position.y,
+          width: activeTable.layout.width,
+          height: activeTable.layout.height
+        };
+        const others: Bounds[] = tables
+          .filter(t => t.id !== change.id && t.layout)
+          .map(t => ({ x: t.layout!.x, y: t.layout!.y, width: t.layout!.width, height: t.layout!.height }));
+
+        const snap = computeAlignmentSnap(active, others, threshold);
+        setGuideState({ verticalGuideX: snap.verticalGuideX, horizontalGuideY: snap.horizontalGuideY });
+
+        const resolved = {
+          x: snap.x ?? change.position.x,
+          y: snap.y ?? change.position.y
+        };
+        lastComputedPositionRef.current.set(change.id, resolved);
+
+        if (snap.x === undefined && snap.y === undefined) return change;
+        return { ...change, position: resolved };
+      }
+
+      return change;
+    });
+
+    onNodesChange(adjusted);
+  }, [tables, onNodesChange]);
 
   const handlePrint = useCallback(() => {
     // Clear any active selection first so the gold selection ring/border
@@ -143,7 +227,7 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
       <ReactFlow
         nodes={nodes}
         nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
         onInit={(instance) => { reactFlowInstanceRef.current = instance; }}
@@ -155,6 +239,7 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
         snapGrid={[24, 24]}
         fitView
       >
+        <GuideLinesOverlay verticalGuideX={guideState?.verticalGuideX} horizontalGuideY={guideState?.horizontalGuideY} />
         <Background gap={24} className="print:hidden" />
         {/*
           @xyflow/react's own stylesheet sets `.react-flow__controls { display: flex }`
