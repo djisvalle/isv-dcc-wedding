@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
+import { NodeResizeControl } from '@xyflow/react';
 import { RotateCw, Circle, Square, RectangleHorizontal } from 'lucide-react';
 import type { Table } from './types';
 import { getTableIcon, getTableTitle } from './tableDisplay';
@@ -14,7 +15,7 @@ export type FloorPlanNodeData = {
 
 export type FloorPlanNode = Node<FloorPlanNodeData, 'tableNode'>;
 
-export function FloorPlanTableNode({ data, selected }: NodeProps<FloorPlanNode>) {
+export function FloorPlanTableNode({ data, selected, width, height }: NodeProps<FloorPlanNode>) {
   const { table, occupants, capacity, onUpdateLayout } = data;
   const layout = table.layout;
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -86,13 +87,30 @@ export function FloorPlanTableNode({ data, selected }: NodeProps<FloorPlanNode>)
     document.addEventListener('pointercancel', onPointerCancel);
   }, [layout, computeAngle, onUpdateLayout, table.id]);
 
+  const handleResizeEnd = useCallback((_event: unknown, params: { x: number; y: number; width: number; height: number }) => {
+    if (!layout) return;
+    onUpdateLayout(table.id, { ...layout, x: params.x, y: params.y, width: params.width, height: params.height });
+  }, [layout, onUpdateLayout, table.id]);
+
   if (!layout) return null;
 
   const displayRotation = liveRotation ?? layout.rotation;
   const isElliptical = layout.shape === 'round' || layout.shape === 'oval';
+  // NodeResizeControl reports live drag deltas to React Flow's own internal
+  // node model (node.measured / node.width, surfaced here via the `width`/
+  // `height` NodeProps), not to `layout.width`/`layout.height` (which only
+  // update once on release via handleResizeEnd above). Rendering from those
+  // live props instead of layout.width/height directly is what makes the
+  // table visibly grow/shrink while dragging a corner handle; without it,
+  // this div's size would stay pinned to the last-committed layout size
+  // until pointer-up. The `||` (not `??`) intentionally falls back to
+  // layout's size for the single pre-measurement frame where React Flow
+  // hasn't measured this node yet and reports 0.
+  const displayWidth = width || layout.width;
+  const displayHeight = height || layout.height;
 
   return (
-    <div ref={nodeRef} className="relative" style={{ width: layout.width, height: layout.height }}>
+    <div ref={nodeRef} className="relative" style={{ width: displayWidth, height: displayHeight }}>
       <div
         className={`w-full h-full flex flex-col items-center justify-center gap-1 border-2 bg-white shadow-sm transition-shadow ${
           isElliptical ? 'rounded-full' : 'rounded-2xl'
@@ -154,6 +172,18 @@ export function FloorPlanTableNode({ data, selected }: NodeProps<FloorPlanNode>)
           </button>
         </div>
       )}
+
+      {selected && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map(position => (
+        <NodeResizeControl
+          key={position}
+          position={position}
+          minWidth={60}
+          minHeight={60}
+          onResizeEnd={handleResizeEnd}
+          className="nodrag !bg-wedding-gold !border-2 !border-white"
+          style={{ width: 10, height: 10, borderRadius: 2 }}
+        />
+      ))}
     </div>
   );
 }
