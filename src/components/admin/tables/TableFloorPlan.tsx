@@ -166,7 +166,16 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
           .map(t => ({ x: t.layout!.x, y: t.layout!.y, width: t.layout!.width, height: t.layout!.height }));
 
         const snap = computeAlignmentSnap(active, others, threshold);
-        setGuideState({ verticalGuideX: snap.verticalGuideX, horizontalGuideY: snap.horizontalGuideY });
+        // Only paint guides for genuine in-progress drag frames (dragging:
+        // true). `dragging: false` covers two cases that must NOT paint a
+        // guide: the final mouse-release frame (handleNodeDragStop is about
+        // to clear guideState anyway) and keyboard arrow-key nudges
+        // (useMoveSelectedNodes emits `dragging: false` with no
+        // onNodeDragStop to follow, so a guide painted there would never
+        // clear).
+        if (change.dragging === true) {
+          setGuideState({ verticalGuideX: snap.verticalGuideX, horizontalGuideY: snap.horizontalGuideY });
+        }
 
         const resolved = {
           x: snap.x ?? change.position.x,
