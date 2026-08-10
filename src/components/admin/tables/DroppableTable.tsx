@@ -61,6 +61,7 @@ export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTable
   const countOccupants = allTableGuests.filter(g => !g.is_baby_or_child).length;
   const capacity = getEffectiveCapacity(table);
   const status = getCapacityStatus(countOccupants, capacity);
+  const isEmptyMatch = hasGuestFilter && allTableGuests.length === 0;
 
   const startEditCapacity = () => {
     setCapacityDraft(capacity !== undefined ? String(capacity) : '');
@@ -110,6 +111,7 @@ export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTable
       <Card className={`
         h-full border-slate-200/60 shadow-sm transition-all rounded-3xl overflow-hidden group
         ${isOver ? 'ring-2 ring-wedding-gold scale-[1.02] bg-wedding-gold/5' : status === 'over' ? 'ring-2 ring-rose-300' : ''}
+        ${isEmptyMatch && !isOver ? 'opacity-60' : ''}
       `}>
         <CardHeader className={`
           pb-4 border-b border-slate-50
@@ -127,6 +129,11 @@ export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTable
                 {hasGuestFilter && countOccupants > 0 && (
                   <p className="text-[9px] text-wedding-gold/80 font-bold uppercase tracking-widest">
                     {visibleGuests.filter(g => !g.is_baby_or_child).length} of {countOccupants} shown
+                  </p>
+                )}
+                {isEmptyMatch && (
+                  <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-widest italic">
+                    No matches — shown as empty drop target
                   </p>
                 )}
                 <div className="mt-0.5 print:hidden">
