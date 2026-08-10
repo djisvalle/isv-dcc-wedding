@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlow, Background, Controls, useNodesState } from '@xyflow/react';
 import type { Node, NodeTypes, ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Printer } from 'lucide-react';
+import { Printer, Grid3x3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Guest } from '@/features/guests/types';
 import type { Table } from './types';
@@ -21,6 +21,8 @@ interface TableFloorPlanProps {
 }
 
 export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssignDefaultLayouts }: TableFloorPlanProps) {
+  const [gridSnapEnabled, setGridSnapEnabled] = useState(false);
+
   // First-time placement: any tables with no saved layout get a cascading
   // default position assigned in a single batched call, so a first-ever
   // open doesn't fire one Firestore write per table.
@@ -120,14 +122,24 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
 
   return (
     <div className="h-[70vh] rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden bg-slate-50 relative">
-      <Button
-        onClick={handlePrint}
-        variant="outline"
-        className="absolute top-3 right-3 z-10 border-slate-200 rounded-xl h-9 bg-white print:hidden"
-      >
-        <Printer className="w-4 h-4 mr-2" />
-        Print Floor Plan
-      </Button>
+      <div className="absolute top-3 right-3 z-10 flex gap-2 print:hidden">
+        <Button
+          onClick={() => setGridSnapEnabled(v => !v)}
+          variant="outline"
+          title={gridSnapEnabled ? 'Turn off snap to grid' : 'Turn on snap to grid'}
+          className={`rounded-xl h-9 w-9 p-0 border-slate-200 ${gridSnapEnabled ? 'bg-wedding-gold/20 text-wedding-gold border-wedding-gold/40' : 'bg-white text-slate-500'}`}
+        >
+          <Grid3x3 className="w-4 h-4" />
+        </Button>
+        <Button
+          onClick={handlePrint}
+          variant="outline"
+          className="border-slate-200 rounded-xl h-9 bg-white"
+        >
+          <Printer className="w-4 h-4 mr-2" />
+          Print Floor Plan
+        </Button>
+      </div>
       <ReactFlow
         nodes={nodes}
         nodeTypes={nodeTypes}
@@ -139,6 +151,8 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
         deleteKeyCode={null}
         selectionKeyCode={null}
         multiSelectionKeyCode={null}
+        snapToGrid={gridSnapEnabled}
+        snapGrid={[24, 24]}
         fitView
       >
         <Background gap={24} className="print:hidden" />
