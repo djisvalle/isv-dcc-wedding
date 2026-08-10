@@ -466,6 +466,14 @@ export default function AdminTables() {
     });
   }, []);
 
+  const handleUpdateLayout = useCallback((tableId: string, layout: Table['layout']) => {
+    setActiveTables(prev => {
+      const updated = prev.map(t => t.id === tableId ? { ...t, layout } : t);
+      persistTableLayout(updated);
+      return updated;
+    });
+  }, []);
+
   const handlePrint = () => window.print();
 
   if (loading) {
@@ -781,7 +789,11 @@ export default function AdminTables() {
               <p className="text-sm">This view works best on a larger screen — try a tablet or desktop.</p>
             </div>
             <div className="hidden md:block">
-              <TableFloorPlan />
+              <TableFloorPlan
+                tables={activeTables}
+                guestsByTable={guestsByTable}
+                onUpdateLayout={handleUpdateLayout}
+              />
             </div>
           </div>
         )}
