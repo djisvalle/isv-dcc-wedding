@@ -103,6 +103,7 @@ export function TableFloorPlan({ tables, guestsByTable, onUpdateLayout, onAssign
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
         nodesConnectable={false}
+        deleteKeyCode={null}
         fitView
       >
         <Background gap={24} />
