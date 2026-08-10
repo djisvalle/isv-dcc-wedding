@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
   Trash2,
   Search,
   UserCheck,
+  UserMinus,
   AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -33,10 +34,11 @@ interface DroppableTableProps {
   availableTables: Table[];
   unassignedGuests: Guest[];
   onUpdateCapacity: (tableId: string, capacity: number | undefined) => void;
+  onUnassignAll: (tableId: string) => void;
   isFilteredOut?: boolean;
 }
 
-export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTableGuests, visibleGuests, hasGuestFilter, onRemoveTable, onQuickMove, availableTables, unassignedGuests, onUpdateCapacity, isFilteredOut = false }) => {
+export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTableGuests, visibleGuests, hasGuestFilter, onRemoveTable, onQuickMove, availableTables, unassignedGuests, onUpdateCapacity, onUnassignAll, isFilteredOut = false }) => {
   const { setNodeRef, isOver } = useSortable({
     id: table.id,
     data: {
@@ -57,6 +59,25 @@ export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTable
   const [assignSearch, setAssignSearch] = useState('');
   const [isEditingCapacity, setIsEditingCapacity] = useState(false);
   const [capacityDraft, setCapacityDraft] = useState('');
+  const [isUnassignArmed, setIsUnassignArmed] = useState(false);
+  const unassignArmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (unassignArmTimeoutRef.current) clearTimeout(unassignArmTimeoutRef.current);
+    };
+  }, []);
+
+  const handleUnassignAllClick = () => {
+    if (isUnassignArmed) {
+      if (unassignArmTimeoutRef.current) clearTimeout(unassignArmTimeoutRef.current);
+      setIsUnassignArmed(false);
+      onUnassignAll(table.id);
+      return;
+    }
+    setIsUnassignArmed(true);
+    unassignArmTimeoutRef.current = setTimeout(() => setIsUnassignArmed(false), 3000);
+  };
 
   const countOccupants = allTableGuests.filter(g => !g.is_baby_or_child).length;
   const capacity = getEffectiveCapacity(table);
@@ -246,6 +267,17 @@ export const DroppableTable = React.memo<DroppableTableProps>(({ table, allTable
                 </DialogContent>
               </Dialog>
 
+              {allTableGuests.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 transition-all ${isUnassignArmed ? 'text-rose-500 hover:text-rose-600 hover:bg-rose-50' : 'text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5'}`}
+                  title={isUnassignArmed ? `Click again to unassign all ${allTableGuests.length} guests` : 'Unassign all guests from this table'}
+                  onClick={handleUnassignAllClick}
+                >
+                  {isUnassignArmed ? <AlertTriangle className="w-4 h-4" /> : <UserMinus className="w-4 h-4" />}
+                </Button>
+              )}
               {allTableGuests.length === 0 && table.type !== 'bridal' && (
                 <Button
                   variant="ghost"

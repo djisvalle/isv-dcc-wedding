@@ -296,6 +296,31 @@ export default function AdminTables() {
     }
   }, [activeTables, guests]);
 
+  const handleUnassignAll = useCallback(async (tableId: string) => {
+    const targetGuests = guestsByTable[tableId] ?? EMPTY_GUESTS;
+    if (targetGuests.length === 0) return;
+
+    const unassignedMaxOrder = unassignedGuests.length > 0
+      ? Math.max(...unassignedGuests.map(g => g.table_order || 0))
+      : -1;
+
+    try {
+      const ops = targetGuests.map((g, index) => ({ guest: g, index }));
+      await commitInChunks(ops, ({ guest: g, index }, batch) => {
+        const guestRef = doc(db, 'guests', g.id);
+        batch.update(guestRef, {
+          table_type: null,
+          table_number: null,
+          table_order: unassignedMaxOrder + 1 + index,
+          updated_at: serverTimestamp()
+        });
+      });
+      toast.success(`${targetGuests.length} guest${targetGuests.length === 1 ? '' : 's'} unassigned`);
+    } catch (err) {
+      reportWriteError(err, OperationType.UPDATE, 'guests', 'Could not unassign that table\'s guests — please try again.');
+    }
+  }, [guestsByTable, unassignedGuests]);
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     setActiveGuestId(active.id as string);
@@ -695,6 +720,7 @@ export default function AdminTables() {
                       availableTables={activeTables}
                       unassignedGuests={unassignedGuests}
                       onUpdateCapacity={handleUpdateCapacity}
+                      onUnassignAll={handleUnassignAll}
                       isFilteredOut={isFilteredOut}
                     />
                   </div>
