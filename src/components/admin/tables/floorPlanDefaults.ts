@@ -1,14 +1,29 @@
-import type { Table } from './types';
+import type { Table, TableShape } from './types';
 
 const COLUMNS = 4;
 const CELL_WIDTH = 220;
 const CELL_HEIGHT = 180;
 const MARGIN = 40;
 
-const DEFAULT_NODE_SIZE: Record<Table['type'], { width: number; height: number; shape: 'round' | 'rectangle' }> = {
+const DEFAULT_NODE_SIZE: Record<Table['type'], { width: number; height: number; shape: TableShape }> = {
   bridal: { width: 160, height: 100, shape: 'round' },
   vip: { width: 140, height: 140, shape: 'round' },
   regular: { width: 160, height: 100, shape: 'rectangle' }
+};
+
+/**
+ * Default dimensions a table resets to when the shape toggle picks a new
+ * shape — separate from `DEFAULT_NODE_SIZE` above, which only governs
+ * first-time cascade placement by table *type* (bridal/vip/regular), not by
+ * shape. Since resizing is free in both dimensions with no aspect lock, a
+ * shape's rendering family (elliptical vs. boxed corners) is permanent but
+ * its proportions aren't — this map is only a starting point.
+ */
+export const SHAPE_DEFAULT_SIZE: Record<TableShape, { width: number; height: number }> = {
+  round: { width: 140, height: 140 },
+  oval: { width: 200, height: 110 },
+  square: { width: 140, height: 140 },
+  rectangle: { width: 180, height: 100 }
 };
 
 /**

@@ -1,8 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
-import { RotateCw, Circle, RectangleHorizontal } from 'lucide-react';
+import { RotateCw, Circle, Square, RectangleHorizontal } from 'lucide-react';
 import type { Table } from './types';
 import { getTableIcon, getTableTitle } from './tableDisplay';
+import { SHAPE_DEFAULT_SIZE } from './floorPlanDefaults';
 
 export type FloorPlanNodeData = {
   table: Table;
@@ -88,12 +89,13 @@ export function FloorPlanTableNode({ data, selected }: NodeProps<FloorPlanNode>)
   if (!layout) return null;
 
   const displayRotation = liveRotation ?? layout.rotation;
+  const isElliptical = layout.shape === 'round' || layout.shape === 'oval';
 
   return (
     <div ref={nodeRef} className="relative" style={{ width: layout.width, height: layout.height }}>
       <div
         className={`w-full h-full flex flex-col items-center justify-center gap-1 border-2 bg-white shadow-sm transition-shadow ${
-          layout.shape === 'round' ? 'rounded-full' : 'rounded-2xl'
+          isElliptical ? 'rounded-full' : 'rounded-2xl'
         } ${selected ? 'border-wedding-gold ring-2 ring-wedding-gold/40' : 'border-slate-200'}`}
         style={{ transform: `rotate(${displayRotation}deg)` }}
       >
@@ -117,10 +119,10 @@ export function FloorPlanTableNode({ data, selected }: NodeProps<FloorPlanNode>)
       )}
 
       {selected && (
-        <div className="nodrag absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 bg-white rounded-full shadow-md p-1">
+        <div className="nodrag absolute -bottom-9 left-1/2 -translate-x-1/2 grid grid-cols-2 gap-1 bg-white rounded-2xl shadow-md p-1">
           <button
             type="button"
-            onClick={() => onUpdateLayout(table.id, { ...layout, shape: 'round' })}
+            onClick={() => onUpdateLayout(table.id, { ...layout, shape: 'round', ...SHAPE_DEFAULT_SIZE.round })}
             className={`p-1 rounded-full transition-colors ${layout.shape === 'round' ? 'bg-wedding-gold/20 text-wedding-gold' : 'text-slate-400 hover:text-slate-600'}`}
             title="Round table"
           >
@@ -128,7 +130,23 @@ export function FloorPlanTableNode({ data, selected }: NodeProps<FloorPlanNode>)
           </button>
           <button
             type="button"
-            onClick={() => onUpdateLayout(table.id, { ...layout, shape: 'rectangle' })}
+            onClick={() => onUpdateLayout(table.id, { ...layout, shape: 'oval', ...SHAPE_DEFAULT_SIZE.oval })}
+            className={`p-1 rounded-full transition-colors ${layout.shape === 'oval' ? 'bg-wedding-gold/20 text-wedding-gold' : 'text-slate-400 hover:text-slate-600'}`}
+            title="Oval table"
+          >
+            <span className="block w-3.5 h-2.5 rounded-full border-2 border-current" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onUpdateLayout(table.id, { ...layout, shape: 'square', ...SHAPE_DEFAULT_SIZE.square })}
+            className={`p-1 rounded-full transition-colors ${layout.shape === 'square' ? 'bg-wedding-gold/20 text-wedding-gold' : 'text-slate-400 hover:text-slate-600'}`}
+            title="Square table"
+          >
+            <Square className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onUpdateLayout(table.id, { ...layout, shape: 'rectangle', ...SHAPE_DEFAULT_SIZE.rectangle })}
             className={`p-1 rounded-full transition-colors ${layout.shape === 'rectangle' ? 'bg-wedding-gold/20 text-wedding-gold' : 'text-slate-400 hover:text-slate-600'}`}
             title="Rectangular table"
           >

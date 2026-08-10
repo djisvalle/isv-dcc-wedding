@@ -1,6 +1,8 @@
 import { doc, setDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 
+export type TableShape = 'round' | 'oval' | 'square' | 'rectangle';
+
 export interface Table {
   id: string; // key: type-number
   type: 'bridal' | 'vip' | 'regular';
@@ -10,7 +12,7 @@ export interface Table {
     x: number;
     y: number;
     rotation: number; // degrees, 0-359
-    shape: 'round' | 'rectangle';
+    shape: TableShape;
     width: number;
     height: number;
   };
