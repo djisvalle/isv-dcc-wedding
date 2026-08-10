@@ -6,6 +6,14 @@ export interface Table {
   type: 'bridal' | 'vip' | 'regular';
   number: string;
   capacity?: number; // undefined = uncapped
+  layout?: {
+    x: number;
+    y: number;
+    rotation: number; // degrees, 0-359
+    shape: 'round' | 'rectangle';
+    width: number;
+    height: number;
+  };
 }
 
 export const TABLE_TYPES = [
@@ -48,7 +56,7 @@ export async function persistTableLayout(tables: Table[]) {
   try {
     await setDoc(doc(db, 'settings', TABLE_LAYOUT_SETTING_ID), {
       key: TABLE_LAYOUT_SETTING_ID,
-      value: JSON.stringify(tables.map(({ id, type, number, capacity }) => ({ id, type, number, capacity }))),
+      value: JSON.stringify(tables.map(({ id, type, number, capacity, layout }) => ({ id, type, number, capacity, layout }))),
       updated_at: new Date().toISOString()
     });
   } catch (err) {
