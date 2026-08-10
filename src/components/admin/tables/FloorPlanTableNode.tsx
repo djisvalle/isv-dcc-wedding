@@ -38,20 +38,51 @@ export function FloorPlanTableNode({ data, selected }: NodeProps<FloorPlanNode>)
     e.preventDefault();
     if (!layout) return;
 
+    // Explicit pointer capture ensures pointerup/pointercancel are still
+    // delivered to this element even if the cursor leaves the window
+    // (mouse) or the OS takes over the gesture (touch scroll/pinch).
+    try {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    } catch {
+      // Pointer capture can fail (e.g. already released); the
+      // pointercancel/pointerup listeners below still provide a safety net.
+    }
+
+    let settled = false;
+    let lastAngle = computeAngle(e.clientX, e.clientY);
+
+    const cleanup = () => {
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      document.removeEventListener('pointercancel', onPointerCancel);
+    };
+
+    const commit = (angle: number) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      setLiveRotation(null);
+      onUpdateLayout(table.id, { ...layout, rotation: Math.round(angle) });
+    };
+
     const onPointerMove = (moveEvent: PointerEvent) => {
-      setLiveRotation(computeAngle(moveEvent.clientX, moveEvent.clientY));
+      lastAngle = computeAngle(moveEvent.clientX, moveEvent.clientY);
+      setLiveRotation(lastAngle);
     };
 
     const onPointerUp = (upEvent: PointerEvent) => {
-      document.removeEventListener('pointermove', onPointerMove);
-      document.removeEventListener('pointerup', onPointerUp);
-      const finalDeg = Math.round(computeAngle(upEvent.clientX, upEvent.clientY));
-      setLiveRotation(null);
-      onUpdateLayout(table.id, { ...layout, rotation: finalDeg });
+      commit(computeAngle(upEvent.clientX, upEvent.clientY));
+    };
+
+    const onPointerCancel = () => {
+      // No coordinates are reliable on cancel; commit the last known angle
+      // so the drag always ends in a defined state instead of hanging open.
+      commit(lastAngle);
     };
 
     document.addEventListener('pointermove', onPointerMove);
     document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerCancel);
   }, [layout, computeAngle, onUpdateLayout, table.id]);
 
   if (!layout) return null;
