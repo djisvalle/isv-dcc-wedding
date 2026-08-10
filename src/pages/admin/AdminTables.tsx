@@ -42,6 +42,7 @@ import { DEFAULT_CAPACITY, getEffectiveCapacity, getCapacityStatus } from '@/com
 import { SortableGuestItem } from '@/components/admin/tables/SortableGuestItem';
 import { DroppableTable } from '@/components/admin/tables/DroppableTable';
 import { UnassignedContainer } from '@/components/admin/tables/UnassignedContainer';
+import { TableFloorPlan } from '@/components/admin/tables/TableFloorPlan';
 
 const EMPTY_GUESTS: Guest[] = [];
 
@@ -69,6 +70,7 @@ export default function AdminTables() {
   const [typeFilter, setTypeFilter] = useState<'all' | Table['type']>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all'); // 'all' | 'guest' (no role) | an actual role string
   const [capacityFilter, setCapacityFilter] = useState<'all' | 'room' | 'full' | 'over'>('all');
+  const [view, setView] = useState<'list' | 'floorplan'>('list');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -489,6 +491,22 @@ export default function AdminTables() {
           </div>
           
           <div className="flex flex-wrap gap-4 items-center">
+            <div className="inline-flex bg-white rounded-2xl shadow-sm border border-slate-100 p-1 print:hidden">
+              <button
+                type="button"
+                onClick={() => setView('list')}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'list' ? 'bg-wedding-gold text-white' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Seating List
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('floorplan')}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === 'floorplan' ? 'bg-wedding-gold text-white' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Floor Plan
+              </button>
+            </div>
             <div className="flex items-center gap-6 bg-white px-6 py-3 rounded-3xl shadow-sm border border-slate-100">
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Tables</span>
@@ -569,6 +587,8 @@ export default function AdminTables() {
           </div>
         </div>
 
+        {view === 'list' && (
+        <>
         <div className="flex flex-wrap gap-4 items-end print:hidden">
           <div className="flex-1 min-w-[240px]">
             <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Search</Label>
@@ -751,6 +771,20 @@ export default function AdminTables() {
             </div>
           </div>
         </div>
+        </>
+        )}
+
+        {view === 'floorplan' && (
+          <div className="space-y-4">
+            <div className="md:hidden bg-white rounded-3xl border-2 border-dashed border-slate-100 py-20 text-center text-slate-400">
+              <p className="font-serif text-lg text-slate-600 mb-1">Floor plan editing needs more room</p>
+              <p className="text-sm">This view works best on a larger screen — try a tablet or desktop.</p>
+            </div>
+            <div className="hidden md:block">
+              <TableFloorPlan />
+            </div>
+          </div>
+        )}
       </div>
 
       <DragOverlay dropAnimation={{
