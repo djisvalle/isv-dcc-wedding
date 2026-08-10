@@ -571,13 +571,17 @@ git commit -m "feat: add live alignment guides while dragging floor-plan tables"
 
 ## Task 4: Size matching while resizing
 
+**⚠️ Plan correction:** this task's steps below were rewritten after Task 3 completed, because Task 3's implementer found and fixed two real bugs in this plan's originally-drafted code for `TableFloorPlan.tsx` (a `useStoreApi()` context-scope bug, and a "the drag-stop event reports React Flow's own raw position, independent of what `onNodesChange` resolves" bug) — both confirmed correct by an independent review that traced them through the installed library's source. The actual current shape of `handleNodesChange`/`handleNodeDragStop` in `TableFloorPlan.tsx` differs from what an earlier draft of this task assumed, and **the exact same "raw value on release" problem turns out to apply to resizing too** (`FloorPlanTableNode.tsx`'s `handleResizeEnd` receives `NodeResizeControl`'s own internally-tracked raw final width/height, independent of whatever `handleNodesChange` computes for the matching 'dimensions' change) — so this task's steps below apply the same fix pattern Task 3 already validated, rather than repeating Task 3's mistake. If anything below still doesn't match what's actually in the files, stop and escalate rather than guessing — don't assume a third layer of drift.
+
 **Files:**
 - Modify: `src/components/admin/tables/TableFloorPlan.tsx`
 - Modify: `src/components/admin/tables/FloorPlanTableNode.tsx`
 
 **Interfaces:**
 - Consumes: `computeSizeSnap` from `./snapGuides` (Task 2).
-- `FloorPlanNodeData` gains an optional field: `isSizeMatchTarget?: boolean`.
+- `FloorPlanNodeData` gains two optional fields: `isSizeMatchTarget?: boolean` and `getLastComputedSize?: (tableId: string) => { width: number; height: number } | undefined`.
+
+**Scope note on resize + position interaction:** resizing from a top or left handle also moves the table's x/y origin (so the opposite corner stays fixed) — that position change arrives as a *separate* `'position'`-type change in the same batch, with no `dragging` field at all (confirmed by Task 3's review: `XYResizer`'s position changes carry no `dragging` key, so they're already correctly ignored by the alignment-guide branch's `change.dragging !== undefined` check — resize-driven position changes pass through untouched today, and this task does not change that). This task only snaps **width/height**; it does not attempt to compensate the origin position for the small (sub-threshold) shift a size-match snap can introduce on non-bottom-right-corner resizes. That shift is bounded by the same 6-screen-pixel threshold used everywhere else in this feature, so it's visually negligible — attempting exact compensation would add real complexity for a sub-pixel-scale cosmetic gain, so it's explicitly out of scope.
 
 - [ ] **Step 1: Import `computeSizeSnap`**
 
@@ -593,73 +597,132 @@ Replace with:
 import { computeAlignmentSnap, computeSizeSnap, type Bounds } from './snapGuides';
 ```
 
-- [ ] **Step 2: Extend `handleNodesChange` to handle resize dimension changes**
+- [ ] **Step 2: Add a ref to track the last computed (possibly size-snapped) dimensions per table**
+
+Find:
+
+```tsx
+  const lastComputedPositionRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+```
+
+Replace with:
+
+```tsx
+  const lastComputedPositionRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
+  // Same problem as lastComputedPositionRef above, for resizing instead of
+  // dragging: FloorPlanTableNode's NodeResizeControl reports its own
+  // internally-tracked raw final width/height to onResizeEnd, independent of
+  // whatever handleNodesChange computes below — so without this, a mid-resize
+  // size-match snap is visible while dragging a corner handle but silently
+  // reverts to the raw, unmatched size the instant it's released. Read via
+  // getLastComputedSize (passed through node data, since the component that
+  // needs it — FloorPlanTableNode — is a different component than the one
+  // that owns this ref).
+  const lastComputedSizeRef = useRef<Map<string, { width: number; height: number }>>(new Map());
+
+  const getLastComputedSize = useCallback((tableId: string) => {
+    const value = lastComputedSizeRef.current.get(tableId);
+    lastComputedSizeRef.current.delete(tableId);
+    return value;
+  }, []);
+```
+
+- [ ] **Step 3: Extend `handleNodesChange` to handle resize dimension changes**
 
 Find:
 
 ```tsx
         if (snap.x === undefined && snap.y === undefined) return change;
-        return {
-          ...change,
-          position: {
-            x: snap.x ?? change.position.x,
-            y: snap.y ?? change.position.y
-          }
-        };
+        return { ...change, position: resolved };
       }
 
       return change;
     });
 
     onNodesChange(adjusted);
-  }, [tables, onNodesChange, storeApi]);
+  }, [tables, onNodesChange]);
 ```
 
 Replace with:
 
 ```tsx
         if (snap.x === undefined && snap.y === undefined) return change;
-        return {
-          ...change,
-          position: {
-            x: snap.x ?? change.position.x,
-            y: snap.y ?? change.position.y
-          }
-        };
+        return { ...change, position: resolved };
       }
 
-      if (change.type === 'dimensions' && change.resizing && change.dimensions) {
+      // Resize's `resizing` is always explicitly true or false (never
+      // undefined) for a resize-originated change — there's no keyboard
+      // equivalent to worry about here the way position had, so this can
+      // check both frames directly rather than needing the `!== undefined`
+      // widening position needed.
+      if (change.type === 'dimensions' && change.dimensions) {
+        const activeTable = tables.find(t => t.id === change.id);
+        if (!activeTable?.layout) return change;
+
         const others = tables
           .filter(t => t.id !== change.id && t.layout)
           .map(t => ({ id: t.id, width: t.layout!.width, height: t.layout!.height }));
 
         const snap = computeSizeSnap(change.dimensions.width, change.dimensions.height, others, threshold);
-        setGuideState({ matchedTableId: snap.matchedWidthId ?? snap.matchedHeightId });
+
+        if (change.resizing === true) {
+          setGuideState({ matchedTableId: snap.matchedWidthId ?? snap.matchedHeightId });
+        } else if (change.resizing === false) {
+          setGuideState(null);
+        }
+
+        const resolvedSize = {
+          width: snap.width ?? change.dimensions.width,
+          height: snap.height ?? change.dimensions.height
+        };
+        lastComputedSizeRef.current.set(change.id, resolvedSize);
 
         if (snap.width === undefined && snap.height === undefined) return change;
-        return {
-          ...change,
-          dimensions: {
-            width: snap.width ?? change.dimensions.width,
-            height: snap.height ?? change.dimensions.height
-          }
-        };
-      }
-
-      if (change.type === 'dimensions' && !change.resizing) {
-        setGuideState(null);
+        return { ...change, dimensions: resolvedSize };
       }
 
       return change;
     });
 
     onNodesChange(adjusted);
-  }, [tables, onNodesChange, storeApi]);
+  }, [tables, onNodesChange]);
 ```
 
-The `!change.resizing` cleanup branch relies on `@xyflow/react`'s `NodeResizeControl` emitting a final `{ type: 'dimensions', resizing: false, dimensions: {...} }` change when a resize ends (confirmed directly in the installed package's source, in the same `onEnd` callback this feature's earlier resize work already relies on for committing the final size) — so this fires reliably through the same pipeline, without needing to reach into `FloorPlanTableNode.tsx`'s resize-end handler.
+- [ ] **Step 4: Render the size-match highlight and thread `getLastComputedSize` into node data**
 
-- [ ] **Step 3: Render the size-match highlight**
+Find:
+
+```tsx
+        return {
+          id: table.id,
+          type: 'tableNode' as const,
+          position: { x: table.layout.x, y: table.layout.y },
+          data: {
+            table,
+            occupants,
+            capacity: getEffectiveCapacity(table),
+            onUpdateLayout
+          }
+        };
+```
+
+Replace with:
+
+```tsx
+        return {
+          id: table.id,
+          type: 'tableNode' as const,
+          position: { x: table.layout.x, y: table.layout.y },
+          data: {
+            table,
+            occupants,
+            capacity: getEffectiveCapacity(table),
+            onUpdateLayout,
+            getLastComputedSize
+          }
+        };
+```
 
 Find:
 
@@ -697,7 +760,9 @@ Replace with:
         onNodesChange={handleNodesChange}
 ```
 
-- [ ] **Step 4: Consume the highlight flag in `FloorPlanTableNode.tsx`**
+`derivedNodes`'s `useMemo` dependency array (`[tables, guestsByTable, onUpdateLayout]`) does not need `getLastComputedSize` added — it's a `useCallback` with an empty dependency array (declared in Step 2), so its identity is stable for the lifetime of the component and including it wouldn't change when the memo recomputes; omitting it is intentional here, matching how `onUpdateLayout` (a prop, not a ref-backed callback) is already the only externally-varying callback in that list.
+
+- [ ] **Step 5: Consume the highlight flag and the size-persistence fix in `FloorPlanTableNode.tsx`**
 
 Find:
 
@@ -719,6 +784,7 @@ export type FloorPlanNodeData = {
   capacity: number | undefined;
   onUpdateLayout: (tableId: string, layout: NonNullable<Table['layout']>) => void;
   isSizeMatchTarget?: boolean;
+  getLastComputedSize?: (tableId: string) => { width: number; height: number } | undefined;
 };
 ```
 
@@ -733,7 +799,38 @@ Replace with:
 
 ```tsx
 export function FloorPlanTableNode({ data, selected, width, height }: NodeProps<FloorPlanNode>) {
-  const { table, occupants, capacity, onUpdateLayout, isSizeMatchTarget } = data;
+  const { table, occupants, capacity, onUpdateLayout, isSizeMatchTarget, getLastComputedSize } = data;
+```
+
+Find:
+
+```tsx
+  const handleResizeEnd = useCallback((_event: unknown, params: { x: number; y: number; width: number; height: number }) => {
+    if (!layout) return;
+    onUpdateLayout(table.id, { ...layout, x: params.x, y: params.y, width: params.width, height: params.height });
+  }, [layout, onUpdateLayout, table.id]);
+```
+
+Replace with:
+
+```tsx
+  const handleResizeEnd = useCallback((_event: unknown, params: { x: number; y: number; width: number; height: number }) => {
+    if (!layout) return;
+    // params carries React Flow's own raw final width/height, independent of
+    // whatever size-matching TableFloorPlan's handleNodesChange computed for
+    // this resize (see that file's lastComputedSizeRef comment) — read the
+    // resolved (possibly snapped) size from there when available, falling
+    // back to the raw params only if nothing was tracked (e.g. a resize with
+    // no movement).
+    const resolvedSize = getLastComputedSize?.(table.id);
+    onUpdateLayout(table.id, {
+      ...layout,
+      x: params.x,
+      y: params.y,
+      width: resolvedSize?.width ?? params.width,
+      height: resolvedSize?.height ?? params.height
+    });
+  }, [layout, onUpdateLayout, table.id, getLastComputedSize]);
 ```
 
 Find:
@@ -758,18 +855,18 @@ Replace with:
         }`}
 ```
 
-- [ ] **Step 5: Verify**
+- [ ] **Step 6: Verify**
 
 Run: `npx tsc --noEmit` — expect clean.
 
-Run: `npm run dev`, visit `/admin/tables` → Floor Plan tab, place at least two tables of different sizes.
-- Resize one table until its width or height gets close to another table's matching dimension — confirm it snaps to match exactly, and the OTHER (matched) table gets a thin blue ring while the resize is in progress.
-- Release the resize — confirm the blue ring disappears from the matched table and the resized table keeps the matched size.
-- Confirm width and height can match different tables independently (resize a table so its width matches table A and its height matches table B — both should snap, each showing its own guide feedback correctly even though the visual ring only tracks one `matchedTableId` at a time — verify this is at least not visually broken, e.g. no ring flicker or wrong table highlighted, even if only one match is visually indicated at once).
-- Confirm the gold selection ring still takes priority in appearance if a table is somehow both selected and a size-match target (shouldn't normally co-occur since the actively-resized table is the selected one and the target is a different table, but the className logic should still make sense if it ever does).
+Run: `npm run dev`, visit `/admin/tables` → Floor Plan tab, place at least two tables of different sizes (or use a temporary Playwright harness against mock data if admin credentials aren't available, per this feature's established pattern — delete harness files and stop any dev server you started before finishing).
+- Resize one table until its width or height gets close to another table's matching dimension — confirm it snaps to match exactly **during** the drag, and the OTHER (matched) table gets a thin blue ring while the resize is in progress.
+- Release the resize — confirm the blue ring disappears from the matched table, and — this is the check that matters most, mirroring what Task 3 got wrong before its fix — confirm the resized table's **committed** size (reload the page to be sure) is genuinely the matched size, not the raw pre-snap size.
+- Confirm width and height can match different tables independently (resize a table so its width matches table A and its height matches table B — both should snap; only one table's ring shows at a time via `matchedTableId`, which is fine — not a bug).
 - Confirm dragging (Task 3) and grid snap (Task 1) still both work unaffected.
+- Confirm a resize with no nearby matching size behaves exactly as it did before this task (free resize, no ring, no snap).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/components/admin/tables/TableFloorPlan.tsx src/components/admin/tables/FloorPlanTableNode.tsx
