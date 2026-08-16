@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronDown, X, ZoomIn } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { X, ZoomIn } from 'lucide-react';
 import { useDeadline } from '@/features/rsvp/hooks/useRsvpInvite';
 
 interface FAQItemProps {
@@ -12,61 +11,33 @@ interface FAQItemProps {
 }
 
 const FAQItem: React.FC<FAQItemProps> = ({ question, answer, image, onImageClick }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [hasOpened, setHasOpened] = useState(false);
-
-  const toggleOpen = () => {
-    setIsOpen(prev => !prev);
-    setHasOpened(true);
-  };
-
   return (
-    <div className="border-b border-wedding-gold/10 last:border-0">
-      <button
-        onClick={toggleOpen}
-        className="w-full py-6 flex items-center justify-between text-left group transition-all"
-      >
-        <span className="font-serif text-lg md:text-xl text-wedding-dark group-hover:text-wedding-gold transition-colors pr-8">
-          {question}
-        </span>
-        <ChevronDown 
-          className={cn(
-            "w-5 h-5 text-wedding-gold/50 transition-transform duration-300 shrink-0",
-            isOpen && "rotate-180 text-wedding-gold"
-          )} 
-        />
-      </button>
-      <div 
-        className={cn(
-          "grid transition-all duration-300 ease-in-out",
-          isOpen ? "grid-rows-[1fr] opacity-100 mb-6" : "grid-rows-[0fr] opacity-0"
-        )}
-      >
-        <div className="overflow-hidden">
-          <div className="font-serif italic text-wedding-dark/60 leading-relaxed md:text-lg whitespace-pre-line">
-            {answer}
-          </div>
-          {image && hasOpened && (
-            <div
-              className="mt-4 rounded-xl overflow-hidden border border-wedding-gold/20 shadow-sm relative group/image cursor-zoom-in"
-              onClick={() => onImageClick?.(image)}
-            >
-              <img
-                src={image}
-                alt="Overview"
-                className="w-full h-auto transition-transform duration-500 group-hover/image:scale-105"
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover/image:opacity-100">
-                <div className="bg-white/80 p-2 rounded-full shadow-lg">
-                  <ZoomIn className="w-5 h-5 text-wedding-dark" />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+    <div className="border-b border-wedding-gold/10 last:border-0 py-6">
+      <span className="font-serif text-xl md:text-2xl text-wedding-dark pr-8 block mb-4">
+        {question}
+      </span>
+      <div className="font-serif italic text-wedding-dark/60 leading-relaxed text-lg md:text-xl whitespace-pre-line">
+        {answer}
       </div>
+      {image && (
+        <div
+          className="mt-4 rounded-xl overflow-hidden border border-wedding-gold/20 shadow-sm relative group/image cursor-zoom-in"
+          onClick={() => onImageClick?.(image)}
+        >
+          <img
+            src={image}
+            alt="Overview"
+            className="w-full h-auto transition-transform duration-500 group-hover/image:scale-105"
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover/image:opacity-100">
+            <div className="bg-white/80 p-2 rounded-full shadow-lg">
+              <ZoomIn className="w-5 h-5 text-wedding-dark" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -87,7 +58,7 @@ export default function FAQSection() {
     },
     {
       question: "Can I bring a plus one?",
-      answer: "Due to venue capacity, we can only accommodate guests specifically named on the invitation. Your digital RSVP will show exactly how many seats have been reserved for your party."
+      answer: <>Unfortunately, no. Due to strict venue capacity limits, we can only accommodate guests explicitly listed on the invitation. This includes drivers, yayas/helpers, and additional friends or family members.<br /><br />Your digital RSVP will show the exact number of seats reserved for your party. Thank you so much for understanding!</>
     },
     {
       question: "What is the RSVP deadline?",
@@ -97,7 +68,7 @@ export default function FAQSection() {
     },
     {
       question: "Are children allowed?",
-      answer: <>While we love your little ones, we have decided to have an adults-only celebration to allow all our guests to fully enjoy the evening. We appreciate your understanding <b>(Infants included by special invitation of the couple and relatives are exempted)</b>.</>
+      answer: <>While we love your little ones, we have decided to have an <b>adults-only</b> celebration to allow all our guests to fully enjoy the evening. We appreciate your understanding <b>(Infants included by special invitation of the couple and relatives are exempted)</b>.</>
     }
   ];
 
