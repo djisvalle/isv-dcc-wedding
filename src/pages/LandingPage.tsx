@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import Countdown from '@/components/shared/Countdown';
 import VenueSection from '@/components/shared/VenueSection';
+import EntourageSection from '@/components/shared/EntourageSection';
 import DressCodeSection from '@/components/shared/DressCodeSection';
 import ProgramSection from '@/components/shared/ProgramSection';
 import GiftsSection from '@/components/shared/GiftsSection';
@@ -81,7 +82,9 @@ export default function LandingPage() {
       <div ref={venueRef}>
         <VenueSection />
       </div>
-      
+
+      <EntourageSection />
+
       <DressCodeSection />
 
       <ProgramSection />
