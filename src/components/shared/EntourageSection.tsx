@@ -56,28 +56,41 @@ const groomsmenAndBridesmaids: [string, string][] = [
 ];
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs mb-4 text-center">
+  <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs mb-2 text-center">
     {children}
   </h4>
 );
 
-const NamePairGrid: React.FC<{ pairs: [string, string][] }> = ({ pairs }) => (
-  <div className="bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] p-6 md:p-10">
+const NamePairColumn: React.FC<{ pairs: [string, string][] }> = ({ pairs }) => (
+  <div>
     {pairs.map(([left, right], index) => (
       <div
         key={index}
-        className="grid grid-cols-2 gap-4 py-3 border-b border-wedding-gold/10 last:border-0 text-center"
+        className="grid grid-cols-2 gap-3 py-1.5 border-b border-wedding-gold/10 last:border-0 text-center"
       >
-        <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg">{left}</p>
-        <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg">{right}</p>
+        <p className="font-serif italic text-wedding-dark/60 text-sm md:text-base">{left}</p>
+        <p className="font-serif italic text-wedding-dark/60 text-sm md:text-base">{right}</p>
       </div>
     ))}
   </div>
 );
 
+const NamePairGrid: React.FC<{ pairs: [string, string][] }> = ({ pairs }) => {
+  const half = Math.ceil(pairs.length / 2);
+  const firstHalf = pairs.slice(0, half);
+  const secondHalf = pairs.slice(half);
+
+  return (
+    <div className="bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2rem] p-5 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-x-8">
+      <NamePairColumn pairs={firstHalf} />
+      {secondHalf.length > 0 && <NamePairColumn pairs={secondHalf} />}
+    </div>
+  );
+};
+
 export default function EntourageSection() {
   return (
-    <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden" id="entourage-section">
+    <section className="py-12 md:py-16 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden" id="entourage-section">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -85,90 +98,90 @@ export default function EntourageSection() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="max-w-4xl mx-auto"
       >
-        <div className="text-center mb-10 md:mb-16">
-          <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-6 opacity-60">
+        <div className="text-center mb-8 md:mb-10">
+          <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-4 opacity-60">
             Mga Abay
           </h2>
           <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark">Entourage</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
             <SectionLabel>Officiating Minister</SectionLabel>
-            <p className="font-serif italic text-wedding-dark/60 text-lg md:text-xl text-center">
+            <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg text-center">
               {officiatingMinister}
             </p>
           </div>
           <div>
             <SectionLabel>Expositor</SectionLabel>
-            <p className="font-serif italic text-wedding-dark/60 text-lg md:text-xl text-center">
+            <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg text-center">
               {expositors}
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
             <SectionLabel>Parents of the Groom</SectionLabel>
-            <div className="space-y-1 text-center">
+            <div className="text-center">
               {parentsOfGroom.map(name => (
-                <p key={name} className="font-serif italic text-wedding-dark/60 text-lg">{name}</p>
+                <p key={name} className="font-serif italic text-wedding-dark/60 text-base">{name}</p>
               ))}
             </div>
           </div>
           <div>
             <SectionLabel>Parents of the Bride</SectionLabel>
-            <div className="space-y-1 text-center">
+            <div className="text-center">
               {parentsOfBride.map(name => (
-                <p key={name} className="font-serif italic text-wedding-dark/60 text-lg">{name}</p>
+                <p key={name} className="font-serif italic text-wedding-dark/60 text-base">{name}</p>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="mb-16">
-          <h3 className="font-ballet text-3xl md:text-4xl text-wedding-dark text-center mb-8">
+        <div className="mb-8">
+          <h3 className="font-ballet text-2xl md:text-3xl text-wedding-dark text-center mb-4">
             Principal Sponsors
           </h3>
           <NamePairGrid pairs={principalSponsors} />
         </div>
 
-        <div className="mb-16">
-          <h3 className="font-ballet text-3xl md:text-4xl text-wedding-dark text-center mb-8">
+        <div className="mb-8">
+          <h3 className="font-ballet text-2xl md:text-3xl text-wedding-dark text-center mb-4">
             Secondary Sponsors
           </h3>
-          <div className="bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] p-8 md:p-12 space-y-8">
+          <div className="bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2rem] p-5 md:p-8 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
             {secondarySponsors.map(sponsor => (
               <div key={sponsor.role} className="text-center">
-                <p className="font-sans text-wedding-gold text-xs uppercase tracking-[0.2em] mb-3">
+                <p className="font-sans text-wedding-gold text-xs uppercase tracking-[0.2em] mb-1.5">
                   {sponsor.role}
                 </p>
-                <div className="grid grid-cols-2 gap-4 max-w-xl mx-auto">
-                  <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg">{sponsor.groom}</p>
-                  <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg">{sponsor.bride}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <p className="font-serif italic text-wedding-dark/60 text-sm md:text-base">{sponsor.groom}</p>
+                  <p className="font-serif italic text-wedding-dark/60 text-sm md:text-base">{sponsor.bride}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
             <SectionLabel>Best Man</SectionLabel>
-            <p className="font-serif italic text-wedding-dark/60 text-lg md:text-xl text-center">
+            <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg text-center">
               {bestMan}
             </p>
           </div>
           <div>
             <SectionLabel>Maid of Honor</SectionLabel>
-            <p className="font-serif italic text-wedding-dark/60 text-lg md:text-xl text-center">
+            <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg text-center">
               {maidOfHonor}
             </p>
           </div>
         </div>
 
         <div>
-          <h3 className="font-ballet text-3xl md:text-4xl text-wedding-dark text-center mb-8">
+          <h3 className="font-ballet text-2xl md:text-3xl text-wedding-dark text-center mb-4">
             Groomsmen &amp; Bridesmaids
           </h3>
           <NamePairGrid pairs={groomsmenAndBridesmaids} />
