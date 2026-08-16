@@ -20,7 +20,7 @@ export default function LandingPage() {
   const weddingDate = "2027-01-08T00:00:00";
 
   return (
-    <div className="min-h-screen bg-wedding-cream relative">
+    <div className="guest-site min-h-screen bg-wedding-cream relative">
       <div className="min-h-[100dvh] relative overflow-hidden flex flex-col items-center justify-center pt-20 pb-20 px-6 text-center">
         {/* Background Decor */}
         <div className="absolute top-0 left-0 w-full h-full -z-10 opacity-5 pointer-events-none">
