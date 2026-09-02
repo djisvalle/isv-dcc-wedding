@@ -20,6 +20,7 @@ export default function LandingPage() {
   const [searchParams] = useSearchParams();
   const rawInviteId = searchParams.get('inviteUrl') || searchParams.get('invite') || searchParams.get('id');
   const inviteId = rawInviteId?.trim().replace(/\/+$/, '');
+  const landingPhotoRef = useRef<HTMLDivElement>(null);
   const venueRef = useRef<HTMLDivElement>(null);
   const entourageRef = useRef<HTMLDivElement>(null);
   const dressCodeRef = useRef<HTMLDivElement>(null);
@@ -45,7 +46,9 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-wedding-cream relative">
-      <LandingPhotoSection />
+      <div ref={landingPhotoRef}>
+        <LandingPhotoSection />
+      </div>
 
       <div className="min-h-[100dvh] relative overflow-hidden flex flex-col items-center justify-center pt-20 pb-20 px-6 text-center">
         {/* Background Decor */}
@@ -146,7 +149,7 @@ export default function LandingPage() {
 
       <EndPhotoSection />
 
-      <SectionNav items={navItems} />
+      <SectionNav items={navItems} hideWhileVisibleRef={landingPhotoRef} />
     </div>
   );
 }
