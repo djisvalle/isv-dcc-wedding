@@ -13,14 +13,33 @@ import GiftsSection from '@/components/shared/GiftsSection';
 import FAQSection from '@/components/shared/FAQSection';
 import RSVPSection from '@/components/shared/RSVPSection';
 import EndPhotoSection from '@/components/shared/EndPhotoSection';
-import { useRef } from 'react';
+import SectionNav from '@/components/shared/SectionNav';
+import { useMemo, useRef } from 'react';
 
 export default function LandingPage() {
   const [searchParams] = useSearchParams();
   const rawInviteId = searchParams.get('inviteUrl') || searchParams.get('invite') || searchParams.get('id');
   const inviteId = rawInviteId?.trim().replace(/\/+$/, '');
-  const rsvpRef = useRef<HTMLDivElement>(null);
   const venueRef = useRef<HTMLDivElement>(null);
+  const entourageRef = useRef<HTMLDivElement>(null);
+  const dressCodeRef = useRef<HTMLDivElement>(null);
+  const programRef = useRef<HTMLDivElement>(null);
+  const giftsRef = useRef<HTMLDivElement>(null);
+  const faqRef = useRef<HTMLDivElement>(null);
+  const rsvpRef = useRef<HTMLDivElement>(null);
+
+  const navItems = useMemo(
+    () => [
+      { id: 'venue', label: 'Venue', targetRef: venueRef },
+      { id: 'entourage', label: 'Entourage', targetRef: entourageRef },
+      { id: 'dress-code', label: 'Dress Code', targetRef: dressCodeRef },
+      { id: 'program', label: 'Program', targetRef: programRef },
+      { id: 'gifts', label: 'Gifts', targetRef: giftsRef },
+      { id: 'faq', label: 'FAQ', targetRef: faqRef },
+      ...(inviteId ? [{ id: 'rsvp', label: 'RSVP', targetRef: rsvpRef }] : []),
+    ],
+    [inviteId]
+  );
 
   const weddingDate = "2027-01-08T00:00:00";
 
@@ -94,17 +113,27 @@ export default function LandingPage() {
 
       <SecondPhotoSection />
 
-      <EntourageSection />
+      <div ref={entourageRef}>
+        <EntourageSection />
+      </div>
 
       <MidPhotoSection />
 
-      <DressCodeSection />
+      <div ref={dressCodeRef}>
+        <DressCodeSection />
+      </div>
 
-      <ProgramSection />
+      <div ref={programRef}>
+        <ProgramSection />
+      </div>
 
-      <GiftsSection />
-      
-      <FAQSection />
+      <div ref={giftsRef}>
+        <GiftsSection />
+      </div>
+
+      <div ref={faqRef}>
+        <FAQSection />
+      </div>
 
       {inviteId && (
         <div ref={rsvpRef} className="relative z-10">
@@ -116,6 +145,8 @@ export default function LandingPage() {
       )}
 
       <EndPhotoSection />
+
+      <SectionNav items={navItems} />
     </div>
   );
 }
