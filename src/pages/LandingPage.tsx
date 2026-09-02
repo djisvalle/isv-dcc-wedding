@@ -15,6 +15,7 @@ import RSVPSection from '@/components/shared/RSVPSection';
 import EndPhotoSection from '@/components/shared/EndPhotoSection';
 import SixthPhotoSection from '@/components/shared/SixthPhotoSection';
 import SeventhPhotoSection from '@/components/shared/SeventhPhotoSection';
+import RSVPPhotoSection from '@/components/shared/RSVPPhotoSection';
 import SectionNav from '@/components/shared/SectionNav';
 import { useMemo, useRef } from 'react';
 
@@ -145,12 +146,16 @@ export default function LandingPage() {
       </div>
 
       {inviteId && (
-        <div ref={rsvpRef} className="relative z-10">
-          <div className="bg-white/40 backdrop-blur-md">
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-wedding-gold/20 to-transparent" />
-            <RSVPSection inviteId={inviteId} />
+        <>
+          <RSVPPhotoSection />
+
+          <div ref={rsvpRef} className="relative z-10">
+            <div className="bg-white/40 backdrop-blur-md">
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-wedding-gold/20 to-transparent" />
+              <RSVPSection inviteId={inviteId} />
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <EndPhotoSection />
