@@ -145,18 +145,34 @@ export default function AdminInvites() {
         const rows = await parseExcelRows(e.target?.result as ArrayBuffer) as any[];
 
         // Each row creates an independent invite, so they can run concurrently
-        // instead of one round-trip at a time.
+        // instead of one round-trip at a time. Guest import_order must still
+        // land as one unbroken, non-repeating sequence ordered by invite row
+        // then by position in that row's guests column, so the per-row
+        // starting offsets are computed up front rather than left to each
+        // invite's own local counter.
         const validRows = rows.filter(row => row.inviteName || row.name);
+        const existingMaxOrder = guests.length > 0
+          ? Math.max(...guests.map(g => g.import_order || 0))
+          : -1;
+        let nextGuestOrder = existingMaxOrder + 1;
+        const rowsWithGuestOrder = validRows.map(row => {
+          const guestNames = (row.guests ? String(row.guests).split(',').map((s: string) => s.trim()) : [row.name])
+            .filter(Boolean);
+          const guestStartOrder = nextGuestOrder;
+          nextGuestOrder += guestNames.length;
+          return { row, guestNames, guestStartOrder };
+        });
+
         await Promise.all(
-          validRows.map((row, rowIndex) => {
+          rowsWithGuestOrder.map(({ row, guestNames, guestStartOrder }, rowIndex) => {
             const inviteId = row.inviteId || generateInviteId();
             const name = row.inviteName || row.name;
-            const guestNames = row.guests ? String(row.guests).split(',').map((s: string) => s.trim()) : [row.name];
             return createInviteWithGuests(
               inviteId,
               { name, import_order: rowIndex },
               guestNames,
-              row.role || null
+              row.role || null,
+              guestStartOrder
             );
           })
         );
@@ -169,9 +185,9 @@ export default function AdminInvites() {
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [guests]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],

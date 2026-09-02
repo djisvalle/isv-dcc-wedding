@@ -10,14 +10,14 @@ export default function DressCodeSection() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="max-w-4xl mx-auto text-center"
       >
-        <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-6 opacity-60">
+        <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-anaktoria text-wedding-gold mb-6 opacity-60">
           Kasuotan
         </h2>
         <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-12">Dress Code</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
           <div className="space-y-6">
-            <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Gentlemen</h4>
+            <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Gentlemen</h4>
             <div className="p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
               <div className="mb-8 overflow-hidden rounded-2xl aspect-[3/4] max-w-[160px] mx-auto border border-wedding-gold/10 shadow-sm group">
                 <img
@@ -29,18 +29,18 @@ export default function DressCodeSection() {
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <p className="font-serif italic text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
+              <p className="font-anaktoria text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
                 Classic Polo
               </p>
               <div className="mt-6 h-px w-10 bg-wedding-gold/20 mx-auto" />
-              <p className="mt-6 text-sm font-sans text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed">
+              <p className="mt-6 text-sm font-anaktoria text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed">
                 Long-sleeve, any color
               </p>
             </div>
           </div>
 
           <div className="space-y-6">
-            <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Ladies</h4>
+            <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Ladies</h4>
             <div className="p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
               <div className="mb-8 overflow-hidden rounded-2xl aspect-[3/4] max-w-[160px] mx-auto border border-wedding-gold/10 shadow-sm group">
                 <img
@@ -52,11 +52,11 @@ export default function DressCodeSection() {
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <p className="font-serif italic text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
+              <p className="font-anaktoria text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
                 Soft, Airy Long Gown
               </p>
               <div className="mt-6 h-px w-10 bg-wedding-gold/20 mx-auto" />
-              <p className="mt-6 text-sm font-sans text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed font-medium">
+              <p className="mt-6 text-sm font-anaktoria text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed font-medium">
                 Any color except white
               </p>
             </div>

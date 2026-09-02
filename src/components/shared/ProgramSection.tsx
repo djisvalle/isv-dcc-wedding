@@ -37,6 +37,7 @@ const programItems = [
 export default function ProgramSection() {
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-white relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-10 md:h-14 bg-gradient-to-b from-wedding-cream/80 to-transparent pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -44,7 +45,7 @@ export default function ProgramSection() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="max-w-4xl mx-auto text-center"
       >
-        <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-6 opacity-60">
+        <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-anaktoria text-wedding-gold mb-6 opacity-60">
           Daloy ng Pagdiriwang
         </h2>
         <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-16">Programme</h3>
@@ -76,13 +77,13 @@ export default function ProgramSection() {
                   ? 'text-right pr-8 md:pr-16'
                   : 'text-left pl-8 md:pl-16'
                 }`}>
-                  <span className="font-sans font-bold text-wedding-gold text-sm tracking-[0.2em] uppercase block mb-1">
+                  <span className="font-anaktoria font-bold text-wedding-gold text-sm tracking-[0.2em] uppercase block mb-1">
                     {item.time}
                   </span>
-                  <h4 className="font-serif text-xl text-wedding-dark mb-1">
+                  <h4 className="font-anaktoria text-xl text-wedding-dark mb-1">
                     {item.event}
                   </h4>
-                  <p className="font-serif italic text-wedding-dark/60 text-base leading-relaxed">
+                  <p className="font-anaktoria text-wedding-dark/60 text-base leading-relaxed">
                     {item.description}
                   </p>
                 </div>

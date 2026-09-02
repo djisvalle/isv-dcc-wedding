@@ -5,7 +5,8 @@ export async function createInviteWithGuests(
   inviteId: string,
   inviteData: { name: string; import_order: number },
   guestNames: string[],
-  role: string | null = null
+  role: string | null = null,
+  guestStartOrder = 0
 ): Promise<void> {
   const validNames = guestNames.filter(Boolean);
   const inviteRef = doc(db, 'invites', inviteId);
@@ -29,7 +30,7 @@ export async function createInviteWithGuests(
 
   // 499 guests per chunk leaves room for the invite write in the first batch.
   const GUEST_CHUNK = 499;
-  let guestIndex = 0;
+  let guestIndex = guestStartOrder;
   for (let i = 0; i < validNames.length; i += GUEST_CHUNK) {
     const slice = validNames.slice(i, i + GUEST_CHUNK);
     const batch = writeBatch(db);

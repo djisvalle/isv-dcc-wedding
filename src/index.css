@@ -21,21 +21,6 @@
   --color-wedding-dark: #1A1A1A;
 }
 
-/* Scopes the Anaktoria swap to the public-facing guest site only (see the
-   `guest-site` class on LandingPage.tsx's root element) by overriding the
-   shared --font-serif custom property's value within this class. Every
-   element already styled with `font-serif` — via the h1-h6 base rule
-   below, or an explicit `font-serif` utility on decorative paragraph copy
-   — inherits this overridden value automatically, with no component-level
-   className changes needed anywhere else. The admin dashboard never
-   receives this class, so it keeps resolving --font-serif to Cormorant
-   Garamond. `font-ballet` usages are unaffected either way: Tailwind v4's
-   utilities layer already overrides the `@layer base` rule below
-   regardless of what --font-serif itself resolves to. */
-.guest-site {
-  --font-serif: "Anaktoria", serif;
-}
-
 @layer base {
   body {
     @apply bg-wedding-cream text-wedding-dark font-sans;

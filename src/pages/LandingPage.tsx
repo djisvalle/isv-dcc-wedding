@@ -1,13 +1,18 @@
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import Countdown from '@/components/shared/Countdown';
+import LandingPhotoSection from '@/components/shared/LandingPhotoSection';
+import FirstPhotoSection from '@/components/shared/FirstPhotoSection';
+import SecondPhotoSection from '@/components/shared/SecondPhotoSection';
 import VenueSection from '@/components/shared/VenueSection';
 import EntourageSection from '@/components/shared/EntourageSection';
+import MidPhotoSection from '@/components/shared/MidPhotoSection';
 import DressCodeSection from '@/components/shared/DressCodeSection';
 import ProgramSection from '@/components/shared/ProgramSection';
 import GiftsSection from '@/components/shared/GiftsSection';
 import FAQSection from '@/components/shared/FAQSection';
 import RSVPSection from '@/components/shared/RSVPSection';
+import EndPhotoSection from '@/components/shared/EndPhotoSection';
 import { useRef } from 'react';
 
 export default function LandingPage() {
@@ -20,7 +25,9 @@ export default function LandingPage() {
   const weddingDate = "2027-01-08T00:00:00";
 
   return (
-    <div className="guest-site min-h-screen bg-wedding-cream relative">
+    <div className="min-h-screen bg-wedding-cream relative">
+      <LandingPhotoSection />
+
       <div className="min-h-[100dvh] relative overflow-hidden flex flex-col items-center justify-center pt-20 pb-20 px-6 text-center">
         {/* Background Decor */}
         <div className="absolute top-0 left-0 w-full h-full -z-10 opacity-5 pointer-events-none">
@@ -40,9 +47,9 @@ export default function LandingPage() {
             initial={{ opacity: 0, letterSpacing: "0.2em" }}
             animate={{ opacity: 0.6, letterSpacing: "0.4em" }}
             transition={{ duration: 1.5, delay: 0.5 }}
-            className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-8 md:mb-12"
+            className="text-xs md:text-sm uppercase tracking-[0.4em] font-anaktoria text-wedding-gold mb-8 md:mb-12"
           >
-            Ang kasalan ni
+            Ang kasalan nina
           </motion.h2>
           
           <div className="relative mb-8 md:mb-12">
@@ -56,7 +63,7 @@ export default function LandingPage() {
           <div className="h-px w-12 md:w-20 bg-wedding-gold/30 mx-auto mb-8 md:mb-14" />
 
           <div className="space-y-4 md:space-y-6 mb-10 md:mb-20">
-            <p className="text-base md:text-xl font-serif italic text-wedding-gold max-w-[280px] md:max-w-xl mx-auto leading-relaxed">
+            <p className="text-base md:text-xl font-anaktoria text-wedding-gold max-w-[280px] md:max-w-xl mx-auto leading-relaxed">
               Sa basbas ng Diyos at ng aming mga pamilya,<br />
               malugod kaming nag-aanyaya sa aming<br />
               pag-iisang dibdib.
@@ -68,10 +75,10 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-4 md:mt-8">
-            <p className="font-sans text-[10px] md:text-sm tracking-[0.5em] uppercase text-wedding-dark/30 font-bold">
-              01 <span className="mx-1">•</span> 08 <span className="mx-1">•</span> 2027
+            <p className="font-anaktoria text-[13px] md:text-sm tracking-[0.5em] uppercase text-wedding-dark/30 font-bold">
+              01 <span className="mx-1">.</span> 08 <span className="mx-1">.</span> 2027
             </p>
-            <p className="font-sans text-[10px] md:text-xs tracking-[0.3em] uppercase text-wedding-gold font-medium mt-2">
+            <p className="font-anaktoria text-[13px] md:text-xs tracking-[0.3em] uppercase text-wedding-gold font-medium mt-2">
               3:00 PM
             </p>
 
@@ -79,11 +86,17 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
+      <FirstPhotoSection />
+
       <div ref={venueRef}>
         <VenueSection />
       </div>
 
+      <SecondPhotoSection />
+
       <EntourageSection />
+
+      <MidPhotoSection />
 
       <DressCodeSection />
 
@@ -101,6 +114,8 @@ export default function LandingPage() {
           </div>
         </div>
       )}
+
+      <EndPhotoSection />
     </div>
   );
 }

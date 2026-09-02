@@ -74,6 +74,7 @@ export default function FAQSection() {
 
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden" id="faq-section">
+      <div className="absolute inset-x-0 top-0 h-10 md:h-14 bg-gradient-to-b from-white to-transparent pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -82,7 +83,7 @@ export default function FAQSection() {
         className="max-w-3xl mx-auto"
       >
         <div className="text-center mb-10 md:mb-16">
-          <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-6 opacity-60">
+          <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-anaktoria text-wedding-gold mb-6 opacity-60">
             Mga Katanungan
           </h2>
           <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark">Frequently Asked Questions</h3>

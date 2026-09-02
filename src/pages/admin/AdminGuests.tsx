@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Download, Search, Loader2, UserCheck, UserX, UserMinus, Plus, Trash2, Upload, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react';
 import {
   collection,
   doc,
@@ -46,6 +46,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import {
   Command,
   CommandEmpty,
@@ -93,6 +99,83 @@ const EDITABLE_GUEST_FIELDS = [
   'parent_name',
 ] as const satisfies readonly (keyof Guest)[];
 
+const RSVP_STATUS_OPTIONS = [
+  { value: 'attending', label: 'Attending' },
+  { value: 'declined', label: 'Declined' },
+  { value: 'pending', label: 'Pending' },
+];
+
+const ROLE_FILTER_OPTIONS = [
+  { value: 'guest', label: 'Guest' },
+  ...GUEST_ROLES.map(role => ({ value: role, label: role })),
+];
+
+const TABLE_FILTER_OPTIONS = [
+  { value: 'assigned', label: 'Has Table' },
+  { value: 'unassigned', label: 'No Table' },
+  { value: 'bridal', label: 'Bridal Table' },
+  { value: 'vip', label: 'VIP Tables' },
+  { value: 'regular', label: 'Regular Tables' },
+];
+
+function MultiSelectFilter({
+  label,
+  placeholder,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (values: string[]) => void;
+}) {
+  const toggleValue = (value: string) => {
+    onChange(
+      selected.includes(value)
+        ? selected.filter(v => v !== value)
+        : [...selected, value]
+    );
+  };
+
+  const triggerLabel = selected.length === 0
+    ? placeholder
+    : selected.length === 1
+      ? options.find(o => o.value === selected[0])?.label ?? placeholder
+      : `${selected.length} selected`;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-[150px]">
+      <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">{label}</Label>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm font-normal justify-between gap-2 w-full text-slate-700 hover:bg-white"
+            >
+              <span className="truncate">{triggerLabel}</span>
+              <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+            </Button>
+          }
+        />
+        <DropdownMenuContent align="start" className="w-56 rounded-xl max-h-72 overflow-y-auto">
+          {options.map(opt => (
+            <DropdownMenuCheckboxItem
+              key={opt.value}
+              checked={selected.includes(opt.value)}
+              onCheckedChange={() => toggleValue(opt.value)}
+            >
+              {opt.label}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 const ROLE_PRIORITY: Record<string, number> = {
   'Groom': 1,
   'Bride': 2,
@@ -137,10 +220,10 @@ export default function AdminGuests() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Filters
-  const [statusFilter, setStatusFilter] = useState<'all' | 'attending' | 'declined' | 'pending'>('all');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [tableFilter, setTableFilter] = useState<string>('all');
+  // Filters — each holds the set of selected filter values; an empty array means no filter applied ("all")
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [roleFilter, setRoleFilter] = useState<string[]>([]);
+  const [tableFilter, setTableFilter] = useState<string[]>([]);
 
   // Searchable dropdown states
   const [invitePopoverOpen, setInvitePopoverOpen] = useState(false);
@@ -422,17 +505,19 @@ export default function AdminGuests() {
         (g.invite_name?.toLowerCase() || '').includes(debouncedSearch.toLowerCase()) ||
         (g.role?.toLowerCase() || '').includes(debouncedSearch.toLowerCase());
 
-      const statusMatch = statusFilter === 'all' ||
-        (statusFilter === 'attending' && g.is_coming === true) ||
-        (statusFilter === 'declined' && g.is_coming === false) ||
-        (statusFilter === 'pending' && g.is_coming === null);
+      const statusMatch = statusFilter.length === 0 ||
+        (statusFilter.includes('attending') && g.is_coming === true) ||
+        (statusFilter.includes('declined') && g.is_coming === false) ||
+        (statusFilter.includes('pending') && g.is_coming === null);
 
-      const roleMatch = roleFilter === 'all' || g.role === roleFilter || (roleFilter === 'guest' && !g.role);
+      const roleMatch = roleFilter.length === 0 ||
+        (g.role ? roleFilter.includes(g.role) : roleFilter.includes('guest'));
 
-      const tableMatch = tableFilter === 'all' ||
-        (tableFilter === 'assigned' && g.table_type) ||
-        (tableFilter === 'unassigned' && !g.table_type) ||
-        g.table_type === tableFilter;
+      const tableMatch = tableFilter.length === 0 || tableFilter.some(f =>
+        (f === 'assigned' && g.table_type) ||
+        (f === 'unassigned' && !g.table_type) ||
+        g.table_type === f
+      );
 
       return searchMatch && statusMatch && roleMatch && tableMatch;
     });
@@ -834,59 +919,38 @@ export default function AdminGuests() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <div className="flex flex-col gap-1.5 min-w-[150px]">
-             <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">RSVP Status</Label>
-              <select
-                className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as any);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All Responses</option>
-                <option value="attending">Attending</option>
-                <option value="declined">Declined</option>
-                <option value="pending">Pending</option>
-              </select>
-          </div>
-          
-          <div className="flex flex-col gap-1.5 min-w-[150px]">
-             <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Role</Label>
-              <select
-                className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm"
-                value={roleFilter}
-                onChange={(e) => {
-                  setRoleFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All Roles</option>
-                <option value="guest">Guest</option>
-                {GUEST_ROLES.map(role => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </select>
-          </div>
+          <MultiSelectFilter
+            label="RSVP Status"
+            placeholder="All Responses"
+            options={RSVP_STATUS_OPTIONS}
+            selected={statusFilter}
+            onChange={(values) => {
+              setStatusFilter(values);
+              setCurrentPage(1);
+            }}
+          />
 
-          <div className="flex flex-col gap-1.5 min-w-[150px]">
-             <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Table</Label>
-              <select
-                className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm"
-                value={tableFilter}
-                onChange={(e) => {
-                  setTableFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All Tables</option>
-                <option value="assigned">Has Table</option>
-                <option value="unassigned">No Table</option>
-                <option value="bridal">Bridal Table</option>
-                <option value="vip">VIP Tables</option>
-                <option value="regular">Regular Tables</option>
-              </select>
-          </div>
+          <MultiSelectFilter
+            label="Role"
+            placeholder="All Roles"
+            options={ROLE_FILTER_OPTIONS}
+            selected={roleFilter}
+            onChange={(values) => {
+              setRoleFilter(values);
+              setCurrentPage(1);
+            }}
+          />
+
+          <MultiSelectFilter
+            label="Table"
+            placeholder="All Tables"
+            options={TABLE_FILTER_OPTIONS}
+            selected={tableFilter}
+            onChange={(values) => {
+              setTableFilter(values);
+              setCurrentPage(1);
+            }}
+          />
 
           <div className="flex flex-col gap-1.5">
              <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1">Page Size</Label>
@@ -904,16 +968,16 @@ export default function AdminGuests() {
               </select>
           </div>
 
-          {(search || statusFilter !== 'all' || roleFilter !== 'all' || tableFilter !== 'all') && (
+          {(search || statusFilter.length > 0 || roleFilter.length > 0 || tableFilter.length > 0) && (
             <div className="flex flex-col gap-1.5">
               <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1 invisible">Clear</Label>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => {
                   setSearch('');
-                  setStatusFilter('all');
-                  setRoleFilter('all');
-                  setTableFilter('all');
+                  setStatusFilter([]);
+                  setRoleFilter([]);
+                  setTableFilter([]);
                   setCurrentPage(1);
                 }}
                 className="h-11 px-4 rounded-xl text-slate-500"

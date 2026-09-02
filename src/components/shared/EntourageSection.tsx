@@ -14,13 +14,13 @@ const principalSponsors: [string, string][] = [
   ["Rev. Miguel S. Muyot", "Ptr. Carolina C. Muyot"],
   ["Ptr. Jaime M. Isidro", "Mrs. Mary Ann R. Isidro"],
   ["Ptr. Efren T. Alzate", "Mrs. Emilia J. Alzate"],
-  ["Rev. Albert Garcia", "Mrs. Pauline M. Garcia"],
+  ["Rev. Albert Q. Garcia", "Mrs. Pauline M. Garcia"],
   ["Ptr. Arturo R. Pelias, Jr.", "Mrs. Mary Licette T. Pelias"],
-  ["Ptr. Antonio C. Goudin", "Mrs. Onette Goudin"],
+  ["Ptr. Antonio C. Goudin", "Mrs. Aurenita Goudin"],
   ["Ptr. Celerino Bargoyo", "Ptr. Jocel Bargoyo"],
   ["Rev. Vergel Montesines", "Ptr. Merlita Montesines"],
-  ["Ptr. Mark Anthony Marcon", "Mrs. Christine Marcon"],
-  ["Rev. Marc Aaron S. Abisado", "Ptr. Rosanna R. Abisado"],
+  ["Ptr. Mark Anthony Marcon", "Mrs. Christine S. Marcon"],
+  ["Rev. Marc Aaron S. Abisado", "Ptr. Rossanna R. Abisado"],
   ["Rev. John Fianza", "Ptr. Emma Fianza"],
   ["Rev. Beulah Badua", "Mrs. Barbara Delos Reyes"],
   ["Mrs. Zoraida H. Candazo", "Mrs. Gerda Cruz"],
@@ -28,16 +28,16 @@ const principalSponsors: [string, string][] = [
 ];
 
 const secondarySponsors = [
-  { role: "To light our path", groom: "Ptr. Mark Anthony Marcon", bride: "Mrs. Christine Marcon" },
+  { role: "To light our path", groom: "Ptr. Mark Anthony Marcon", bride: "Mrs. Christine S. Marcon" },
   { role: "To clothe us as one", groom: "Ptr. Arturo R. Pelias, Jr", bride: "Mrs. Mary Licette T. Pelias" },
-  { role: "To bind us together", groom: "Ptr. Albert Garcia", bride: "Mrs. Pauline M. Garcia" },
+  { role: "To bind us together", groom: "Ptr. Albert Q. Garcia", bride: "Mrs. Pauline M. Garcia" },
   { role: "To carry our symbol of faith", groom: "Ptr. Windell John Moses S. Valle", bride: "Ptr. Arianne Rachelle P. Valle" },
   { role: "To carry our symbol of love", groom: "Engr. Joel John Joshua S. Valle", bride: "Mrs. Aletheia C. Valle" },
   { role: "To carry our symbol of offering", groom: "Mr. Jose Mauro Ignacio", bride: "Mrs. Dorothy C. Ignacio" },
 ];
 
 const bestMan = "Mr. Joshua J. Alzate";
-const maidOfHonor = "Ms. Ma. Bianca Padilla";
+const maidOfHonor = "Ms. Ma. Bianca A. Padilla";
 
 const groomsmenAndBridesmaids: [string, string][] = [
   ["Mark Jason S. Sanje", "Maricel Panlaqui"],
@@ -56,7 +56,7 @@ const groomsmenAndBridesmaids: [string, string][] = [
 ];
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h4 className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs mb-2 text-center">
+  <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs mb-2 text-center">
     {children}
   </h4>
 );
@@ -64,12 +64,9 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 const NamePairColumn: React.FC<{ pairs: [string, string][] }> = ({ pairs }) => (
   <div>
     {pairs.map(([left, right], index) => (
-      <div
-        key={index}
-        className="grid grid-cols-2 gap-3 py-1.5 border-b border-wedding-gold/10 last:border-0 text-center"
-      >
-        <p className="font-serif italic text-wedding-dark/60 text-sm md:text-base">{left}</p>
-        <p className="font-serif italic text-wedding-dark/60 text-sm md:text-base">{right}</p>
+      <div key={index} className="grid grid-cols-2 gap-3 py-1 text-center">
+        <p className="font-anaktoria text-wedding-dark/60 text-sm md:text-base">{left}</p>
+        <p className="font-anaktoria text-wedding-dark/60 text-sm md:text-base">{right}</p>
       </div>
     ))}
   </div>
@@ -81,7 +78,7 @@ const NamePairGrid: React.FC<{ pairs: [string, string][] }> = ({ pairs }) => {
   const secondHalf = pairs.slice(half);
 
   return (
-    <div className="bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2rem] p-5 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-x-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
       <NamePairColumn pairs={firstHalf} />
       {secondHalf.length > 0 && <NamePairColumn pairs={secondHalf} />}
     </div>
@@ -99,7 +96,7 @@ export default function EntourageSection() {
         className="max-w-4xl mx-auto"
       >
         <div className="text-center mb-8 md:mb-10">
-          <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-4 opacity-60">
+          <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-anaktoria text-wedding-gold mb-4 opacity-60">
             Mga Abay
           </h2>
           <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark">Entourage</h3>
@@ -108,13 +105,13 @@ export default function EntourageSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
             <SectionLabel>Officiating Minister</SectionLabel>
-            <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg text-center">
+            <p className="font-anaktoria text-wedding-dark/60 text-base md:text-lg text-center">
               {officiatingMinister}
             </p>
           </div>
           <div>
             <SectionLabel>Expositor</SectionLabel>
-            <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg text-center">
+            <p className="font-anaktoria text-wedding-dark/60 text-base md:text-lg text-center">
               {expositors}
             </p>
           </div>
@@ -125,7 +122,7 @@ export default function EntourageSection() {
             <SectionLabel>Parents of the Groom</SectionLabel>
             <div className="text-center">
               {parentsOfGroom.map(name => (
-                <p key={name} className="font-serif italic text-wedding-dark/60 text-base">{name}</p>
+                <p key={name} className="font-anaktoria text-wedding-dark/60 text-base">{name}</p>
               ))}
             </div>
           </div>
@@ -133,7 +130,7 @@ export default function EntourageSection() {
             <SectionLabel>Parents of the Bride</SectionLabel>
             <div className="text-center">
               {parentsOfBride.map(name => (
-                <p key={name} className="font-serif italic text-wedding-dark/60 text-base">{name}</p>
+                <p key={name} className="font-anaktoria text-wedding-dark/60 text-base">{name}</p>
               ))}
             </div>
           </div>
@@ -150,15 +147,15 @@ export default function EntourageSection() {
           <h3 className="font-ballet text-2xl md:text-3xl text-wedding-dark text-center mb-4">
             Secondary Sponsors
           </h3>
-          <div className="bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2rem] p-5 md:p-8 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
             {secondarySponsors.map(sponsor => (
               <div key={sponsor.role} className="text-center">
-                <p className="font-sans text-wedding-gold text-xs uppercase tracking-[0.2em] mb-1.5">
+                <p className="font-anaktoria text-wedding-gold text-xs uppercase tracking-[0.2em] mb-1.5">
                   {sponsor.role}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  <p className="font-serif italic text-wedding-dark/60 text-sm md:text-base">{sponsor.groom}</p>
-                  <p className="font-serif italic text-wedding-dark/60 text-sm md:text-base">{sponsor.bride}</p>
+                  <p className="font-anaktoria text-wedding-dark/60 text-sm md:text-base">{sponsor.groom}</p>
+                  <p className="font-anaktoria text-wedding-dark/60 text-sm md:text-base">{sponsor.bride}</p>
                 </div>
               </div>
             ))}
@@ -168,13 +165,13 @@ export default function EntourageSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
             <SectionLabel>Best Man</SectionLabel>
-            <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg text-center">
+            <p className="font-anaktoria text-wedding-dark/60 text-base md:text-lg text-center">
               {bestMan}
             </p>
           </div>
           <div>
             <SectionLabel>Maid of Honor</SectionLabel>
-            <p className="font-serif italic text-wedding-dark/60 text-base md:text-lg text-center">
+            <p className="font-anaktoria text-wedding-dark/60 text-base md:text-lg text-center">
               {maidOfHonor}
             </p>
           </div>

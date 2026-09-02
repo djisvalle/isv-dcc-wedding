@@ -13,7 +13,7 @@ export default function VenueSection() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="text-center w-full"
           >
-            <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-6 opacity-60">
+            <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-anaktoria text-wedding-gold mb-6 opacity-60">
               Tagpuan
             </h2>
             <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-10">Venue</h3>
@@ -27,14 +27,14 @@ export default function VenueSection() {
                   <MapPin className="w-6 h-6 text-wedding-gold shrink-0" />
                 </div>
                 <div>
-                  <p className="font-sans font-bold text-wedding-dark uppercase tracking-[0.2em] text-sm mb-2">
+                  <p className="font-anaktoria text-wedding-dark uppercase tracking-[0.08em] text-xl md:text-2xl mb-2">
                     Puerta Real Gardens
                   </p>
-                  <p className="font-serif text-wedding-dark/50 italic mb-6 text-lg md:text-lg leading-relaxed">
-                    General Luna St, Intramuros, Manila, 1002 Metro Manila
+                  <p className="font-anaktoria uppercase text-wedding-dark/50 tracking-[0.2em] mb-6 text-[0.65rem] md:text-xs leading-relaxed">
+                    General Luna St., Intramuros, Manila
                   </p>
                   <div className="pt-8 border-t border-wedding-gold/10">
-                    <p className="text-base md:text-base font-serif italic text-wedding-gold font-bold max-w-lg mx-auto leading-loose">
+                    <p className="text-base md:text-base font-serif italic text-wedding-gold max-w-lg mx-auto leading-loose">
                       Dating to 1663, the original Puerta Real gate was constructed as one of the official entrances to Intramuros. This gate had a special ceremonial role, used exclusively by the Spanish Governor-General for state occasions.
                     </p>
                   </div>

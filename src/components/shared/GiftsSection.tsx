@@ -11,7 +11,7 @@ export default function GiftsSection() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="max-w-3xl mx-auto text-center"
       >
-        <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-sans text-wedding-gold mb-6 opacity-60">
+        <h2 className="text-xs md:text-sm uppercase tracking-[0.4em] font-anaktoria text-wedding-gold mb-6 opacity-60">
           Regalo
         </h2>
         <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-12">Gifts</h3>
@@ -22,13 +22,13 @@ export default function GiftsSection() {
           </div>
           
           <div className="space-y-6">
-            <p className="font-serif text-lg md:text-2xl italic text-wedding-dark/70 leading-relaxed max-w-xl mx-auto">
-              "Your presence at our wedding is the<br />greatest gift of all."
+            <p className="font-serif text-lg md:text-2xl text-wedding-dark/70 leading-relaxed max-w-xl mx-auto">
+              Your presence at our wedding is the<br />greatest gift of all.
             </p>
             
             <div className="h-px w-12 bg-wedding-gold/20 mx-auto" />
             
-            <p className="font-serif text-base md:text-lg text-wedding-dark/60 leading-relaxed">
+            <p className="font-serif italic text-base md:text-lg text-wedding-dark/60 leading-relaxed">
               However, if you wish to honor us with a gift, a contribution towards our future together would be most appreciated.
             </p>
           </div>
