@@ -100,12 +100,6 @@ export default function FAQSection() {
             />
           ))}
         </div>
-
-        <div className="mt-12 text-center">
-          <p className="font-serif italic text-wedding-dark/50">
-            Still have questions? Feel free to reach out to us directly.
-          </p>
-        </div>
       </motion.div>
 
       {/* Image Zoom Overlay */}
