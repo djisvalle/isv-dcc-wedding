@@ -13,6 +13,8 @@ import GiftsSection from '@/components/shared/GiftsSection';
 import FAQSection from '@/components/shared/FAQSection';
 import RSVPSection from '@/components/shared/RSVPSection';
 import EndPhotoSection from '@/components/shared/EndPhotoSection';
+import SixthPhotoSection from '@/components/shared/SixthPhotoSection';
+import SeventhPhotoSection from '@/components/shared/SeventhPhotoSection';
 import SectionNav from '@/components/shared/SectionNav';
 import { useMemo, useRef } from 'react';
 
@@ -126,9 +128,13 @@ export default function LandingPage() {
         <DressCodeSection />
       </div>
 
+      <SixthPhotoSection />
+
       <div ref={programRef}>
         <ProgramSection />
       </div>
+
+      <SeventhPhotoSection />
 
       <div ref={giftsRef}>
         <GiftsSection />

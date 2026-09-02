@@ -125,3 +125,29 @@ for (const { input, output, width } of thirdPhotoConversions) {
     .toFile(output);
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
 }
+
+const sixthPhotoConversions = [
+  { input: 'source-images/gallery/sixth-section.jpg', output: 'src/assets/gallery/sixth-section.webp', width: 2400 },
+];
+
+for (const { input, output, width } of sixthPhotoConversions) {
+  const info = await sharp(input)
+    .rotate()
+    .resize(width, null, { withoutEnlargement: true })
+    .webp({ quality: 82 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
+
+const seventhPhotoConversions = [
+  { input: 'source-images/gallery/seventh-section.jpg', output: 'src/assets/gallery/seventh-section.webp', width: 2400 },
+];
+
+for (const { input, output, width } of seventhPhotoConversions) {
+  const info = await sharp(input)
+    .rotate()
+    .resize(width, null, { withoutEnlargement: true })
+    .webp({ quality: 82 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
