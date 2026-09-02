@@ -1,5 +1,5 @@
-import firstPhotoDesktop from '@/assets/gallery/first-photo-section-desktop.webp';
-import firstPhotoMobile from '@/assets/gallery/first-photo-section-mobile.webp';
+import firstPhotoDesktop from '@/assets/gallery/first-section-desktop.webp';
+import firstPhotoMobile from '@/assets/gallery/first-section-mobile.webp';
 
 export default function FirstPhotoSection() {
   return (

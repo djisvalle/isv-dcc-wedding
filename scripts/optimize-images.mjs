@@ -87,12 +87,8 @@ for (const { input, output, width } of endPhotoConversions) {
 }
 
 const firstPhotoConversions = [
-  { input: 'source-images/gallery/first-photo-section-desktop.jpg', output: 'src/assets/gallery/first-photo-section-desktop.webp', width: 2400 },
-  // Same wide frame as the desktop crop (no room to art-direct a portrait
-  // crop without cutting the couple off), so export at the same width as
-  // desktop — otherwise the mobile section's near-square container forces
-  // the browser to upscale a 1200px-wide image on high-DPI phones, blurring it.
-  { input: 'source-images/gallery/first-photo-section-mobile.jpg', output: 'src/assets/gallery/first-photo-section-mobile.webp', width: 2400 },
+  { input: 'source-images/gallery/first-section-desktop.jpg', output: 'src/assets/gallery/first-section-desktop.webp', width: 2400 },
+  { input: 'source-images/gallery/first-section-mobile.jpg', output: 'src/assets/gallery/first-section-mobile.webp', width: 1200 },
 ];
 
 for (const { input, output, width } of firstPhotoConversions) {
