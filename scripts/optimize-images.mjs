@@ -101,11 +101,23 @@ for (const { input, output, width } of firstPhotoConversions) {
 }
 
 const secondPhotoConversions = [
-  { input: 'source-images/gallery/second-section-desktop.jpg', output: 'src/assets/gallery/second-section-desktop.webp', width: 2400 },
-  { input: 'source-images/gallery/second-section-mobile.jpg', output: 'src/assets/gallery/second-section-mobile.webp', width: 1200 },
+  { input: 'source-images/gallery/second-section.jpg', output: 'src/assets/gallery/second-section.webp', width: 2400 },
 ];
 
 for (const { input, output, width } of secondPhotoConversions) {
+  const info = await sharp(input)
+    .rotate()
+    .resize(width, null, { withoutEnlargement: true })
+    .webp({ quality: 82 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
+
+const thirdPhotoConversions = [
+  { input: 'source-images/gallery/third-section.jpg', output: 'src/assets/gallery/third-section.webp', width: 1800 },
+];
+
+for (const { input, output, width } of thirdPhotoConversions) {
   const info = await sharp(input)
     .rotate()
     .resize(width, null, { withoutEnlargement: true })
