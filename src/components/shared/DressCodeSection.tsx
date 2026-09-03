@@ -1,6 +1,66 @@
 import { motion } from 'motion/react';
 
-export default function DressCodeSection() {
+interface DressCodeContent {
+  menLabel: string;
+  menImages: string[];
+  menCaption: string;
+  menDetail: string;
+  womenLabel: string;
+  womenImages: string[];
+  womenCaption: string;
+  womenDetail: string;
+}
+
+const defaultContent: DressCodeContent = {
+  menLabel: 'Gentlemen',
+  menImages: ['/men-attire.webp'],
+  menCaption: 'Classic Polo',
+  menDetail: 'Long-sleeve, any color',
+  womenLabel: 'Ladies',
+  womenImages: ['/women-attire.webp'],
+  womenCaption: 'Soft, Airy Long Gown',
+  womenDetail: 'Any color except white',
+};
+
+const weddingPartyContent: DressCodeContent = {
+  menLabel: 'Groomsmen',
+  menImages: ['/groomsmen-outfit.webp'],
+  menCaption: 'Classic Barong',
+  menDetail: 'Cream, with black slacks',
+  womenLabel: 'Bridesmaids',
+  womenImages: ['/bridesmaids-outfit-1.webp'],
+  womenCaption: 'Soft, Airy Long Gown',
+  womenDetail: 'Dusty rose, puff sleeves',
+};
+
+function AttireGallery({ images, alt, compact = false }: { images: string[]; alt: string; compact?: boolean }) {
+  return (
+    <div className="mb-8 flex justify-center items-center gap-3">
+      {images.map((image) => (
+        <img
+          key={image}
+          src={image}
+          loading="lazy"
+          decoding="async"
+          alt={alt}
+          className={`${compact ? 'h-64 md:h-80 w-auto max-w-full' : 'w-full h-auto'} object-contain transition-transform duration-500 hover:scale-105`}
+          referrerPolicy="no-referrer"
+        />
+      ))}
+    </div>
+  );
+}
+
+interface DressCodeSectionProps {
+  isWeddingParty?: boolean;
+  sex?: 'Male' | 'Female';
+}
+
+export default function DressCodeSection({ isWeddingParty = false, sex }: DressCodeSectionProps) {
+  const content = isWeddingParty ? weddingPartyContent : defaultContent;
+  const showMen = sex !== 'Female';
+  const showWomen = sex !== 'Male';
+
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden">
       <motion.div
@@ -14,53 +74,39 @@ export default function DressCodeSection() {
           Kasuotan
         </h2>
         <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-12">Dress Code</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
-          <div className="space-y-6">
-            <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Gentlemen</h4>
-            <div className="p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
-              <div className="mb-8 overflow-hidden rounded-2xl aspect-[3/4] max-w-[160px] mx-auto border border-wedding-gold/10 shadow-sm group">
-                <img
-                  src="/men-attire.webp"
-                  loading="lazy"
-                  decoding="async"
-                  alt="Men's formal attire suggestion"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
+
+        <div className={`grid grid-cols-1 gap-12 md:gap-16 ${showMen && showWomen ? 'md:grid-cols-2' : 'max-w-sm mx-auto'}`}>
+          {showMen && (
+          <div className="space-y-6 flex flex-col">
+            <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">{content.menLabel}</h4>
+            <div className="flex-1 flex flex-col justify-center p-6 md:p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
+              <AttireGallery images={content.menImages} alt="Men's formal attire suggestion" compact={isWeddingParty} />
               <p className="font-anaktoria text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
-                Classic Polo
+                {content.menCaption}
               </p>
               <div className="mt-6 h-px w-10 bg-wedding-gold/20 mx-auto" />
               <p className="mt-6 text-sm font-anaktoria text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed">
-                Long-sleeve, any color
+                {content.menDetail}
               </p>
             </div>
           </div>
+          )}
 
-          <div className="space-y-6">
-            <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">Ladies</h4>
-            <div className="p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
-              <div className="mb-8 overflow-hidden rounded-2xl aspect-[3/4] max-w-[160px] mx-auto border border-wedding-gold/10 shadow-sm group">
-                <img
-                  src="/women-attire.webp"
-                  loading="lazy"
-                  decoding="async"
-                  alt="Women's formal attire suggestion"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
+          {showWomen && (
+          <div className="space-y-6 flex flex-col">
+            <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">{content.womenLabel}</h4>
+            <div className="flex-1 flex flex-col justify-center p-6 md:p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
+              <AttireGallery images={content.womenImages} alt="Women's formal attire suggestion" />
               <p className="font-anaktoria text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
-                Soft, Airy Long Gown
+                {content.womenCaption}
               </p>
               <div className="mt-6 h-px w-10 bg-wedding-gold/20 mx-auto" />
               <p className="mt-6 text-sm font-anaktoria text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed font-medium">
-                Any color except white
+                {content.womenDetail}
               </p>
             </div>
           </div>
+          )}
         </div>
 
 

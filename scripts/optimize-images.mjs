@@ -1,22 +1,5 @@
 import sharp from 'sharp';
-import { mkdirSync, existsSync } from 'fs';
-
-const conversions = [
-  { input: 'public/men-attire.svg', output: 'public/men-attire.webp' },
-  { input: 'public/women-attire.svg', output: 'public/women-attire.webp' },
-];
-
-for (const { input, output } of conversions) {
-  if (!existsSync(input)) {
-    console.log(`Skipping ${input} - file not found`);
-    continue;
-  }
-  const info = await sharp(input, { density: 300 })
-    .resize(320, 427, { fit: 'cover' })
-    .webp({ quality: 82 })
-    .toFile(output);
-  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
-}
+import { mkdirSync } from 'fs';
 
 mkdirSync('src/assets/gallery', { recursive: true });
 
@@ -174,6 +157,41 @@ for (const { input, output, width } of rsvpPhotoConversions) {
     .rotate()
     .resize(width, null, { withoutEnlargement: true })
     .webp({ quality: 82 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
+
+// Wedding-party dress code illustrations. `.trim()` strips each source's
+// margins first (they aren't symmetric), which otherwise renders as the
+// artwork looking off-center in its box.
+const weddingPartyAttireConversions = [
+  { input: 'source-images/gallery/groomsmen-outfit.png', output: 'public/groomsmen-outfit.webp', width: 480 },
+  // Client-supplied crop with all four hems already flush and a plain white
+  // background (no alpha, unlike the original PNG source).
+  { input: 'source-images/gallery/bridesmaids-outfit-1-final.jpg', output: 'public/bridesmaids-outfit-1.webp', width: 480 },
+];
+
+for (const { input, output, width } of weddingPartyAttireConversions) {
+  const info = await sharp(input)
+    .trim()
+    .resize(width, null, { withoutEnlargement: true })
+    .webp({ quality: 90 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
+
+// General guest dress code illustrations, sized by height since the gallery
+// displays them at a fixed height with width flexing to fit.
+const guestAttireConversions = [
+  { input: 'source-images/gallery/guest-male-outfit.png', output: 'public/men-attire.webp', height: 600 },
+  { input: 'source-images/gallery/guest-female-outfit.png', output: 'public/women-attire.webp', height: 600 },
+];
+
+for (const { input, output, height } of guestAttireConversions) {
+  const info = await sharp(input)
+    .trim()
+    .resize(null, height, { withoutEnlargement: true })
+    .webp({ quality: 90 })
     .toFile(output);
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
 }
