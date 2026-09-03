@@ -152,6 +152,19 @@ for (const { input, output, width } of seventhPhotoConversions) {
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
 }
 
+const eighthPhotoConversions = [
+  { input: 'source-images/gallery/eighth-section.jpg', output: 'src/assets/gallery/eighth-section.webp', width: 2400 },
+];
+
+for (const { input, output, width } of eighthPhotoConversions) {
+  const info = await sharp(input)
+    .rotate()
+    .resize(width, null, { withoutEnlargement: true })
+    .webp({ quality: 82 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
+
 const rsvpPhotoConversions = [
   { input: 'source-images/gallery/rsvp-section.jpg', output: 'src/assets/gallery/rsvp-section.webp', width: 2400 },
 ];

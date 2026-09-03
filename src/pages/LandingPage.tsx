@@ -15,6 +15,7 @@ import RSVPSection from '@/components/shared/RSVPSection';
 import EndPhotoSection from '@/components/shared/EndPhotoSection';
 import SixthPhotoSection from '@/components/shared/SixthPhotoSection';
 import SeventhPhotoSection from '@/components/shared/SeventhPhotoSection';
+import EighthPhotoSection from '@/components/shared/EighthPhotoSection';
 import RSVPPhotoSection from '@/components/shared/RSVPPhotoSection';
 import SectionNav from '@/components/shared/SectionNav';
 import { useMemo, useRef } from 'react';
@@ -140,6 +141,8 @@ export default function LandingPage() {
       <div ref={giftsRef}>
         <GiftsSection />
       </div>
+
+      <EighthPhotoSection />
 
       <div ref={faqRef}>
         <FAQSection />

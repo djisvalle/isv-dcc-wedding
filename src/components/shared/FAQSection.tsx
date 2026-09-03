@@ -68,7 +68,7 @@ export default function FAQSection() {
     },
     {
       question: "Are children allowed?",
-      answer: <>While we love your little ones, we have decided to have an <b>adults-only</b> celebration to allow all our guests to fully enjoy the evening. We appreciate your understanding <b>(Infants included by special invitation of the couple and relatives are exempted)</b>.</>
+      answer: <>While we love your little ones, we have decided to have an <b>adults-only</b> celebration to allow all our guests to fully enjoy the evening. We appreciate your understanding <b>(Relatives and children specifically invited by the couple are exempted)</b>.</>
     }
   ];
 
