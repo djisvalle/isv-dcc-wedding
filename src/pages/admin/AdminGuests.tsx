@@ -479,12 +479,20 @@ export default function AdminGuests() {
       reader.onload = async (e) => {
         const rows = await parseExcelRows(e.target?.result as ArrayBuffer) as any[];
 
-        await batchImportGuests(
+        const result = await batchImportGuests(
           rows
             .filter(row => row.name)
-            .map(row => ({ name: row.name, role: row.role || null, sex: row.sex || null, invite_id: row.inviteId || null }))
+            .map(row => ({ name: row.name, role: row.role || null, sex: row.sex || null, invite_id: row.inviteId || null })),
+          guests.map(g => ({ id: g.id, name: g.name, invite_id: g.invite_id ?? null }))
         );
-        toast.success('Successfully imported guest list');
+
+        const parts = [];
+        if (result.created) parts.push(`${result.created} added`);
+        if (result.updated) parts.push(`${result.updated} updated`);
+        toast.success(parts.length ? `Guest list imported: ${parts.join(', ')}` : 'No changes to import');
+        if (result.skippedDuplicates.length) {
+          toast.warning(`Skipped ${result.skippedDuplicates.length} name(s) matching multiple existing guests: ${result.skippedDuplicates.join(', ')}`);
+        }
         setIsUploadOpen(false);
       };
       reader.readAsArrayBuffer(file);
