@@ -10,50 +10,55 @@ const parentsOfBride = ["Rev. Dick R. Carumba", "Mrs. Sharon C. Carumba"];
 const principalSponsors: [string, string][] = [
   ["Rev. Norman W. Holmes", "Rev. Linda N. Holmes"],
   ["Rev. Marcelino V. Abisado", "Rev. Linda Flora S. Abisado"],
+  ["Ptr. Albert Q. Garcia", "Mrs. Pauline M. Garcia"],
   ["Rev. George N. Padilla", "Ptr. Blesilda C. Padilla"],
   ["Rev. Audie M. Valencia", "Ptr. Leonila T. Valencia"],
   ["Rev. Miguel S. Muyot", "Ptr. Carolina C. Muyot"],
+  ["Ptr. Mark Anthony A. Marcon", "Mrs. Christina S. Marcon"],
   ["Ptr. Jaime M. Isidro", "Mrs. Mary Ann R. Isidro"],
-  ["Ptr. Efren T. Alzate", "Mrs. Emilia J. Alzate"],
-  ["Rev. Albert Q. Garcia", "Mrs. Pauline M. Garcia"],
+  ["Rev. John G. Fianza", "Ptr. Emma Fianza"],
   ["Ptr. Arturo R. Pelias, Jr.", "Mrs. Mary Licette T. Pelias"],
-  ["Ptr. Antonio C. Goudin", "Mrs. Aurenita Goudin"],
+  ["Rev. Vergel J. Montesines", "Ptr. Merlita U. Montesines"],
+  ["Ptr. Efren T. Alzate", "Mrs. Emilia J. Alzate"],
   ["Ptr. Celerino Bargoyo", "Ptr. Jocel Bargoyo"],
-  ["Rev. Vergel Montesines", "Ptr. Merlita Montesines"],
-  ["Ptr. Mark Anthony Marcon", "Mrs. Christine S. Marcon"],
-  ["Rev. Marc Aaron S. Abisado", "Ptr. Rossanna R. Abisado"],
-  ["Rev. John Fianza", "Ptr. Emma Fianza"],
-  ["Rev. Beulah Badua", "Mrs. Barbara Delos Reyes"],
-  ["Mrs. Zoraida H. Candazo", "Mrs. Gerda Cruz"],
+  ["Ptr. Antonio C. Goudin", "Mrs. Aurenita Goudin"],
+  ["Ptr. Marc Aaron S. Abisado", "Ptr. Rossanna R. Abisado"],
+  ["Rev. Ferdinand P. Ibon", "Mrs. Everlyn C. Ibon"],
+];
+
+const principalSponsorsClosing: [string, string][] = [
+  ["Mrs. Gerda Cruz", "Mrs. Barbara Delos Reyes"],
+  ["Rev. Beulah S. Badua", "Mrs. Zoraida H. Candazo"],
   ["Rev. Ma. Cecilia Baluyot", "Ptr. Martita Pasion"],
+  ["", "Mrs. Nazareth M. Ignacio"],
 ];
 
 const secondarySponsors = [
-  { role: "To light our path", groom: "Ptr. Mark Anthony Marcon", bride: "Mrs. Christine S. Marcon" },
+  { role: "To light our path", groom: "Ptr. Mark Anthony A. Marcon", bride: "Mrs. Christine S. Marcon" },
   { role: "To clothe us as one", groom: "Ptr. Arturo R. Pelias, Jr", bride: "Mrs. Mary Licette T. Pelias" },
   { role: "To bind us together", groom: "Ptr. Albert Q. Garcia", bride: "Mrs. Pauline M. Garcia" },
   { role: "To carry our symbol of faith", groom: "Ptr. Windell John Moses S. Valle", bride: "Ptr. Arianne Rachelle P. Valle" },
   { role: "To carry our symbol of love", groom: "Engr. Joel John Joshua S. Valle", bride: "Mrs. Aletheia C. Valle" },
-  { role: "To carry our symbol of offering", groom: "Mr. Jose Mauro Ignacio", bride: "Mrs. Dorothy C. Ignacio" },
+  { role: "To carry our symbol of offering", groom: "Mr. Jose Mauro M. Ignacio", bride: "Mrs. Dorothy C. Ignacio" },
 ];
 
-const bestMan = "Mr. Joshua J. Alzate";
-const maidOfHonor = "Ms. Ma. Bianca A. Padilla";
+const bestMan = "Joshua J. Alzate";
+const maidOfHonor = "Ma. Bianca A. Padilla";
 
 const groomsmenAndBridesmaids: [string, string][] = [
-  ["Mark Jason S. Sanje", "Maricel Panlaqui"],
+  ["Mark Jason S. Sanje", "Maricel M. Panlaqui"],
   ["Jeffrey Cruz", "Mayen E. Cruz"],
   ["Mandy Lumutan", "Aimee Joy Aliyah S. Valle"],
   ["Jaerome Rafael Perez", "Jeremee J. Alzate"],
   ["Emmanuel C. Carumba", "Elishama C. Carumba"],
   ["Romney Ezra Macabali", "Nneka Joy Marcon"],
-  ["David Paul Tandayu", "Yana Del Rosario"],
+  ["David Paul M. Tandayu", "Yana Del Rosario"],
   ["Brian Daniel C. Dionisio", "Angelica Joy S. Balazo"],
   ["Ricardo Fernando", "Jamie D. Fernando"],
-  ["Jayson Orañola", "Alyanna Joy Asia"],
-  ["Tyson Warrey", "Maryjane Castro"],
-  ["John Hernandez", "Sofia Remigio"],
-  ["Herson Hernandez", "Rhia Francisco"],
+  ["Jayson P. Orañola", "Alyanna Joy Asia"],
+  ["Tyson D. Warrey", "Maryjane Castro"],
+  ["John S. Hernandez", "Sofia Remigio"],
+  ["Herson S. Hernandez", "Rhia Francisco"],
 ];
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -122,9 +127,15 @@ export default function EntourageSection() {
           <div>
             <SectionLabel>Parents of the Groom</SectionLabel>
             <div className="text-center">
-              {parentsOfGroom.map(name => (
-                <p key={name} className="font-anaktoria text-wedding-dark/60 text-base">{name}</p>
-              ))}
+              {parentsOfGroom.map(name => {
+                const [base, suffix] = name.split(/\s(?=\(\+\)$)/);
+                return (
+                  <p key={name} className="font-anaktoria text-wedding-dark/60 text-base">
+                    {base}
+                    {suffix && <sup>{suffix}</sup>}
+                  </p>
+                );
+              })}
             </div>
           </div>
           <div>
@@ -141,7 +152,10 @@ export default function EntourageSection() {
           <h3 className="font-ballet text-2xl md:text-3xl text-wedding-dark text-center mb-4">
             Principal Sponsors
           </h3>
-          <NamePairGrid pairs={principalSponsors} />
+          <NamePairColumn pairs={principalSponsors} />
+          <div className="mt-4">
+            <NamePairColumn pairs={principalSponsorsClosing} />
+          </div>
         </div>
 
         <div className="relative w-screen ml-[calc(50%-50vw)] mb-8 h-[40vh] md:h-[55vh] lg:h-[70vh] overflow-hidden">
