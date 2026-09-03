@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Copy, UserCheck, UserX, UserMinus, Edit2, Trash2, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import { copyToClipboard } from '@/lib/clipboard';
 import { EditableCell } from '@/components/admin/EditableCell';
 import type { Guest } from '@/features/guests/types';
 
@@ -78,10 +79,10 @@ function GuestRowComponent({
               variant="ghost"
               size="icon"
               className="h-6 w-6"
-              onClick={() => {
+              onClick={async () => {
                 const link = `${window.location.origin}/rsvp/${guest.invite_id || guest.id}`;
-                navigator.clipboard.writeText(link);
-                toast.success(guest.invite_id ? 'Group Link copied' : 'Link copied');
+                if (await copyToClipboard(link)) toast.success(guest.invite_id ? 'Group Link copied' : 'Link copied');
+                else toast.error('Could not copy link — try again');
               }}
               title={guest.invite_id ? "Copy Group RSVP Link" : "Copy RSVP Link"}
             >
@@ -97,10 +98,10 @@ function GuestRowComponent({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-slate-400 hover:text-slate-600"
-                onClick={() => {
+                onClick={async () => {
                   const link = `${window.location.origin}/rsvp/${guest.id}`;
-                  navigator.clipboard.writeText(link);
-                  toast.success('Individual Link copied');
+                  if (await copyToClipboard(link)) toast.success('Individual Link copied');
+                  else toast.error('Could not copy link — try again');
                 }}
                 title="Copy Individual RSVP Link"
               >

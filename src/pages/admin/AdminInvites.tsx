@@ -41,6 +41,7 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { generateInviteId } from '@/lib/utils';
+import { copyToClipboard } from '@/lib/clipboard';
 import { commitInChunks } from '@/lib/firestoreBatch';
 import { parseExcelRows, downloadExcel } from '@/lib/excel';
 import {
@@ -196,18 +197,18 @@ export default function AdminInvites() {
     }
   } as any);
 
-  const copyLink = useCallback((id: string) => {
+  const copyLink = useCallback(async (id: string) => {
     const url = `${window.location.origin}/?inviteUrl=${id}`;
-    navigator.clipboard.writeText(url);
-    toast.success('Invite link copied to clipboard');
+    if (await copyToClipboard(url)) toast.success('Invite link copied to clipboard');
+    else toast.error('Could not copy link — try again');
   }, []);
 
-  const copyMessage = useCallback((invite: Invite) => {
+  const copyMessage = useCallback(async (invite: Invite) => {
     const message = messageTemplate
       .replace('<name>', invite.name)
       .replace('<link>', `${window.location.origin}/?inviteUrl=${invite.id}`);
-    navigator.clipboard.writeText(message);
-    toast.success('Message copied to clipboard');
+    if (await copyToClipboard(message)) toast.success('Message copied to clipboard');
+    else toast.error('Could not copy message — try again');
   }, [messageTemplate]);
 
   const handleEditClick = useCallback((invite: InviteWithCounts) => {

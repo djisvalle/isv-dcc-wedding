@@ -65,6 +65,7 @@ import { cn } from "@/lib/utils";
 import { useGuests } from '@/features/guests/context/GuestsProvider';
 import { useInvites } from '@/features/invites/context/InvitesProvider';
 import { batchDeleteGuests, batchUpdateGuestStatus, batchImportGuests } from '@/features/guests/api/guestsApi';
+import { copyToClipboard } from '@/lib/clipboard';
 import { useDebounce } from '@/hooks/useDebounce';
 import { GuestRow } from '@/components/admin/guests/GuestRow';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -266,15 +267,15 @@ export default function AdminGuests() {
   // below).
   const inviteById = useMemo(() => new Map(invites.map(i => [i.id, i])), [invites]);
 
-  const copyMessage = useCallback((guest: Guest) => {
+  const copyMessage = useCallback(async (guest: Guest) => {
     const inviteGroup = guest.invite_id ? inviteById.get(guest.invite_id) : undefined;
     const displayName = inviteGroup?.name || guest.nickname || guest.name;
     const link = `${window.location.origin}/?inviteUrl=${guest.invite_id || guest.id}`;
     const message = messageTemplate
       .replace('<name>', displayName)
       .replace('<link>', link);
-    navigator.clipboard.writeText(message);
-    toast.success('Message copied to clipboard');
+    if (await copyToClipboard(message)) toast.success('Message copied to clipboard');
+    else toast.error('Could not copy message — try again');
   }, [inviteById, messageTemplate]);
 
   const handleExport = async () => {
