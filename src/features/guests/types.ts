@@ -1,10 +1,12 @@
 export type TableType = 'bridal' | 'vip' | 'regular';
+export type Sex = 'Male' | 'Female';
 
 export interface Guest {
   id: string;
   name: string;
   nickname?: string;
   role: string | null;
+  sex?: Sex | null;
   invite_id: string | null;
   is_coming: boolean | null;
   updated_at: any;

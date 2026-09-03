@@ -18,12 +18,19 @@ import SeventhPhotoSection from '@/components/shared/SeventhPhotoSection';
 import EighthPhotoSection from '@/components/shared/EighthPhotoSection';
 import RSVPPhotoSection from '@/components/shared/RSVPPhotoSection';
 import SectionNav from '@/components/shared/SectionNav';
+import { useRsvpInvite } from '@/features/rsvp/hooks/useRsvpInvite';
 import { useMemo, useRef } from 'react';
+
+const WEDDING_PARTY_ROLES = new Set(['Groomsman', 'Bridesmaid']);
 
 export default function LandingPage() {
   const [searchParams] = useSearchParams();
   const rawInviteId = searchParams.get('inviteUrl') || searchParams.get('invite') || searchParams.get('id');
   const inviteId = rawInviteId?.trim().replace(/\/+$/, '');
+  const { guests } = useRsvpInvite(inviteId);
+  const isWeddingParty = guests.some(g => g.role && WEDDING_PARTY_ROLES.has(g.role));
+  const guestSexes = new Set(guests.map(g => g.sex).filter(Boolean));
+  const guestSex = guestSexes.size === 1 ? [...guestSexes][0] : undefined;
   const landingPhotoRef = useRef<HTMLDivElement>(null);
   const venueRef = useRef<HTMLDivElement>(null);
   const entourageRef = useRef<HTMLDivElement>(null);
@@ -127,7 +134,7 @@ export default function LandingPage() {
       <MidPhotoSection />
 
       <div ref={dressCodeRef}>
-        <DressCodeSection />
+        <DressCodeSection isWeddingParty={isWeddingParty} sex={guestSex} />
       </div>
 
       <SixthPhotoSection />

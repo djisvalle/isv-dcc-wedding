@@ -6,6 +6,8 @@ export interface Guest {
   import_order?: number;
   is_baby_or_child?: boolean;
   parent_name?: string;
+  role?: string;
+  sex?: 'Male' | 'Female';
 }
 
 export interface Invite {

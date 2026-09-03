@@ -54,6 +54,7 @@ export async function batchUpdateGuestStatus(ids: string[], status: boolean | nu
 export interface GuestImportRow {
   name: string;
   role?: string | null;
+  sex?: string | null;
   invite_id?: string | null;
 }
 
@@ -73,6 +74,7 @@ export async function batchImportGuests(rows: GuestImportRow[]): Promise<void> {
     batch.set(ref, {
       name: row.name,
       role: row.role || null,
+      sex: row.sex || null,
       invite_id: row.invite_id || null,
       is_coming: null,
       import_order: index,

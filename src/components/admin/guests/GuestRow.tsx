@@ -111,13 +111,25 @@ function GuestRowComponent({
         </div>
       </TableCell>
       <TableCell className="py-6 px-8">
-        {guest.role ? (
-          <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-medium">
-            {guest.role}
-          </span>
-        ) : (
-          <span className="text-slate-300 italic text-xs">Guest</span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {guest.role ? (
+            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-medium">
+              {guest.role}
+            </span>
+          ) : (
+            <span className="text-slate-300 italic text-xs">Guest</span>
+          )}
+          {guest.sex && (
+            <span
+              className={`text-[10px] px-1.5 py-1 rounded-md font-bold ${
+                guest.sex === 'Male' ? 'bg-sky-50 text-sky-600' : 'bg-pink-50 text-pink-600'
+              }`}
+              title={guest.sex}
+            >
+              {guest.sex === 'Male' ? 'M' : 'F'}
+            </span>
+          )}
+        </div>
       </TableCell>
       <TableCell className="py-6 px-8 text-slate-500 italic font-serif">
         {guest.invite_name || <span className="text-slate-300 opacity-50">Unassigned</span>}

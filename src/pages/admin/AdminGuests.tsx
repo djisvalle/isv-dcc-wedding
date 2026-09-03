@@ -90,8 +90,11 @@ const GUEST_ROLES = [
   'Bridesmaid'
 ];
 
+const SEX_OPTIONS = ['Male', 'Female'];
+
 const EDITABLE_GUEST_FIELDS = [
   'role',
+  'sex',
   'invite_id',
   'table_type',
   'table_number',
@@ -108,6 +111,11 @@ const RSVP_STATUS_OPTIONS = [
 const ROLE_FILTER_OPTIONS = [
   { value: 'guest', label: 'Guest' },
   ...GUEST_ROLES.map(role => ({ value: role, label: role })),
+];
+
+const SEX_FILTER_OPTIONS = [
+  { value: 'unset', label: 'Not Set' },
+  ...SEX_OPTIONS.map(sex => ({ value: sex, label: sex })),
 ];
 
 const TABLE_FILTER_OPTIONS = [
@@ -223,6 +231,7 @@ export default function AdminGuests() {
   // Filters — each holds the set of selected filter values; an empty array means no filter applied ("all")
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [roleFilter, setRoleFilter] = useState<string[]>([]);
+  const [sexFilter, setSexFilter] = useState<string[]>([]);
   const [tableFilter, setTableFilter] = useState<string[]>([]);
 
   // Searchable dropdown states
@@ -232,10 +241,11 @@ export default function AdminGuests() {
   const [editParentPopoverOpen, setEditParentPopoverOpen] = useState(false);
 
   // New guest state
-  const [newGuest, setNewGuest] = useState({ 
-    name: '', 
-    nickname: '', 
-    role: '', 
+  const [newGuest, setNewGuest] = useState({
+    name: '',
+    nickname: '',
+    role: '',
+    sex: '',
     invite_id: '',
     table_type: '' as any,
     table_number: '',
@@ -273,6 +283,7 @@ export default function AdminGuests() {
         Name: g.name,
         Nickname: g.nickname || '',
         Role: g.role || 'Guest',
+        Sex: g.sex || '',
         Group: (g.invite_id ? inviteById.get(g.invite_id)?.name : undefined) || 'Unassigned',
         InviteID: g.invite_id || g.id,
         TableType: g.table_type || 'N/A',
@@ -287,6 +298,7 @@ export default function AdminGuests() {
           { header: 'Name', key: 'Name', width: 25 },
           { header: 'Nickname', key: 'Nickname', width: 20 },
           { header: 'Role', key: 'Role', width: 20 },
+          { header: 'Sex', key: 'Sex', width: 12 },
           { header: 'Group', key: 'Group', width: 25 },
           { header: 'InviteID', key: 'InviteID', width: 20 },
           { header: 'TableType', key: 'TableType', width: 15 },
@@ -316,6 +328,7 @@ export default function AdminGuests() {
         name: newGuest.name,
         nickname: newGuest.nickname || null,
         role: newGuest.role || null,
+        sex: newGuest.sex || null,
         invite_id: newGuest.invite_id || null,
         table_type: newGuest.table_type || null,
         table_number: newGuest.table_number || null,
@@ -332,7 +345,7 @@ export default function AdminGuests() {
       }
       await batch.commit();
       toast.success('Guest added successfully');
-      setNewGuest({ name: '', nickname: '', role: '', invite_id: '', table_type: '' as any, table_number: '', is_baby_or_child: false, parent_name: '' });
+      setNewGuest({ name: '', nickname: '', role: '', sex: '', invite_id: '', table_type: '' as any, table_number: '', is_baby_or_child: false, parent_name: '' });
       setIsAddOpen(false);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'guests');
@@ -469,7 +482,7 @@ export default function AdminGuests() {
         await batchImportGuests(
           rows
             .filter(row => row.name)
-            .map(row => ({ name: row.name, role: row.role || null, invite_id: row.inviteId || null }))
+            .map(row => ({ name: row.name, role: row.role || null, sex: row.sex || null, invite_id: row.inviteId || null }))
         );
         toast.success('Successfully imported guest list');
         setIsUploadOpen(false);
@@ -513,13 +526,16 @@ export default function AdminGuests() {
       const roleMatch = roleFilter.length === 0 ||
         (g.role ? roleFilter.includes(g.role) : roleFilter.includes('guest'));
 
+      const sexMatch = sexFilter.length === 0 ||
+        (g.sex ? sexFilter.includes(g.sex) : sexFilter.includes('unset'));
+
       const tableMatch = tableFilter.length === 0 || tableFilter.some(f =>
         (f === 'assigned' && g.table_type) ||
         (f === 'unassigned' && !g.table_type) ||
         g.table_type === f
       );
 
-      return searchMatch && statusMatch && roleMatch && tableMatch;
+      return searchMatch && statusMatch && roleMatch && sexMatch && tableMatch;
     });
 
     return [...filteredGuests].sort((a, b) => {
@@ -552,7 +568,7 @@ export default function AdminGuests() {
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [guests, inviteById, debouncedSearch, statusFilter, roleFilter, tableFilter, sortField, sortDirection]);
+  }, [guests, inviteById, debouncedSearch, statusFilter, roleFilter, sexFilter, tableFilter, sortField, sortDirection]);
 
   const totalPages = Math.ceil(sortedGuests.length / itemsPerPage);
   const paginatedGuests = sortedGuests.slice(
@@ -566,7 +582,7 @@ export default function AdminGuests() {
   // stale count as if they still were.
   useEffect(() => {
     setSelectedIds([]);
-  }, [debouncedSearch, statusFilter, roleFilter, tableFilter, currentPage]);
+  }, [debouncedSearch, statusFilter, roleFilter, sexFilter, tableFilter, currentPage]);
 
   const handleSort = (field: keyof Guest | 'invite_name') => {
     if (sortField === field) {
@@ -654,21 +670,36 @@ export default function AdminGuests() {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <select 
-                    className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                    value={newGuest.role} 
-                    onChange={e => setNewGuest(prev => ({ ...prev, role: e.target.value }))}
-                  >
-                    <option value="">None</option>
-                    {GUEST_ROLES.map(role => (
-                      <option key={role} value={role}>{role}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Role</Label>
+                    <select
+                      className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={newGuest.role}
+                      onChange={e => setNewGuest(prev => ({ ...prev, role: e.target.value }))}
+                    >
+                      <option value="">None</option>
+                      {GUEST_ROLES.map(role => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Sex</Label>
+                    <select
+                      className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={newGuest.sex}
+                      onChange={e => setNewGuest(prev => ({ ...prev, sex: e.target.value }))}
+                    >
+                      <option value="">Not set</option>
+                      {SEX_OPTIONS.map(sex => (
+                        <option key={sex} value={sex}>{sex}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Checkbox 
+                  <Checkbox
                     id="is_baby_or_child_add"
                     checked={newGuest.is_baby_or_child}
                     onCheckedChange={(checked) => setNewGuest(prev => ({ ...prev, is_baby_or_child: checked as boolean }))}
@@ -840,7 +871,7 @@ export default function AdminGuests() {
                   <p className="text-sm font-medium text-slate-600">
                     {uploading ? 'Processing file...' : isDragActive ? 'Drop it here!' : 'Click or drag Excel file here'}
                   </p>
-                  <p className="text-xs text-slate-400 mt-2">Required columns: name. Optional: role, inviteId</p>
+                  <p className="text-xs text-slate-400 mt-2">Required columns: name. Optional: role, sex, inviteId</p>
                 </div>
               </div>
               <div className="flex justify-center">
@@ -855,17 +886,18 @@ export default function AdminGuests() {
                     worksheet.columns = [
                       { header: 'name', key: 'name', width: 25 },
                       { header: 'role', key: 'role', width: 20 },
+                      { header: 'sex', key: 'sex', width: 12 },
                       { header: 'inviteId', key: 'inviteId', width: 20 },
                     ];
 
                     // Add some sample data
                     const sampleData = [
-                      { name: "John Smith", role: "Groomsman", inviteId: "smith-family" },
-                      { name: "Jane Smith", role: "Bridesmaid", inviteId: "smith-family" }
+                      { name: "John Smith", role: "Groomsman", sex: "Male", inviteId: "smith-family" },
+                      { name: "Jane Smith", role: "Bridesmaid", sex: "Female", inviteId: "smith-family" }
                     ];
                     worksheet.addRows(sampleData);
 
-                    // Add data validation for the role column (Column B)
+                    // Add data validation for the role and sex columns (Columns B and C)
                     // Apply to a reasonable number of rows
                     for (let i = 2; i <= 200; i++) {
                       worksheet.getCell(`B${i}`).dataValidation = {
@@ -876,6 +908,15 @@ export default function AdminGuests() {
                         errorStyle: 'error',
                         errorTitle: 'Invalid Role',
                         error: 'Please select a role from the list.'
+                      };
+                      worksheet.getCell(`C${i}`).dataValidation = {
+                        type: 'list',
+                        allowBlank: true,
+                        formulae: [`"${SEX_OPTIONS.join(',')}"`],
+                        showErrorMessage: true,
+                        errorStyle: 'error',
+                        errorTitle: 'Invalid Sex',
+                        error: 'Please select a value from the list.'
                       };
                     }
 
@@ -942,6 +983,17 @@ export default function AdminGuests() {
           />
 
           <MultiSelectFilter
+            label="Sex"
+            placeholder="All"
+            options={SEX_FILTER_OPTIONS}
+            selected={sexFilter}
+            onChange={(values) => {
+              setSexFilter(values);
+              setCurrentPage(1);
+            }}
+          />
+
+          <MultiSelectFilter
             label="Table"
             placeholder="All Tables"
             options={TABLE_FILTER_OPTIONS}
@@ -968,7 +1020,7 @@ export default function AdminGuests() {
               </select>
           </div>
 
-          {(search || statusFilter.length > 0 || roleFilter.length > 0 || tableFilter.length > 0) && (
+          {(search || statusFilter.length > 0 || roleFilter.length > 0 || sexFilter.length > 0 || tableFilter.length > 0) && (
             <div className="flex flex-col gap-1.5">
               <Label className="text-[10px] uppercase text-slate-400 font-bold ml-1 invisible">Clear</Label>
               <Button
@@ -977,6 +1029,7 @@ export default function AdminGuests() {
                   setSearch('');
                   setStatusFilter([]);
                   setRoleFilter([]);
+                  setSexFilter([]);
                   setTableFilter([]);
                   setCurrentPage(1);
                 }}
@@ -1128,21 +1181,36 @@ export default function AdminGuests() {
             <SheetTitle>Edit {editingGuest?.name}</SheetTitle>
           </SheetHeader>
           <form onSubmit={handleEditGuest} className="space-y-4 px-4 pb-4 overflow-y-auto flex-1">
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <select 
-                className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                value={editingGuest?.role || ''} 
-                onChange={e => setEditingGuest(prev => prev ? ({ ...prev, role: e.target.value }) : null)}
-              >
-                <option value="">None</option>
-                {GUEST_ROLES.map(role => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <select
+                  className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  value={editingGuest?.role || ''}
+                  onChange={e => setEditingGuest(prev => prev ? ({ ...prev, role: e.target.value }) : null)}
+                >
+                  <option value="">None</option>
+                  {GUEST_ROLES.map(role => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Sex</Label>
+                <select
+                  className="w-full flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  value={editingGuest?.sex || ''}
+                  onChange={e => setEditingGuest(prev => prev ? ({ ...prev, sex: (e.target.value || null) as Guest['sex'] }) : null)}
+                >
+                  <option value="">Not set</option>
+                  {SEX_OPTIONS.map(sex => (
+                    <option key={sex} value={sex}>{sex}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              <Checkbox 
+              <Checkbox
                 id="is_baby_or_child_edit"
                 checked={editingGuest?.is_baby_or_child || false}
                 onCheckedChange={(checked) => setEditingGuest(prev => prev ? ({ ...prev, is_baby_or_child: checked as boolean }) : null)}
