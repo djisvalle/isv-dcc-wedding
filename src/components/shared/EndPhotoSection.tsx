@@ -10,7 +10,7 @@ export default function EndPhotoSection() {
         alt="Israel and Deborah"
         className="w-full h-full object-cover object-center"
       />
-      <div className="absolute inset-x-0 top-0 h-1/2 bg-[linear-gradient(to_bottom,#FDFBF7_0%,rgba(253,251,247,0.75)_20%,rgba(253,251,247,0.35)_44%,transparent_76%)]" />
+      <div className="absolute inset-x-0 top-0 h-1/4 bg-[linear-gradient(to_bottom,#FDFBF7_0%,rgba(253,251,247,0.75)_20%,rgba(253,251,247,0.35)_44%,transparent_76%)]" />
     </div>
   );
 }
