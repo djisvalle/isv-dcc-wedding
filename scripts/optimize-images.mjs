@@ -183,8 +183,8 @@ for (const { input, output, width } of weddingPartyAttireConversions) {
 // General guest dress code illustrations, sized by height since the gallery
 // displays them at a fixed height with width flexing to fit.
 const guestAttireConversions = [
-  { input: 'source-images/gallery/guest-male-outfit.jpg', output: 'public/men-attire.webp', height: 600 },
-  { input: 'source-images/gallery/guest-female-outfit.jpg', output: 'public/women-attire.webp', height: 600 },
+  { input: 'source-images/gallery/guest-male-outfit.png', output: 'public/men-attire.webp', height: 480 },
+  { input: 'source-images/gallery/guest-female-outfit.png', output: 'public/women-attire.webp', height: 480 },
 ];
 
 for (const { input, output, height } of guestAttireConversions) {

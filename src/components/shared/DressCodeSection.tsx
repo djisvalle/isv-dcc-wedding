@@ -29,12 +29,14 @@ const CARD_DEFS: Record<DressCodeCardKey, DressCodeCardDef> = {
     images: ['/men-attire.webp'],
     caption: 'Classic Polo',
     detail: 'Long-sleeve, any color',
+    compact: true,
   },
   ladies: {
     label: 'Ladies',
     images: ['/women-attire.webp'],
     caption: 'Soft, Airy Long Gown',
     detail: 'Any color except white',
+    compact: true,
   },
 };
 
