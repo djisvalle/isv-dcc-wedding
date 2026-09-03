@@ -1,37 +1,44 @@
 import { motion } from 'motion/react';
 
-interface DressCodeContent {
-  menLabel: string;
-  menImages: string[];
-  menCaption: string;
-  menDetail: string;
-  womenLabel: string;
-  womenImages: string[];
-  womenCaption: string;
-  womenDetail: string;
+export type DressCodeCardKey = 'groomsmen' | 'bridesmaids' | 'gentlemen' | 'ladies';
+
+interface DressCodeCardDef {
+  label: string;
+  images: string[];
+  caption: string;
+  detail: string;
+  compact?: boolean;
 }
 
-const defaultContent: DressCodeContent = {
-  menLabel: 'Gentlemen',
-  menImages: ['/men-attire.webp'],
-  menCaption: 'Classic Polo',
-  menDetail: 'Long-sleeve, any color',
-  womenLabel: 'Ladies',
-  womenImages: ['/women-attire.webp'],
-  womenCaption: 'Soft, Airy Long Gown',
-  womenDetail: 'Any color except white',
+const CARD_DEFS: Record<DressCodeCardKey, DressCodeCardDef> = {
+  groomsmen: {
+    label: 'Groomsmen',
+    images: ['/groomsmen-outfit.webp'],
+    caption: 'Classic Barong',
+    detail: 'Cream, with black slacks',
+    compact: true,
+  },
+  bridesmaids: {
+    label: 'Bridesmaids',
+    images: ['/bridesmaids-outfit-1.webp'],
+    caption: 'Soft, Airy Long Gown',
+    detail: 'Dusty rose, puff sleeves',
+  },
+  gentlemen: {
+    label: 'Gentlemen',
+    images: ['/men-attire.webp'],
+    caption: 'Classic Polo',
+    detail: 'Long-sleeve, any color',
+  },
+  ladies: {
+    label: 'Ladies',
+    images: ['/women-attire.webp'],
+    caption: 'Soft, Airy Long Gown',
+    detail: 'Any color except white',
+  },
 };
 
-const weddingPartyContent: DressCodeContent = {
-  menLabel: 'Groomsmen',
-  menImages: ['/groomsmen-outfit.webp'],
-  menCaption: 'Classic Barong',
-  menDetail: 'Cream, with black slacks',
-  womenLabel: 'Bridesmaids',
-  womenImages: ['/bridesmaids-outfit-1.webp'],
-  womenCaption: 'Soft, Airy Long Gown',
-  womenDetail: 'Dusty rose, puff sleeves',
-};
+const DEFAULT_CARDS: DressCodeCardKey[] = ['gentlemen', 'ladies'];
 
 function AttireGallery({ images, alt, compact = false }: { images: string[]; alt: string; compact?: boolean }) {
   return (
@@ -52,14 +59,13 @@ function AttireGallery({ images, alt, compact = false }: { images: string[]; alt
 }
 
 interface DressCodeSectionProps {
-  isWeddingParty?: boolean;
-  sex?: 'Male' | 'Female';
+  cards?: DressCodeCardKey[];
 }
 
-export default function DressCodeSection({ isWeddingParty = false, sex }: DressCodeSectionProps) {
-  const content = isWeddingParty ? weddingPartyContent : defaultContent;
-  const showMen = sex !== 'Female';
-  const showWomen = sex !== 'Male';
+export default function DressCodeSection({ cards }: DressCodeSectionProps) {
+  const activeCards = cards && cards.length > 0 ? cards : DEFAULT_CARDS;
+  const isSingle = activeCards.length === 1;
+  const isOdd = activeCards.length % 2 === 1;
 
   return (
     <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden">
@@ -75,41 +81,30 @@ export default function DressCodeSection({ isWeddingParty = false, sex }: DressC
         </h2>
         <h3 className="text-4xl md:text-6xl font-ballet text-wedding-dark mb-12">Dress Code</h3>
 
-        <div className={`grid grid-cols-1 gap-12 md:gap-16 ${showMen && showWomen ? 'md:grid-cols-2' : 'max-w-sm mx-auto'}`}>
-          {showMen && (
-          <div className="space-y-6 flex flex-col">
-            <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">{content.menLabel}</h4>
-            <div className="flex-1 flex flex-col justify-center p-6 md:p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
-              <AttireGallery images={content.menImages} alt="Men's formal attire suggestion" compact={isWeddingParty} />
-              <p className="font-anaktoria text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
-                {content.menCaption}
-              </p>
-              <div className="mt-6 h-px w-10 bg-wedding-gold/20 mx-auto" />
-              <p className="mt-6 text-sm font-anaktoria text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed">
-                {content.menDetail}
-              </p>
-            </div>
-          </div>
-          )}
-
-          {showWomen && (
-          <div className="space-y-6 flex flex-col">
-            <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">{content.womenLabel}</h4>
-            <div className="flex-1 flex flex-col justify-center p-6 md:p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
-              <AttireGallery images={content.womenImages} alt="Women's formal attire suggestion" />
-              <p className="font-anaktoria text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
-                {content.womenCaption}
-              </p>
-              <div className="mt-6 h-px w-10 bg-wedding-gold/20 mx-auto" />
-              <p className="mt-6 text-sm font-anaktoria text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed font-medium">
-                {content.womenDetail}
-              </p>
-            </div>
-          </div>
-          )}
+        <div className={`grid grid-cols-1 gap-12 md:gap-16 ${isSingle ? 'max-w-sm mx-auto' : 'md:grid-cols-2'}`}>
+          {activeCards.map((key, index) => {
+            const content = CARD_DEFS[key];
+            const isTrailingOdd = isOdd && index === activeCards.length - 1;
+            return (
+              <div
+                key={key}
+                className={`space-y-6 flex flex-col ${isTrailingOdd ? 'md:col-span-2 md:max-w-sm md:mx-auto md:w-full' : ''}`}
+              >
+                <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">{content.label}</h4>
+                <div className="flex-1 flex flex-col justify-center p-6 md:p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
+                  <AttireGallery images={content.images} alt={`${content.label} formal attire suggestion`} compact={content.compact} />
+                  <p className="font-anaktoria text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
+                    {content.caption}
+                  </p>
+                  <div className="mt-6 h-px w-10 bg-wedding-gold/20 mx-auto" />
+                  <p className="mt-6 text-sm font-anaktoria text-wedding-dark/40 uppercase tracking-[0.2em] leading-relaxed">
+                    {content.detail}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
-
-
       </motion.div>
     </section>
   );

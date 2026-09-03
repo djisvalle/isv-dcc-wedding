@@ -7,7 +7,7 @@ import SecondPhotoSection from '@/components/shared/SecondPhotoSection';
 import VenueSection from '@/components/shared/VenueSection';
 import EntourageSection from '@/components/shared/EntourageSection';
 import MidPhotoSection from '@/components/shared/MidPhotoSection';
-import DressCodeSection from '@/components/shared/DressCodeSection';
+import DressCodeSection, { type DressCodeCardKey } from '@/components/shared/DressCodeSection';
 import ProgramSection from '@/components/shared/ProgramSection';
 import GiftsSection from '@/components/shared/GiftsSection';
 import FAQSection from '@/components/shared/FAQSection';
@@ -28,9 +28,22 @@ export default function LandingPage() {
   const rawInviteId = searchParams.get('inviteUrl') || searchParams.get('invite') || searchParams.get('id');
   const inviteId = rawInviteId?.trim().replace(/\/+$/, '');
   const { guests } = useRsvpInvite(inviteId);
-  const isWeddingParty = guests.some(g => g.role && WEDDING_PARTY_ROLES.has(g.role));
-  const guestSexes = new Set(guests.map(g => g.sex).filter(Boolean));
-  const guestSex = guestSexes.size === 1 ? [...guestSexes][0] : undefined;
+  const dressCodeCards = useMemo<DressCodeCardKey[]>(() => {
+    const knownSexGuests = guests.filter(g => g.sex);
+    if (knownSexGuests.length === 0) {
+      const isWeddingParty = guests.some(g => g.role && WEDDING_PARTY_ROLES.has(g.role));
+      return isWeddingParty ? ['groomsmen', 'bridesmaids'] : ['gentlemen', 'ladies'];
+    }
+
+    const keys = new Set<DressCodeCardKey>();
+    for (const guest of knownSexGuests) {
+      const isWeddingPartyGuest = Boolean(guest.role && WEDDING_PARTY_ROLES.has(guest.role));
+      if (guest.sex === 'Male') keys.add(isWeddingPartyGuest ? 'groomsmen' : 'gentlemen');
+      else if (guest.sex === 'Female') keys.add(isWeddingPartyGuest ? 'bridesmaids' : 'ladies');
+    }
+    const order: DressCodeCardKey[] = ['groomsmen', 'bridesmaids', 'gentlemen', 'ladies'];
+    return order.filter(key => keys.has(key));
+  }, [guests]);
   const landingPhotoRef = useRef<HTMLDivElement>(null);
   const venueRef = useRef<HTMLDivElement>(null);
   const entourageRef = useRef<HTMLDivElement>(null);
@@ -134,7 +147,7 @@ export default function LandingPage() {
       <MidPhotoSection />
 
       <div ref={dressCodeRef}>
-        <DressCodeSection isWeddingParty={isWeddingParty} sex={guestSex} />
+        <DressCodeSection cards={dressCodeCards} />
       </div>
 
       <SixthPhotoSection />
