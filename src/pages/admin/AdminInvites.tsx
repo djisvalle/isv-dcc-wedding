@@ -103,7 +103,15 @@ export default function AdminInvites() {
     });
   }, []);
 
-  const unassignedGuests = useMemo(() => guests.filter(g => !g.invite_id), [guests]);
+  // A guest can carry an invite_id that no longer matches any invite (e.g. a
+  // stale reference from an old import or a deleted invite); treat those the
+  // same as truly unassigned so they still surface here instead of vanishing
+  // into an invite group that doesn't exist.
+  const validInviteIds = useMemo(() => new Set(invites.map(i => i.id)), [invites]);
+  const unassignedGuests = useMemo(
+    () => guests.filter(g => !g.invite_id || !validInviteIds.has(g.invite_id)),
+    [guests, validInviteIds]
+  );
 
   const inviteGuests = useMemo(() => {
     if (!editingInvite) return [];

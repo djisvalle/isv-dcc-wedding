@@ -24,14 +24,22 @@ export async function batchDeleteGuests(guests: DeletableGuest[]): Promise<void>
     else idsByInvite.set(guest.invite_id, [guest.id]);
   }
 
-  await Promise.all(
+  // Best-effort cleanup of the invites' guest_ids arrays: the guests are
+  // already deleted above, so a stale invite_id pointing at an invite that
+  // no longer exists (e.g. left over from an import referencing an unknown
+  // invite) must not turn into a reported failure for a deletion that
+  // actually succeeded — useReconcileGuestIds repairs any resulting drift on
+  // the next admin session anyway.
+  const results = await Promise.allSettled(
     Array.from(idsByInvite.entries()).map(([inviteId, ids]) =>
       updateDoc(doc(db, 'invites', inviteId), { guest_ids: arrayRemove(...ids) })
     )
-  ).catch(err => {
-    handleFirestoreError(err, OperationType.UPDATE, 'invites/multiple');
-    throw err;
-  });
+  );
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('Failed to clean up invite guest_ids after guest deletion:', result.reason);
+    }
+  }
 }
 
 export async function batchUpdateGuestStatus(ids: string[], status: boolean | null): Promise<void> {
@@ -70,6 +78,10 @@ export interface GuestImportResult {
   // Names that matched more than one existing guest, so were left untouched
   // rather than guessing which one to update.
   skippedDuplicates: string[];
+  // Distinct inviteId values from the sheet that don't match any existing
+  // invite — those rows were imported unassigned instead of silently
+  // creating a dangling invite_id that can never be reassigned later.
+  unknownInviteIds: string[];
 }
 
 type ImportOp =
@@ -80,9 +92,23 @@ const normalizeName = (name: string) => name.trim().toLowerCase();
 
 export async function batchImportGuests(
   rows: GuestImportRow[],
-  existingGuests: ExistingGuestForImport[]
+  existingGuests: ExistingGuestForImport[],
+  validInviteIds: Set<string>
 ): Promise<GuestImportResult> {
-  if (rows.length === 0) return { created: 0, updated: 0, skippedDuplicates: [] };
+  if (rows.length === 0) return { created: 0, updated: 0, skippedDuplicates: [], unknownInviteIds: [] };
+
+  const unknownInviteIds = new Set<string>();
+  // A sheet's inviteId column can reference an invite that doesn't exist
+  // (typo, stale export, invite deleted since). Writing that value verbatim
+  // would leave the guest with a dangling invite_id: excluded from the
+  // "unassigned" pool yet unreachable by its (nonexistent) invite, and
+  // un-fixable afterwards since Firestore refuses to update a missing doc.
+  const resolveInviteId = (id: string | null | undefined): string | null => {
+    if (!id) return null;
+    if (validInviteIds.has(id)) return id;
+    unknownInviteIds.add(id);
+    return null;
+  };
 
   const existingByName = new Map<string, ExistingGuestForImport[]>();
   for (const guest of existingGuests) {
@@ -114,7 +140,7 @@ export async function batchImportGuests(
         name: op.row.name,
         role: op.row.role || null,
         sex: op.row.sex || null,
-        invite_id: op.row.invite_id || null,
+        invite_id: resolveInviteId(op.row.invite_id),
         is_coming: null,
         import_order: op.index,
         updated_at: serverTimestamp()
@@ -127,7 +153,7 @@ export async function batchImportGuests(
         name: op.row.name,
         role: op.row.role || null,
         sex: op.row.sex || null,
-        invite_id: op.row.invite_id || null,
+        invite_id: resolveInviteId(op.row.invite_id),
         updated_at: serverTimestamp()
       });
     }
@@ -152,35 +178,47 @@ export async function batchImportGuests(
   for (const op of ops) {
     if (op.type === 'create') {
       created++;
-      if (op.row.invite_id) addTo(additionsByInvite, op.row.invite_id, op.ref.id);
+      const newInviteId = resolveInviteId(op.row.invite_id);
+      if (newInviteId) addTo(additionsByInvite, newInviteId, op.ref.id);
     } else {
       updated++;
-      const newInviteId = op.row.invite_id || null;
-      const oldInviteId = op.existing.invite_id || null;
+      const newInviteId = resolveInviteId(op.row.invite_id);
+      // The existing guest's stored invite_id may itself be stale (from
+      // before this validation existed), so only queue a removal for an
+      // invite we know still exists.
+      const oldInviteId = op.existing.invite_id && validInviteIds.has(op.existing.invite_id)
+        ? op.existing.invite_id
+        : null;
       if (newInviteId === oldInviteId) continue;
       if (oldInviteId) addTo(removalsByInvite, oldInviteId, op.existing.id);
       if (newInviteId) addTo(additionsByInvite, newInviteId, op.existing.id);
     }
   }
 
-  await Promise.all(
+  // Best-effort: the guest docs above already have their final, validated
+  // invite_id, so a failure here is just guest_ids array drift — reconciled
+  // automatically by useReconcileGuestIds — not a reason to report the whole
+  // import as failed.
+  const logRejected = (results: PromiseSettledResult<unknown>[]) => {
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        console.error('Failed to update invite guest_ids during import:', result.reason);
+      }
+    }
+  };
+
+  logRejected(await Promise.allSettled(
     Array.from(removalsByInvite.entries()).map(([inviteId, ids]) =>
       updateDoc(doc(db, 'invites', inviteId), { guest_ids: arrayRemove(...ids) })
     )
-  ).catch(err => {
-    handleFirestoreError(err, OperationType.UPDATE, 'invites/multiple');
-    throw err;
-  });
+  ));
 
-  await Promise.all(
+  logRejected(await Promise.allSettled(
     Array.from(additionsByInvite.entries()).map(([inviteId, ids]) =>
       updateDoc(doc(db, 'invites', inviteId), { guest_ids: arrayUnion(...ids) })
     )
-  ).catch(err => {
-    handleFirestoreError(err, OperationType.UPDATE, 'invites/multiple');
-    throw err;
-  });
+  ));
 
-  return { created, updated, skippedDuplicates };
+  return { created, updated, skippedDuplicates, unknownInviteIds: Array.from(unknownInviteIds) };
 }
 
