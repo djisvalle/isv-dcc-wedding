@@ -5,6 +5,7 @@ import { Copy, Edit2, Trash2, MessageSquare, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { EditableCell } from '@/components/admin/EditableCell';
 import { QrCodeDialog } from '@/components/admin/QrCodeDialog';
+import { slugify } from '@/lib/utils';
 import type { Invite, InviteWithCounts } from '@/features/invites/types';
 
 interface InviteRowProps {
@@ -105,7 +106,7 @@ function InviteRowComponent({ invite, onCopyLink, onCopyMessage, onUpdateName, o
       <QrCodeDialog
         title={invite.name}
         link={`${window.location.origin}/?inviteUrl=${invite.id}`}
-        fileName={`invite-qr-${invite.id}`}
+        fileName={slugify(invite.name)}
         open={isQrOpen}
         onOpenChange={setIsQrOpen}
       />
