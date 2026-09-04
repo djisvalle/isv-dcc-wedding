@@ -1,12 +1,13 @@
 import firstPhotoDesktop from '@/assets/gallery/first-section-desktop.webp';
 import firstPhotoMobile from '@/assets/gallery/first-section-mobile.webp';
+import FadeInImage from './FadeInImage';
 
 export default function FirstPhotoSection() {
   return (
     <div className="relative w-full h-[55vh] md:h-[70vh] lg:h-[85vh] overflow-hidden">
       <picture>
         <source media="(min-width: 1280px)" srcSet={firstPhotoDesktop} />
-        <img
+        <FadeInImage
           src={firstPhotoMobile}
           loading="lazy"
           decoding="async"

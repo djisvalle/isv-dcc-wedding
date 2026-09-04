@@ -17,6 +17,10 @@ export default function LandingPhotoSection() {
         <img
           src={landingPhotoMobile}
           alt="Israel and Deborah"
+          // This is the LCP element — fetch it at the highest priority
+          // rather than letting it compete with fonts/scripts.
+          fetchPriority="high"
+          decoding="async"
           className="w-full h-full object-cover object-bottom md:object-[center_75%]"
         />
       </motion.picture>

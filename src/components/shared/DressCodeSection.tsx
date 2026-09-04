@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import FadeInImage from './FadeInImage';
 
 export type DressCodeCardKey = 'groomsmen' | 'bridesmaids' | 'gentlemen' | 'ladies';
 
@@ -46,7 +47,7 @@ function AttireGallery({ images, alt, compact = false }: { images: string[]; alt
   return (
     <div className="mb-8 flex justify-center items-center gap-3">
       {images.map((image) => (
-        <img
+        <FadeInImage
           key={image}
           src={image}
           loading="lazy"

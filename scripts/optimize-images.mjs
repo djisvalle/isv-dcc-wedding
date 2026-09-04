@@ -3,7 +3,7 @@ import { mkdirSync } from 'fs';
 
 mkdirSync('src/assets/gallery', { recursive: true });
 
-const landingSource = 'source-images/gallery/landing-page/landing-1.jpg';
+const landingSource = 'source-images/gallery/landing-1.jpg';
 
 const heroConversions = [
   { input: landingSource, output: 'src/assets/gallery/landing-1.webp' },
@@ -58,6 +58,7 @@ for (const { input, output, width } of midPhotoConversions) {
 
 const endPhotoConversions = [
   { input: 'source-images/gallery/end-photo.jpg', output: 'src/assets/gallery/end-photo.webp', width: 2400 },
+  { input: 'source-images/gallery/end-photo.jpg', output: 'src/assets/gallery/end-photo-mobile.webp', width: 1200 },
 ];
 
 for (const { input, output, width } of endPhotoConversions) {
@@ -85,6 +86,7 @@ for (const { input, output, width } of firstPhotoConversions) {
 
 const secondPhotoConversions = [
   { input: 'source-images/gallery/second-section.jpg', output: 'src/assets/gallery/second-section.webp', width: 2400 },
+  { input: 'source-images/gallery/second-section.jpg', output: 'src/assets/gallery/second-section-mobile.webp', width: 1200 },
 ];
 
 for (const { input, output, width } of secondPhotoConversions) {
@@ -98,6 +100,7 @@ for (const { input, output, width } of secondPhotoConversions) {
 
 const thirdPhotoConversions = [
   { input: 'source-images/gallery/third-section.jpg', output: 'src/assets/gallery/third-section.webp', width: 1800 },
+  { input: 'source-images/gallery/third-section.jpg', output: 'src/assets/gallery/third-section-mobile.webp', width: 1200 },
 ];
 
 for (const { input, output, width } of thirdPhotoConversions) {
@@ -111,6 +114,7 @@ for (const { input, output, width } of thirdPhotoConversions) {
 
 const sixthPhotoConversions = [
   { input: 'source-images/gallery/sixth-section.jpg', output: 'src/assets/gallery/sixth-section.webp', width: 2400 },
+  { input: 'source-images/gallery/sixth-section.jpg', output: 'src/assets/gallery/sixth-section-mobile.webp', width: 1200 },
 ];
 
 for (const { input, output, width } of sixthPhotoConversions) {
@@ -124,6 +128,7 @@ for (const { input, output, width } of sixthPhotoConversions) {
 
 const seventhPhotoConversions = [
   { input: 'source-images/gallery/seventh-section.jpg', output: 'src/assets/gallery/seventh-section.webp', width: 2400 },
+  { input: 'source-images/gallery/seventh-section.jpg', output: 'src/assets/gallery/seventh-section-mobile.webp', width: 1200 },
 ];
 
 for (const { input, output, width } of seventhPhotoConversions) {
@@ -137,6 +142,7 @@ for (const { input, output, width } of seventhPhotoConversions) {
 
 const eighthPhotoConversions = [
   { input: 'source-images/gallery/eighth-section.jpg', output: 'src/assets/gallery/eighth-section.webp', width: 2400 },
+  { input: 'source-images/gallery/eighth-section.jpg', output: 'src/assets/gallery/eighth-section-mobile.webp', width: 1200 },
 ];
 
 for (const { input, output, width } of eighthPhotoConversions) {
@@ -150,6 +156,7 @@ for (const { input, output, width } of eighthPhotoConversions) {
 
 const rsvpPhotoConversions = [
   { input: 'source-images/gallery/rsvp-section.jpg', output: 'src/assets/gallery/rsvp-section.webp', width: 2400 },
+  { input: 'source-images/gallery/rsvp-section.jpg', output: 'src/assets/gallery/rsvp-section-mobile.webp', width: 1200 },
 ];
 
 for (const { input, output, width } of rsvpPhotoConversions) {

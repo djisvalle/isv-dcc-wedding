@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import portraitCenter from '@/assets/gallery/portrait-mid-center.webp';
 import portraitSide1 from '@/assets/gallery/portrait-mid-side-1.webp';
 import portraitSide2 from '@/assets/gallery/portrait-mid-side-2.webp';
+import FadeInImage from './FadeInImage';
 
 const desktopTopGradient = "absolute inset-x-0 top-0 h-8 lg:h-10 bg-[linear-gradient(to_bottom,rgba(253,251,247,0.55)_0%,rgba(253,251,247,0.2)_45%,transparent_100%)] pointer-events-none";
 const desktopBottomGradient = "absolute inset-x-0 bottom-0 h-8 lg:h-10 bg-[linear-gradient(to_top,rgba(253,251,247,0.55)_0%,rgba(253,251,247,0.2)_45%,transparent_100%)] pointer-events-none";
@@ -17,7 +18,7 @@ export default function MidPhotoSection() {
         className="flex items-center justify-center gap-3 md:gap-4 lg:gap-6 md:py-16"
       >
         <div className="hidden md:block relative w-[24vw] lg:w-auto rounded-2xl border border-wedding-gold/10 shadow-sm opacity-90 overflow-hidden">
-          <img
+          <FadeInImage
             src={portraitSide1}
             loading="lazy"
             decoding="async"
@@ -28,7 +29,7 @@ export default function MidPhotoSection() {
           <div className={desktopBottomGradient} />
         </div>
         <div className="relative w-full md:w-[32vw] lg:w-auto md:rounded-2xl md:border md:border-wedding-gold/10 md:shadow-md md:overflow-hidden">
-          <img
+          <FadeInImage
             src={portraitCenter}
             loading="lazy"
             decoding="async"
@@ -41,7 +42,7 @@ export default function MidPhotoSection() {
           <div className={`hidden md:block ${desktopBottomGradient}`} />
         </div>
         <div className="hidden md:block relative w-[24vw] lg:w-auto rounded-2xl border border-wedding-gold/10 shadow-sm opacity-90 overflow-hidden">
-          <img
+          <FadeInImage
             src={portraitSide2}
             loading="lazy"
             decoding="async"
