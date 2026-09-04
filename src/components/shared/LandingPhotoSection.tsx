@@ -18,8 +18,12 @@ export default function LandingPhotoSection() {
           src={landingPhotoMobile}
           alt="Israel and Deborah"
           // This is the LCP element — fetch it at the highest priority
-          // rather than letting it compete with fonts/scripts.
-          fetchPriority="high"
+          // rather than letting it compete with fonts/scripts. Spread as a
+          // lowercase attribute: React DOM 18 doesn't recognize the
+          // camelCase `fetchPriority` prop (that lands in React 19) and
+          // drops it with a console warning, but passes an unrecognized
+          // lowercase attribute straight through to the DOM.
+          {...{ fetchpriority: 'high' }}
           decoding="async"
           className="w-full h-full object-cover object-bottom md:object-[center_75%]"
         />

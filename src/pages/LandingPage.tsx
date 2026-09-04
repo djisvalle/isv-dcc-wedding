@@ -55,6 +55,7 @@ export default function LandingPage() {
 
   const navItems = useMemo(
     () => [
+      { id: 'home', label: 'Home', targetRef: landingPhotoRef },
       { id: 'venue', label: 'Venue', targetRef: venueRef },
       { id: 'entourage', label: 'Entourage', targetRef: entourageRef },
       { id: 'dress-code', label: 'Dress Code', targetRef: dressCodeRef },
