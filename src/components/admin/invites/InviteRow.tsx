@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Copy, Edit2, Trash2, MessageSquare, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { EditableCell } from '@/components/admin/EditableCell';
-import { InviteQrDialog } from '@/components/admin/invites/InviteQrDialog';
+import { QrCodeDialog } from '@/components/admin/QrCodeDialog';
 import type { Invite, InviteWithCounts } from '@/features/invites/types';
 
 interface InviteRowProps {
@@ -102,7 +102,13 @@ function InviteRowComponent({ invite, onCopyLink, onCopyMessage, onUpdateName, o
           </Button>
         </div>
       </TableCell>
-      <InviteQrDialog invite={invite} open={isQrOpen} onOpenChange={setIsQrOpen} />
+      <QrCodeDialog
+        title={invite.name}
+        link={`${window.location.origin}/?inviteUrl=${invite.id}`}
+        fileName={`invite-qr-${invite.id}`}
+        open={isQrOpen}
+        onOpenChange={setIsQrOpen}
+      />
     </TableRow>
   );
 }

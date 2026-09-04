@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Copy, UserCheck, UserX, UserMinus, Edit2, Trash2, MessageSquare } from 'lucide-react';
+import { Copy, UserCheck, UserX, UserMinus, Edit2, Trash2, MessageSquare, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard } from '@/lib/clipboard';
 import { EditableCell } from '@/components/admin/EditableCell';
+import { QrCodeDialog } from '@/components/admin/QrCodeDialog';
 import type { Guest } from '@/features/guests/types';
 
 interface GuestRowProps {
@@ -29,6 +30,9 @@ function GuestRowComponent({
   onDelete,
   onCopyMessage,
 }: GuestRowProps) {
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const individualLink = `${window.location.origin}/rsvp/${guest.id}`;
+
   return (
     <TableRow className="group hover:bg-slate-50/50 transition-colors">
       <TableCell className="px-8">
@@ -210,8 +214,24 @@ function GuestRowComponent({
           >
             <MessageSquare className="w-4 h-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsQrOpen(true)}
+            className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
+            title="Show individual QR code"
+          >
+            <QrCode className="w-4 h-4" />
+          </Button>
         </div>
       </TableCell>
+      <QrCodeDialog
+        title={guest.name}
+        link={individualLink}
+        fileName={`guest-qr-${guest.id}`}
+        open={isQrOpen}
+        onOpenChange={setIsQrOpen}
+      />
     </TableRow>
   );
 }

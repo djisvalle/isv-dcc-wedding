@@ -8,26 +8,23 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-import type { Invite } from '@/features/invites/types';
 
-interface InviteQrDialogProps {
-  invite: Invite | null;
+interface QrCodeDialogProps {
+  title: string;
+  link: string;
+  fileName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function InviteQrDialog({ invite, open, onOpenChange }: InviteQrDialogProps) {
+export function QrCodeDialog({ title, link, fileName, open, onOpenChange }: QrCodeDialogProps) {
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
-
-  if (!invite) return null;
-
-  const link = `${window.location.origin}/?inviteUrl=${invite.id}`;
 
   const handleDownload = () => {
     const canvas = canvasWrapperRef.current?.querySelector('canvas');
     if (!canvas) return;
     const link_el = document.createElement('a');
-    link_el.download = `invite-qr-${invite.id}.png`;
+    link_el.download = `${fileName}.png`;
     link_el.href = canvas.toDataURL('image/png');
     link_el.click();
   };
@@ -36,7 +33,7 @@ export function InviteQrDialog({ invite, open, onOpenChange }: InviteQrDialogPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>QR Code: {invite.name}</DialogTitle>
+          <DialogTitle>QR Code: {title}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-2">
           <div ref={canvasWrapperRef} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
