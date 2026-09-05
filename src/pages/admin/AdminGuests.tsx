@@ -391,7 +391,11 @@ export default function AdminGuests() {
         const previousInviteId = guests.find(g => g.id === editingGuest.id)?.invite_id || null;
         const nextInviteId = patch.invite_id as string | null;
         if (previousInviteId !== nextInviteId) {
-          if (previousInviteId) {
+          // The previous invite may no longer exist (e.g. a stale invite_id
+          // left behind by an import referencing an unknown invite). Firestore
+          // rejects updating a non-existent doc, which would otherwise fail
+          // this entire batch, so only touch it if it's still around.
+          if (previousInviteId && inviteById.has(previousInviteId)) {
             batch.update(doc(db, 'invites', previousInviteId), {
               guest_ids: arrayRemove(editingGuest.id)
             });
@@ -418,7 +422,9 @@ export default function AdminGuests() {
       const inviteId = guests.find(g => g.id === id)?.invite_id || null;
       const batch = writeBatch(db);
       batch.delete(doc(db, 'guests', id));
-      if (inviteId) {
+      // Skip a stale invite_id pointing at an invite that no longer exists —
+      // updating a non-existent doc would fail the whole batch.
+      if (inviteId && inviteById.has(inviteId)) {
         batch.update(doc(db, 'invites', inviteId), { guest_ids: arrayRemove(id) });
       }
       await batch.commit();
@@ -427,7 +433,7 @@ export default function AdminGuests() {
       handleFirestoreError(err, OperationType.DELETE, `guests/${id}`);
       toast.error('Failed to delete guest');
     }
-  }, [guests]);
+  }, [guests, inviteById]);
 
   const handleEditClick = useCallback((guest: Guest) => {
     setEditingGuest(guest);
@@ -484,7 +490,8 @@ export default function AdminGuests() {
           rows
             .filter(row => row.name)
             .map(row => ({ name: row.name, role: row.role || null, sex: row.sex || null, invite_id: row.inviteId || null })),
-          guests.map(g => ({ id: g.id, name: g.name, invite_id: g.invite_id ?? null }))
+          guests.map(g => ({ id: g.id, name: g.name, invite_id: g.invite_id ?? null })),
+          new Set(invites.map(i => i.id))
         );
 
         const parts = [];
@@ -494,6 +501,9 @@ export default function AdminGuests() {
         if (result.skippedDuplicates.length) {
           toast.warning(`Skipped ${result.skippedDuplicates.length} name(s) matching multiple existing guests: ${result.skippedDuplicates.join(', ')}`);
         }
+        if (result.unknownInviteIds.length) {
+          toast.warning(`Unknown invite ID(s) imported as unassigned: ${result.unknownInviteIds.join(', ')}`);
+        }
         setIsUploadOpen(false);
       };
       reader.readAsArrayBuffer(file);
@@ -502,7 +512,7 @@ export default function AdminGuests() {
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [guests, invites]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

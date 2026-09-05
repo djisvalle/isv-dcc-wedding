@@ -83,7 +83,7 @@ export async function deleteInviteAndUnassignGuests(inviteId: string): Promise<v
       batch.delete(inviteRef);
     }
     for (const guestDoc of slice) {
-      batch.update(doc(db, 'guests', guestDoc.id), { invite_id: null });
+      batch.update(doc(db, 'guests', guestDoc.id), { invite_id: null, updated_at: serverTimestamp() });
     }
     await batch.commit().catch(err => {
       handleFirestoreError(err, OperationType.DELETE, `invites/${inviteId}`);

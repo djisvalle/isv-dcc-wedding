@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Copy, Edit2, Trash2, MessageSquare } from 'lucide-react';
+import { Copy, Edit2, Trash2, MessageSquare, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { EditableCell } from '@/components/admin/EditableCell';
+import { QrCodeDialog } from '@/components/admin/QrCodeDialog';
+import { slugify } from '@/lib/utils';
 import type { Invite, InviteWithCounts } from '@/features/invites/types';
 
 interface InviteRowProps {
@@ -16,6 +18,8 @@ interface InviteRowProps {
 }
 
 function InviteRowComponent({ invite, onCopyLink, onCopyMessage, onUpdateName, onEdit, onDelete }: InviteRowProps) {
+  const [isQrOpen, setIsQrOpen] = useState(false);
+
   return (
     <TableRow className="group hover:bg-slate-50/50 transition-colors">
       <TableCell className="py-6 px-8 text-xs font-mono text-slate-400">
@@ -75,6 +79,15 @@ function InviteRowComponent({ invite, onCopyLink, onCopyMessage, onUpdateName, o
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => setIsQrOpen(true)}
+            className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
+            title="Show QR code"
+          >
+            <QrCode className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => onCopyMessage(invite)}
             className="text-slate-400 hover:text-wedding-gold hover:bg-wedding-gold/5"
           >
@@ -90,6 +103,13 @@ function InviteRowComponent({ invite, onCopyLink, onCopyMessage, onUpdateName, o
           </Button>
         </div>
       </TableCell>
+      <QrCodeDialog
+        title={invite.name}
+        link={`${window.location.origin}/?inviteUrl=${invite.id}`}
+        fileName={slugify(invite.name)}
+        open={isQrOpen}
+        onOpenChange={setIsQrOpen}
+      />
     </TableRow>
   );
 }

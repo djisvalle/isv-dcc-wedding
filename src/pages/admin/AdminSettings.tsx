@@ -7,7 +7,8 @@ import {
   Save,
   Loader2,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  QrCode
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
+import { QrCodeDialog } from '@/components/admin/QrCodeDialog';
 
 export default function AdminSettings() {
   const [deadline, setDeadline] = useState('');
@@ -26,6 +28,8 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(true);
   const [savingDeadline, setSavingDeadline] = useState(false);
   const [savingMessage, setSavingMessage] = useState(false);
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const siteUrl = window.location.origin;
 
   useEffect(() => {
     async function fetchSettings() {
@@ -113,52 +117,78 @@ export default function AdminSettings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-wedding-gold/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-6 h-6 text-wedding-gold" />
+        <div className="space-y-8">
+          <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-wedding-gold/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-6 h-6 text-wedding-gold" />
+                </div>
+                <div>
+                  <CardTitle className="font-serif text-xl">RSVP Configuration</CardTitle>
+                  <CardDescription>Set the deadline for guest RSVPs.</CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle className="font-serif text-xl">RSVP Configuration</CardTitle>
-                <CardDescription>Set the deadline for guest RSVPs.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="deadline">RSVP Deadline Date</Label>
+                <Input
+                  id="deadline"
+                  type="datetime-local"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="rounded-xl"
+                />
+                <p className="text-xs text-slate-400">
+                  Leave empty for no deadline. After this date, the RSVP form will become view-only.
+                </p>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="deadline">RSVP Deadline Date</Label>
-              <Input
-                id="deadline"
-                type="datetime-local"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="rounded-xl"
-              />
-              <p className="text-xs text-slate-400">
-                Leave empty for no deadline. After this date, the RSVP form will become view-only.
-              </p>
-            </div>
 
-            <Button
-              onClick={handleSaveDeadline}
-              disabled={savingDeadline}
-              className="bg-wedding-gold hover:bg-wedding-gold/90 text-white rounded-xl"
-            >
-              {savingDeadline ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+              <Button
+                onClick={handleSaveDeadline}
+                disabled={savingDeadline}
+                className="bg-wedding-gold hover:bg-wedding-gold/90 text-white rounded-xl"
+              >
+                {savingDeadline ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-wedding-gold/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <QrCode className="w-6 h-6 text-wedding-gold" />
+                </div>
+                <div>
+                  <CardTitle className="font-serif text-xl">Site QR Code</CardTitle>
+                  <CardDescription>Share the main wedding site link as a scannable code.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-slate-400 break-all font-mono">{siteUrl}</p>
+              <Button
+                onClick={() => setIsQrOpen(true)}
+                className="bg-wedding-gold hover:bg-wedding-gold/90 text-white rounded-xl"
+              >
+                <QrCode className="w-4 h-4 mr-2" />
+                Generate QR Code
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
           <CardHeader>
@@ -204,6 +234,14 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
       </div>
+
+      <QrCodeDialog
+        title="Wedding Website"
+        link={siteUrl}
+        fileName="wedding-website"
+        open={isQrOpen}
+        onOpenChange={setIsQrOpen}
+      />
     </div>
   );
 }
