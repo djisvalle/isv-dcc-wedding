@@ -73,7 +73,7 @@ export default function FAQSection() {
   ];
 
   return (
-    <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden" id="faq-section">
+    <section className="pt-12 md:pt-16 pb-16 md:pb-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden" id="faq-section">
       <div className="absolute inset-x-0 top-0 h-10 md:h-14 bg-gradient-to-b from-white to-transparent pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, y: 10 }}

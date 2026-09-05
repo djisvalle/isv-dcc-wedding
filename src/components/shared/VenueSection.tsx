@@ -3,7 +3,7 @@ import { MapPin } from 'lucide-react';
 
 export default function VenueSection() {
   return (
-    <section className="py-16 md:py-24 px-6 md:px-8 bg-white overflow-hidden relative">
+    <section className="pt-12 md:pt-16 pb-16 md:pb-24 px-6 md:px-8 bg-white overflow-hidden relative">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-center">
           <motion.div
