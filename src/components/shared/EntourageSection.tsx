@@ -18,18 +18,18 @@ const principalSponsors: [string, string][] = [
   ["Rev. Miguel S. Muyot", "Ptr. Carolina C. Muyot"],
   ["Ptr. Mark Anthony A. Marcon", "Mrs. Christina S. Marcon"],
   ["Ptr. Jaime M. Isidro", "Mrs. Mary Ann R. Isidro"],
-  ["Rev. John G. Fianza", "Ptr. Emma Fianza"],
+  ["Rev. John G. Fianza", "Dr. Emma Fianza"],
   ["Ptr. Arturo R. Pelias, Jr.", "Mrs. Mary Licette T. Pelias"],
   ["Rev. Vergel J. Montesines", "Ptr. Merlita U. Montesines"],
   ["Ptr. Efren T. Alzate", "Mrs. Emilia J. Alzate"],
   ["Ptr. Celerino Bargoyo", "Ptr. Jocel Bargoyo"],
-  ["Ptr. Antonio C. Goudin", "Mrs. Aurenita Goudin"],
+  ["Ptr. Antonio C. Goudin", "Mrs. Aurenita R. Goudin"],
   ["Ptr. Marc Aaron S. Abisado", "Ptr. Rossanna R. Abisado"],
   ["Rev. Ferdinand P. Ibon", "Mrs. Everlyn C. Ibon"],
 ];
 
 const principalSponsorsClosing: [string, string][] = [
-  ["Mrs. Gerda Cruz", "Mrs. Barbara Delos Reyes"],
+  ["Mrs. Gerda Cruz", "Mrs. Barbara G. Delos Reyes"],
   ["Rev. Beulah S. Badua", "Mrs. Zoraida H. Candazo"],
   ["Rev. Ma. Cecilia Baluyot", "Ptr. Martita Pasion"],
   ["", "Mrs. Nazareth M. Ignacio"],
@@ -41,7 +41,7 @@ const secondarySponsors = [
   { role: "To bind us together", groom: "Ptr. Albert Q. Garcia", bride: "Mrs. Pauline M. Garcia" },
   { role: "To carry our symbol of faith", groom: "Ptr. Windell John Moses S. Valle", bride: "Ptr. Arianne Rachelle P. Valle" },
   { role: "To carry our symbol of love", groom: "Engr. Joel John Joshua S. Valle", bride: "Mrs. Aletheia C. Valle" },
-  { role: "To carry our symbol of offering", groom: "Mr. Jose Mauro M. Ignacio", bride: "Mrs. Dorothy C. Ignacio" },
+  { role: "To carry our symbol of offering", groom: "Mr. Jose Mauro M. Ignacio", bride: "Mrs. Dorothy Grace C. Ignacio" },
 ];
 
 const bestMan = "Joshua J. Alzate";
@@ -49,18 +49,18 @@ const maidOfHonor = "Ma. Bianca A. Padilla";
 
 const groomsmenAndBridesmaids: [string, string][] = [
   ["Mark Jason S. Sanje", "Maricel M. Panlaqui"],
-  ["Jeffrey Cruz", "Mayen E. Cruz"],
-  ["Mandy Lumutan", "Aimee Joy Aliyah S. Valle"],
+  ["Jeffrey B. Cruz", "Mayen E. Cruz"],
+  ["Mandy E. Lumutan", "Aimee Joy Aliyah S. Valle"],
   ["Jaerome Rafael Perez", "Jeremee J. Alzate"],
   ["Emmanuel C. Carumba", "Elishama C. Carumba"],
-  ["Romney Ezra Macabali", "Nneka Joy Marcon"],
-  ["David Paul M. Tandayu", "Yana Del Rosario"],
+  ["Romney Ezra E. Macabali", "Nneka Joy A. Marcon"],
+  ["David Paul M. Tandayu", "Aleana Del Rosario"],
   ["Brian Daniel C. Dionisio", "Angelica Joy S. Balazo"],
-  ["Ricardo Fernando", "Jamie D. Fernando"],
-  ["Jayson P. Orañola", "Alyanna Joy Asia"],
-  ["Tyson D. Warrey", "Maryjane Castro"],
-  ["John S. Hernandez", "Sofia Remigio"],
-  ["Herson S. Hernandez", "Rhia Francisco"],
+  ["Ricardo C. Fernando", "Jamie Ruth L. Fernando"],
+  ["Jayson P. Orañola", "Alyanna Joy R. Asia"],
+  ["Tyson D. Warrey", "Maryjane L. Castro"],
+  ["John Aaron S. Hernandez", "Sofia Elim B. Remigio"],
+  ["Herson S. Hernandez", "Rhia Regina G. Francisco"],
 ];
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
