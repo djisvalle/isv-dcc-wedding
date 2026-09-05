@@ -187,6 +187,22 @@ for (const { input, output, width } of weddingPartyAttireConversions) {
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
 }
 
+// Wax seal on the invitation cover. Alpha is preserved (the scalloped wax
+// edge sits on transparency), and it renders at ~144px at most, so 3x for
+// high-density screens is plenty.
+const sealConversions = [
+  { input: 'source-images/seal.png', output: 'src/assets/seal.webp', width: 440 },
+];
+
+for (const { input, output, width } of sealConversions) {
+  const info = await sharp(input)
+    .trim()
+    .resize(width, null, { withoutEnlargement: true })
+    .webp({ quality: 90, alphaQuality: 100 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
+
 // General guest dress code illustrations, sized by height since the gallery
 // displays them at a fixed height with width flexing to fit.
 const guestAttireConversions = [
