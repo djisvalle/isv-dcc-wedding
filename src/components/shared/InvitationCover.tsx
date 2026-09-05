@@ -160,6 +160,29 @@ export default function InvitationCover() {
 
   if (!isMounted) return null;
 
+  // The wax breaks its bond with the sheet first — a short lift, no spin — and
+  // only then travels off with the flap it was holding down, matching that
+  // flap's departure rather than tumbling on its own.
+  const seal: Variants = {
+    closed: { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1 },
+    open: prefersReducedMotion
+      ? { opacity: 0, transition: { duration: 0.4 } }
+      : {
+          scale: [1, 1.07, 1.04, 0.97],
+          x: ['0vw', '0vw', '-4vw', '-78vw'],
+          y: ['0%', '-2.5%', '0%', '7%'],
+          rotate: [0, -1, -4, -12],
+          opacity: [1, 1, 1, 0],
+          transition: {
+            duration: TOP_DELAY + FLAP_MOTION.duration,
+            // Detach finishes before the paper starts turning; the rest of the
+            // timeline tracks the top flap's own tug-then-release.
+            times: [0, TOP_DELAY / (TOP_DELAY + FLAP_MOTION.duration), 0.44, 1],
+            ease: ['easeOut', 'easeIn', 'easeOut'] satisfies Easing[],
+          },
+        },
+  };
+
   const handleOpen = () => {
     if (hasOpenedRef.current) return;
     hasOpenedRef.current = true;
@@ -205,20 +228,55 @@ export default function InvitationCover() {
         />
       </div>
 
-      <motion.button
-        type="button"
-        onClick={handleOpen}
-        aria-label="Open invitation"
-        animate={isOpening ? { opacity: 0, scale: 0.72, rotate: -12 } : { opacity: 1, scale: 1, rotate: 0 }}
-        transition={{ duration: 0.45 }}
-        whileTap={{ scale: 0.94 }}
-        // A box-shadow would trace a square behind the scalloped wax edge —
-        // drop-shadow follows the silhouette instead.
-        style={{ filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.30))' }}
-        className="absolute top-1/2 left-1/2 z-30 -translate-x-1/2 -translate-y-1/2 w-26 md:w-36"
-      >
-        <img src={sealImage} alt="" className="block w-full h-auto select-none" draggable={false} />
-      </motion.button>
+      {/* Centring lives on this wrapper, not the button: Motion writes the
+          button's `transform` outright, which would drop a translate class. */}
+      <div className="absolute top-1/2 left-1/2 z-30 -translate-x-1/2 -translate-y-1/2">
+        <motion.button
+          type="button"
+          onClick={handleOpen}
+          aria-label="Open invitation"
+          variants={seal}
+          initial="closed"
+          animate={isOpening ? 'open' : 'closed'}
+          whileTap={{ scale: 0.97 }}
+          className="relative block w-39 md:w-54"
+        >
+          <img src={sealImage} alt="" className="block w-full h-auto select-none" draggable={false} />
+          {/* The paper's own grain, masked to the wax, so both surfaces carry
+              the same texture instead of the seal reading as a pasted cutout. */}
+          <span
+            aria-hidden
+            style={{
+              backgroundImage: VELLUM_GRAIN,
+              backgroundSize: '420px 420px',
+              WebkitMaskImage: `url(${sealImage})`,
+              maskImage: `url(${sealImage})`,
+              WebkitMaskSize: '100% 100%',
+              maskSize: '100% 100%',
+              mixBlendMode: 'multiply',
+            }}
+            className="absolute inset-0 opacity-60 pointer-events-none"
+          />
+          {/* Where the wax meets the sheet it presses in slightly — masked to the
+              wax's own scalloped silhouette, barely larger, no offset. It lets go
+              the moment the seal breaks free. */}
+          <motion.span
+            aria-hidden
+            animate={{ opacity: isOpening ? 0 : 0.13 }}
+            transition={{ duration: 0.28 }}
+            style={{
+              WebkitMaskImage: `url(${sealImage})`,
+              maskImage: `url(${sealImage})`,
+              WebkitMaskSize: '100% 100%',
+              maskSize: '100% 100%',
+              backgroundColor: '#000',
+              filter: 'blur(2.5px)',
+              transform: 'scale(1.03)',
+            }}
+            className="absolute inset-0 -z-10 pointer-events-none"
+          />
+        </motion.button>
+      </div>
     </div>
   );
 }
