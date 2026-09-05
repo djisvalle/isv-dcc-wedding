@@ -164,6 +164,9 @@ export default function AdminInvites() {
           ? Math.max(...guests.map(g => g.import_order || 0))
           : -1;
         let nextGuestOrder = existingMaxOrder + 1;
+        const existingMaxInviteOrder = invites.length > 0
+          ? Math.max(...invites.map(i => i.import_order || 0))
+          : -1;
         const rowsWithGuestOrder = validRows.map(row => {
           const guestNames = (row.guests ? String(row.guests).split(',').map((s: string) => s.trim()) : [row.name])
             .filter(Boolean);
@@ -178,7 +181,7 @@ export default function AdminInvites() {
             const name = row.inviteName || row.name;
             return createInviteWithGuests(
               inviteId,
-              { name, import_order: rowIndex },
+              { name, import_order: existingMaxInviteOrder + 1 + rowIndex },
               guestNames,
               row.role || null,
               guestStartOrder
@@ -194,7 +197,7 @@ export default function AdminInvites() {
     } finally {
       setUploading(false);
     }
-  }, [guests]);
+  }, [guests, invites]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

@@ -70,6 +70,7 @@ export interface ExistingGuestForImport {
   id: string;
   name: string;
   invite_id?: string | null;
+  import_order?: number | null;
 }
 
 export interface GuestImportResult {
@@ -118,6 +119,13 @@ export async function batchImportGuests(
     else existingByName.set(key, [guest]);
   }
 
+  // New rows must continue numbering after the last existing guest, not
+  // restart at 0 — otherwise a second bulk upload collides with (and visually
+  // reorders ahead of) guests added by the first.
+  const maxExistingOrder = existingGuests.length > 0
+    ? Math.max(...existingGuests.map(g => g.import_order || 0))
+    : -1;
+
   const ops: ImportOp[] = [];
   const skippedDuplicates: string[] = [];
 
@@ -142,7 +150,7 @@ export async function batchImportGuests(
         sex: op.row.sex || null,
         invite_id: resolveInviteId(op.row.invite_id),
         is_coming: null,
-        import_order: op.index,
+        import_order: maxExistingOrder + 1 + op.index,
         updated_at: serverTimestamp()
       });
     } else {

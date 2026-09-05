@@ -490,7 +490,7 @@ export default function AdminGuests() {
           rows
             .filter(row => row.name)
             .map(row => ({ name: row.name, role: row.role || null, sex: row.sex || null, invite_id: row.inviteId || null })),
-          guests.map(g => ({ id: g.id, name: g.name, invite_id: g.invite_id ?? null })),
+          guests.map(g => ({ id: g.id, name: g.name, invite_id: g.invite_id ?? null, import_order: g.import_order ?? null })),
           new Set(invites.map(i => i.id))
         );
 
