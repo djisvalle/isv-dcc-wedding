@@ -87,7 +87,7 @@ export default function RSVPSection({ inviteId }: RSVPSectionProps) {
   }
 
   return (
-    <div id="rsvp" className="py-12 md:py-20 px-6 md:px-8 relative overflow-hidden">
+    <div id="rsvp" className="pt-12 md:pt-16 pb-12 md:pb-20 px-6 md:px-8 relative overflow-hidden">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}

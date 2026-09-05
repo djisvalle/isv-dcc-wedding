@@ -71,7 +71,7 @@ export default function DressCodeSection({ cards }: DressCodeSectionProps) {
   const isOdd = activeCards.length % 2 === 1;
 
   return (
-    <section className="py-16 md:py-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden">
+    <section className="pt-12 md:pt-16 pb-16 md:pb-24 px-6 md:px-8 bg-wedding-cream/30 relative overflow-hidden">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}

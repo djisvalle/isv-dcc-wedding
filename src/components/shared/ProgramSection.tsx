@@ -36,7 +36,7 @@ const programItems = [
 
 export default function ProgramSection() {
   return (
-    <section className="py-16 md:py-24 px-6 md:px-8 bg-white relative overflow-hidden">
+    <section className="pt-12 md:pt-16 pb-16 md:pb-24 px-6 md:px-8 bg-white relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-10 md:h-14 bg-gradient-to-b from-wedding-cream/80 to-transparent pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
