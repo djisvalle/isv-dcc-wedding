@@ -45,6 +45,7 @@ export default function LandingPage() {
     return order.filter(key => keys.has(key));
   }, [guests]);
   const landingPhotoRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
   const venueRef = useRef<HTMLDivElement>(null);
   const entourageRef = useRef<HTMLDivElement>(null);
   const dressCodeRef = useRef<HTMLDivElement>(null);
@@ -55,7 +56,7 @@ export default function LandingPage() {
 
   const navItems = useMemo(
     () => [
-      { id: 'home', label: 'Home', targetRef: landingPhotoRef },
+      { id: 'home', label: 'Home', targetRef: heroRef },
       { id: 'venue', label: 'Venue', targetRef: venueRef },
       { id: 'entourage', label: 'Entourage', targetRef: entourageRef },
       { id: 'dress-code', label: 'Dress Code', targetRef: dressCodeRef },
@@ -75,7 +76,7 @@ export default function LandingPage() {
         <LandingPhotoSection />
       </div>
 
-      <div className="relative overflow-hidden flex flex-col items-center justify-center pt-12 md:pt-16 pb-20 px-6 text-center">
+      <div ref={heroRef} className="relative overflow-hidden flex flex-col items-center justify-center pt-12 md:pt-16 pb-20 px-6 text-center">
         {/* Background Decor */}
         <div className="absolute top-0 left-0 w-full h-full -z-10 opacity-5 pointer-events-none">
           <div className="absolute top-[10%] left-[5%] w-32 h-32 border border-wedding-gold rounded-full blur-2xl md:hidden" />
