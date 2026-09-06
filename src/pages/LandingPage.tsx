@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import Countdown from '@/components/shared/Countdown';
+import InvitationCover from '@/components/shared/InvitationCover';
 import LandingPhotoSection from '@/components/shared/LandingPhotoSection';
 import FirstPhotoSection from '@/components/shared/FirstPhotoSection';
 import SecondPhotoSection from '@/components/shared/SecondPhotoSection';
@@ -72,6 +73,8 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-wedding-cream relative">
+      <InvitationCover />
+
       <div ref={landingPhotoRef}>
         <LandingPhotoSection />
       </div>
