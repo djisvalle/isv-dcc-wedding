@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion, type Easing, type Variants } from 'motion/react';
 import sealImage from '@/assets/seal.webp';
+import paperTexture from '@/assets/paper.webp';
 
 const SESSION_KEY = 'invitation-cover-opened';
 
@@ -19,10 +20,33 @@ const VELLUM_GRAIN = `url("data:image/svg+xml,${encodeURIComponent(
 const FLAP_WIDTH_PCT = 58;
 
 // The shadow the free edge casts — resting on the sheet below, deepening as
-// the flap lifts clear of it, then thrown off as it leaves.
-const OVERLAP_SHADOW = '7px 0 16px rgba(0,0,0,0.16)';
-const LIFTED_SHADOW = '34px 12px 50px rgba(0,0,0,0.32)';
-const GONE_SHADOW = '70px 16px 90px rgba(0,0,0,0)';
+// the flap lifts clear of it, then thrown off as it leaves. A sheet lying flat
+// on another sheet barely shadows at all under diffuse light: a hairline of
+// contact and a whisper of falloff, no more. Every keyframe carries the same
+// two layers so the shadow interpolates instead of snapping between them.
+const OVERLAP_SHADOW = '1px 0 1px rgba(0,0,0,0.03), 3px 0 8px rgba(0,0,0,0.022)';
+const LIFTED_SHADOW = '2px 0 6px rgba(0,0,0,0.09), 22px 10px 38px rgba(0,0,0,0.20)';
+const GONE_SHADOW = '0 0 0 rgba(0,0,0,0), 60px 16px 80px rgba(0,0,0,0)';
+
+// The cut edge is barely there: a thread of light on the very rim, then the
+// faintest shading falling inward, easing off top and bottom so it reads as
+// light across a sheet rather than a drawn line.
+const EDGE_FADE =
+  'linear-gradient(to bottom, rgba(0,0,0,0.22) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, rgba(0,0,0,0.22) 100%)';
+
+// A cut edge is never a ruled line: the sheet lies a little unevenly, so the
+// light along its rim and the shadow it drops both waver down the page. This is
+// noise that varies only along Y (no variation across X), compressed to roughly
+// 0.6-1.0 alpha, so it modulates the seam's strength without ever breaking it.
+const SEAM_VARIANCE = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='4' height='900' preserveAspectRatio='none'>
+    <filter id='v'>
+      <feTurbulence type='fractalNoise' baseFrequency='0 0.011' numOctaves='3' seed='11'/>
+      <feColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.45 0 0 0 0.62'/>
+    </filter>
+    <rect width='100%' height='100%' filter='url(#v)'/>
+  </svg>`
+)}")`;
 
 const FLAP_MOTION = {
   duration: 1.9,
@@ -39,6 +63,8 @@ interface FlapProps {
   delay: number;
   /** Cream opacity — the top flap sits a touch denser than the sheet below. */
   tint: string;
+  /** Anything stuck to this sheet — the wax seal — so it turns with the paper. */
+  children?: ReactNode;
 }
 
 /**
@@ -46,7 +72,7 @@ interface FlapProps {
  * bend is carried by shading and a specular sweep rather than by chopping the
  * sheet into segments — segments seam visibly on translucent paper.
  */
-function Flap({ side, isOpening, reduced, delay, tint }: FlapProps) {
+function Flap({ side, isOpening, reduced, delay, tint, children }: FlapProps) {
   const isLeft = side === 'left';
   const dir = isLeft ? -1 : 1;
   const state = isOpening ? 'open' : 'closed';
@@ -83,13 +109,28 @@ function Flap({ side, isOpening, reduced, delay, tint }: FlapProps) {
         width: `${FLAP_WIDTH_PCT}%`,
         [isLeft ? 'left' : 'right']: 0,
         transformOrigin: isLeft ? 'left center' : 'right center',
-        backgroundImage: VELLUM_GRAIN,
-        backgroundSize: '420px 420px',
         backfaceVisibility: 'hidden',
         willChange: 'transform',
       }}
       className={`absolute inset-y-0 ${tint}`}
     >
+      {/* The stock itself. The tile is mirrored to repeat seamlessly, which
+          leaves symmetry axes the eye picks out instantly when they sit square
+          to the screen — so the layer is tilted, and oversized to keep its
+          corners out of frame. Each sheet gets its own angle and start point:
+          two sheets cut from the same stock, not one image split down the
+          middle. Pattern size is fixed rather than viewport-derived, since real
+          stock has a real-world scale. */}
+      <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div
+          className="absolute -inset-1/3 bg-[length:620px_auto] md:bg-[length:820px_auto]"
+          style={{
+            backgroundImage: `url(${paperTexture})`,
+            backgroundPosition: isLeft ? '0% 0%' : '37% 23%',
+            transform: `rotate(${isLeft ? -7 : 6}deg)`,
+          }}
+        />
+      </div>
       {/* Curvature: gathers toward the free edge, none at the fold */}
       <motion.div
         variants={surface}
@@ -110,16 +151,74 @@ function Flap({ side, isOpening, reduced, delay, tint }: FlapProps) {
         }}
         className="absolute inset-0 pointer-events-none"
       />
-      {/* Standing paper cues: the crease at the fold and the lit cut edge */}
+      {/* The crease at the fold: paper rounds into it rather than creasing to a
+          line, so the shading is wide and shallow with a little light riding
+          the apex. */}
       <div
-        className={`absolute inset-y-0 ${isLeft ? 'left-0 bg-gradient-to-r' : 'right-0 bg-gradient-to-l'} w-12 from-black/[0.06] to-transparent pointer-events-none`}
+        aria-hidden
+        style={{
+          backgroundImage: `linear-gradient(${isLeft ? 'to right' : 'to left'},
+            rgba(255,255,255,0.28) 0px,
+            rgba(255,255,255,0) 4px,
+            rgba(0,0,0,0.035) 20px,
+            rgba(0,0,0,0) 72px)`,
+          WebkitMaskImage: EDGE_FADE,
+          maskImage: EDGE_FADE,
+        }}
+        className={`absolute inset-y-0 ${isLeft ? 'left-0' : 'right-0'} w-20 pointer-events-none`}
       />
+      {/* The shadow the edge drops onto the sheet below. A box-shadow alone is
+          perfectly even for its whole length, which is what made the seam look
+          drawn; this carries the same wavering as the rim above it, so the two
+          agree. It sits just outside the sheet and travels with it. */}
       <div
-        className={`absolute inset-y-0 ${isLeft ? 'right-0 bg-gradient-to-l' : 'left-0 bg-gradient-to-r'} w-24 from-black/[0.04] to-transparent pointer-events-none`}
-      />
+        aria-hidden
+        style={{ WebkitMaskImage: EDGE_FADE, maskImage: EDGE_FADE }}
+        className={`absolute inset-y-0 ${isLeft ? 'left-full' : 'right-full'} w-8 pointer-events-none`}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `linear-gradient(${isLeft ? 'to right' : 'to left'},
+              rgba(0,0,0,0.055) 0px,
+              rgba(0,0,0,0.030) 3px,
+              rgba(0,0,0,0) 26px)`,
+            WebkitMaskImage: SEAM_VARIANCE,
+            maskImage: SEAM_VARIANCE,
+            WebkitMaskSize: '100% 100%',
+            maskSize: '100% 100%',
+          }}
+        />
+      </div>
+
+      {/* The cut edge resting on the sheet below: a thread of light on the rim,
+          the paper dipping into contact just behind it, then shading away
+          inward. Two nested masks rather than one — the outer eases the whole
+          edge off at top and bottom, the inner wavers its strength along the
+          length so it reads as a sheet of paper rather than a ruled line. */}
       <div
-        className={`absolute inset-y-0 ${isLeft ? 'right-0 border-r' : 'left-0 border-l'} w-px border-white/70 pointer-events-none`}
-      />
+        aria-hidden
+        style={{ WebkitMaskImage: EDGE_FADE, maskImage: EDGE_FADE }}
+        className={`absolute inset-y-0 ${isLeft ? 'right-0' : 'left-0'} w-24 pointer-events-none`}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `linear-gradient(${isLeft ? 'to left' : 'to right'},
+              rgba(255,255,255,0.30) 0px,
+              rgba(255,255,255,0.05) 2px,
+              rgba(0,0,0,0.030) 5px,
+              rgba(0,0,0,0.022) 18px,
+              rgba(0,0,0,0) 64px)`,
+            WebkitMaskImage: SEAM_VARIANCE,
+            maskImage: SEAM_VARIANCE,
+            WebkitMaskSize: '100% 100%',
+            maskSize: '100% 100%',
+          }}
+        />
+      </div>
+
+      {children}
     </motion.div>
   );
 }
@@ -160,26 +259,18 @@ export default function InvitationCover() {
 
   if (!isMounted) return null;
 
-  // The wax breaks its bond with the sheet first — a short lift, no spin — and
-  // only then travels off with the flap it was holding down, matching that
-  // flap's departure rather than tumbling on its own.
+  // The wax breaks its bond with the sheet — a short lift toward the viewer, no
+  // spin — and that is the whole of its own motion. Everything after is the
+  // paper's: the seal is a child of the top flap, so the flap raises it, turns
+  // it and carries it away exactly as a seal stuck to a real sheet would go.
   const seal: Variants = {
-    closed: { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1 },
+    closed: { y: 0, scale: 1, opacity: 1 },
     open: prefersReducedMotion
       ? { opacity: 0, transition: { duration: 0.4 } }
       : {
-          scale: [1, 1.07, 1.04, 0.97],
-          x: ['0vw', '0vw', '-4vw', '-78vw'],
-          y: ['0%', '-2.5%', '0%', '7%'],
-          rotate: [0, -1, -4, -12],
-          opacity: [1, 1, 1, 0],
-          transition: {
-            duration: TOP_DELAY + FLAP_MOTION.duration,
-            // Detach finishes before the paper starts turning; the rest of the
-            // timeline tracks the top flap's own tug-then-release.
-            times: [0, TOP_DELAY / (TOP_DELAY + FLAP_MOTION.duration), 0.44, 1],
-            ease: ['easeOut', 'easeIn', 'easeOut'] satisfies Easing[],
-          },
+          scale: [1, 1.09, 1.04],
+          y: ['0%', '-3%', '-1.5%'],
+          transition: { duration: TOP_DELAY, times: [0, 0.6, 1], ease: 'easeOut' satisfies Easing },
         },
   };
 
@@ -213,69 +304,78 @@ export default function InvitationCover() {
           isOpening={isOpening}
           reduced={prefersReducedMotion}
           delay={UNDER_DELAY}
-          tint="bg-wedding-cream/95"
+          // Opaque stock — the sheet below sits a shade deeper than the flap
+          // covering it, as a second layer of paper does.
+          tint="bg-[#EFE6D6]"
         />
       </div>
 
-      {/* Top flap — overlaps the sheet below, hinged at the left fold, opens first */}
+      {/* Top flap — overlaps the sheet below, hinged at the left fold, opens
+          first, and carries the seal that holds it down. */}
       <div className="absolute inset-0 z-20">
         <Flap
           side="left"
           isOpening={isOpening}
           reduced={prefersReducedMotion}
           delay={TOP_DELAY}
-          tint="bg-wedding-cream/[0.97]"
-        />
-      </div>
-
-      {/* Centring lives on this wrapper, not the button: Motion writes the
-          button's `transform` outright, which would drop a translate class. */}
-      <div className="absolute top-1/2 left-1/2 z-30 -translate-x-1/2 -translate-y-1/2">
-        <motion.button
-          type="button"
-          onClick={handleOpen}
-          aria-label="Open invitation"
-          variants={seal}
-          initial="closed"
-          animate={isOpening ? 'open' : 'closed'}
-          whileTap={{ scale: 0.97 }}
-          className="relative block w-39 md:w-54"
+          tint="bg-[#F5EDE0]"
         >
-          <img src={sealImage} alt="" className="block w-full h-auto select-none" draggable={false} />
-          {/* The paper's own grain, masked to the wax, so both surfaces carry
-              the same texture instead of the seal reading as a pasted cutout. */}
-          <span
-            aria-hidden
-            style={{
-              backgroundImage: VELLUM_GRAIN,
-              backgroundSize: '420px 420px',
-              WebkitMaskImage: `url(${sealImage})`,
-              maskImage: `url(${sealImage})`,
-              WebkitMaskSize: '100% 100%',
-              maskSize: '100% 100%',
-              mixBlendMode: 'multiply',
-            }}
-            className="absolute inset-0 opacity-60 pointer-events-none"
-          />
-          {/* Where the wax meets the sheet it presses in slightly — masked to the
-              wax's own scalloped silhouette, barely larger, no offset. It lets go
-              the moment the seal breaks free. */}
-          <motion.span
-            aria-hidden
-            animate={{ opacity: isOpening ? 0 : 0.13 }}
-            transition={{ duration: 0.28 }}
-            style={{
-              WebkitMaskImage: `url(${sealImage})`,
-              maskImage: `url(${sealImage})`,
-              WebkitMaskSize: '100% 100%',
-              maskSize: '100% 100%',
-              backgroundColor: '#000',
-              filter: 'blur(2.5px)',
-              transform: 'scale(1.03)',
-            }}
-            className="absolute inset-0 -z-10 pointer-events-none"
-          />
-        </motion.button>
+          {/* Centring lives on this wrapper, not the button: Motion writes the
+              button's `transform` outright, which would drop a translate class.
+              The offset is measured across the flap rather than the viewport,
+              since this now hangs off the flap — at 50/58 of the sheet's width
+              it still lands dead centre of the page while the letter is shut. */}
+          <div
+            style={{ left: `${(50 / FLAP_WIDTH_PCT) * 100}%` }}
+            className="absolute top-1/2 z-30 -translate-x-1/2 -translate-y-1/2"
+          >
+            <motion.button
+              type="button"
+              onClick={handleOpen}
+              aria-label="Open invitation"
+              variants={seal}
+              initial="closed"
+              animate={isOpening ? 'open' : 'closed'}
+              whileTap={{ scale: 0.97 }}
+              className="relative block w-39 md:w-54"
+            >
+              <img src={sealImage} alt="" className="block w-full h-auto select-none" draggable={false} />
+              {/* The paper's own grain, masked to the wax, so both surfaces carry
+                  the same texture instead of the seal reading as a pasted cutout. */}
+              <span
+                aria-hidden
+                style={{
+                  backgroundImage: VELLUM_GRAIN,
+                  backgroundSize: '420px 420px',
+                  WebkitMaskImage: `url(${sealImage})`,
+                  maskImage: `url(${sealImage})`,
+                  WebkitMaskSize: '100% 100%',
+                  maskSize: '100% 100%',
+                  mixBlendMode: 'multiply',
+                }}
+                className="absolute inset-0 opacity-60 pointer-events-none"
+              />
+              {/* Where the wax meets the sheet it presses in slightly — masked to
+                  the wax's own scalloped silhouette, barely larger, no offset. It
+                  lets go the moment the seal breaks free. */}
+              <motion.span
+                aria-hidden
+                animate={{ opacity: isOpening ? 0 : 0.13 }}
+                transition={{ duration: 0.28 }}
+                style={{
+                  WebkitMaskImage: `url(${sealImage})`,
+                  maskImage: `url(${sealImage})`,
+                  WebkitMaskSize: '100% 100%',
+                  maskSize: '100% 100%',
+                  backgroundColor: '#000',
+                  filter: 'blur(2.5px)',
+                  transform: 'scale(1.03)',
+                }}
+                className="absolute inset-0 -z-10 pointer-events-none"
+              />
+            </motion.button>
+          </div>
+        </Flap>
       </div>
     </div>
   );

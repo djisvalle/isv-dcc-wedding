@@ -188,10 +188,10 @@ for (const { input, output, width } of weddingPartyAttireConversions) {
 }
 
 // Wax seal on the invitation cover. Alpha is preserved (the scalloped wax
-// edge sits on transparency), and it renders at ~144px at most, so 3x for
-// high-density screens is plenty.
+// edge sits on transparency), and it renders at 216px at most, so 3x covers
+// high-density screens — the engraved wreath needs the pixels.
 const sealConversions = [
-  { input: 'source-images/seal.png', output: 'src/assets/seal.webp', width: 440 },
+  { input: 'source-images/seal.png', output: 'src/assets/seal.webp', width: 660 },
 ];
 
 for (const { input, output, width } of sealConversions) {
@@ -201,6 +201,39 @@ for (const { input, output, width } of sealConversions) {
     .webp({ quality: 90, alphaQuality: 100 })
     .toFile(output);
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
+
+// Embossed paper stock for the invitation cover. Stretching the source to
+// cover a tall phone flap blows the motif up to two flowers across, so it wants
+// tiling at a smaller scale instead — but the source is a photograph, not a
+// seamless tile (its opposite edges match no better than two unrelated interior
+// columns). Mirroring it into a 2x2 block makes the edges agree by
+// construction, so it repeats without a seam at any scale.
+{
+  const input = 'source-images/paper.jpg';
+  const output = 'src/assets/paper.webp';
+  // Flatten the relief toward a tone-on-tone emboss before tiling. The source
+  // is a bold, high-contrast photograph; softening it both matches how printed
+  // stock actually reads and keeps the mirror seams from announcing themselves
+  // as kaleidoscope symmetry.
+  const quadrant = await sharp(input)
+    .resize(1024, null, { withoutEnlargement: true })
+    .linear(0.42, 240 * (1 - 0.42))
+    .toBuffer();
+  const { width: qw, height: qh } = await sharp(quadrant).metadata();
+
+  const info = await sharp({
+    create: { width: qw * 2, height: qh * 2, channels: 3, background: '#f5ede0' },
+  })
+    .composite([
+      { input: quadrant, left: 0, top: 0 },
+      { input: await sharp(quadrant).flop().toBuffer(), left: qw, top: 0 },
+      { input: await sharp(quadrant).flip().toBuffer(), left: 0, top: qh },
+      { input: await sharp(quadrant).flip().flop().toBuffer(), left: qw, top: qh },
+    ])
+    .webp({ quality: 84 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB, ${info.width}x${info.height})`);
 }
 
 // General guest dress code illustrations, sized by height since the gallery
