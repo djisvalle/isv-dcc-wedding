@@ -123,7 +123,7 @@ function Flap({ side, isOpening, reduced, delay, tint, children }: FlapProps) {
           stock has a real-world scale. */}
       <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
-          className="absolute -inset-1/3 bg-[length:620px_auto] md:bg-[length:820px_auto]"
+          className="absolute -inset-1/3 bg-[length:1300px_auto] md:bg-[length:1690px_auto]"
           style={{
             backgroundImage: `url(${paperTexture})`,
             backgroundPosition: isLeft ? '0% 0%' : '37% 23%',
@@ -360,7 +360,7 @@ export default function InvitationCover() {
                   lets go the moment the seal breaks free. */}
               <motion.span
                 aria-hidden
-                animate={{ opacity: isOpening ? 0 : 0.13 }}
+                animate={{ opacity: isOpening ? 0 : 0.06 }}
                 transition={{ duration: 0.28 }}
                 style={{
                   WebkitMaskImage: `url(${sealImage})`,
@@ -368,8 +368,8 @@ export default function InvitationCover() {
                   WebkitMaskSize: '100% 100%',
                   maskSize: '100% 100%',
                   backgroundColor: '#000',
-                  filter: 'blur(2.5px)',
-                  transform: 'scale(1.03)',
+                  filter: 'blur(4px)',
+                  transform: 'scale(1.015)',
                 }}
                 className="absolute inset-0 -z-10 pointer-events-none"
               />

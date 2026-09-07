@@ -191,7 +191,7 @@ for (const { input, output, width } of weddingPartyAttireConversions) {
 // edge sits on transparency), and it renders at 216px at most, so 3x covers
 // high-density screens — the engraved wreath needs the pixels.
 const sealConversions = [
-  { input: 'source-images/seal.png', output: 'src/assets/seal.webp', width: 660 },
+  { input: 'source-images/seal glittery (no border).png', output: 'src/assets/seal.webp', width: 660 },
 ];
 
 for (const { input, output, width } of sealConversions) {
@@ -210,7 +210,7 @@ for (const { input, output, width } of sealConversions) {
 // columns). Mirroring it into a 2x2 block makes the edges agree by
 // construction, so it repeats without a seam at any scale.
 {
-  const input = 'source-images/paper.jpg';
+  const input = 'source-images/floral victorian paper texture.png';
   const output = 'src/assets/paper.webp';
   // Flatten the relief toward a tone-on-tone emboss before tiling. The source
   // is a bold, high-contrast photograph; softening it both matches how printed
