@@ -8,7 +8,6 @@ interface DressCodeCardDef {
   images: string[];
   caption: string;
   detail: string;
-  compact?: boolean;
 }
 
 const CARD_DEFS: Record<DressCodeCardKey, DressCodeCardDef> = {
@@ -17,7 +16,6 @@ const CARD_DEFS: Record<DressCodeCardKey, DressCodeCardDef> = {
     images: ['/groomsmen-outfit.webp'],
     caption: 'Classic Barong',
     detail: 'Cream, with black slacks',
-    compact: true,
   },
   bridesmaids: {
     label: 'Bridesmaids',
@@ -30,32 +28,32 @@ const CARD_DEFS: Record<DressCodeCardKey, DressCodeCardDef> = {
     images: ['/men-attire.webp'],
     caption: 'Classic Polo',
     detail: 'Long-sleeve, any color',
-    compact: true,
   },
   ladies: {
     label: 'Ladies',
     images: ['/women-attire.webp'],
     caption: 'Soft, Airy Long Gown',
     detail: 'Any color except white',
-    compact: true,
   },
 };
 
 const DEFAULT_CARDS: DressCodeCardKey[] = ['gentlemen', 'ladies'];
+const IMAGE_PADDING_PERCENT = 15;
 
-function AttireGallery({ images, alt, compact = false }: { images: string[]; alt: string; compact?: boolean }) {
+function AttireGallery({ images, alt }: { images: string[]; alt: string }) {
   return (
-    <div className="mb-8 flex justify-center items-center gap-3">
+    <div className="mb-8 flex justify-center gap-3">
       {images.map((image) => (
-        <FadeInImage
-          key={image}
-          src={image}
-          loading="lazy"
-          decoding="async"
-          alt={alt}
-          className={`${compact ? 'h-64 md:h-80 w-auto max-w-full' : 'w-full h-auto'} object-contain transition-transform duration-500 hover:scale-105`}
-          referrerPolicy="no-referrer"
-        />
+        <div key={image} className="w-full" style={{ padding: `${IMAGE_PADDING_PERCENT}%` }}>
+          <FadeInImage
+            src={image}
+            loading="lazy"
+            decoding="async"
+            alt={alt}
+            className="w-full h-auto max-h-72 md:max-h-96 object-contain transition-transform duration-500 hover:scale-105"
+            referrerPolicy="no-referrer"
+          />
+        </div>
       ))}
     </div>
   );
@@ -95,7 +93,7 @@ export default function DressCodeSection({ cards }: DressCodeSectionProps) {
               >
                 <h4 className="font-anaktoria font-bold text-wedding-dark uppercase tracking-[0.2em] text-xs">{content.label}</h4>
                 <div className="flex-1 flex flex-col justify-center p-6 md:p-10 bg-white/60 backdrop-blur-sm border border-wedding-gold/10 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all">
-                  <AttireGallery images={content.images} alt={`${content.label} formal attire suggestion`} compact={content.compact} />
+                  <AttireGallery images={content.images} alt={`${content.label} formal attire suggestion`} />
                   <p className="font-anaktoria text-wedding-dark/60 text-lg md:text-xl leading-relaxed">
                     {content.caption}
                   </p>

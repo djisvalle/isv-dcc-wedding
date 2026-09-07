@@ -9,7 +9,7 @@ const desktopBottomGradient = "absolute inset-x-0 bottom-0 h-8 lg:h-10 bg-[linea
 
 export default function MidPhotoSection() {
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative w-screen ml-[calc(50%-50vw)] overflow-hidden">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}

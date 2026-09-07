@@ -1,7 +1,5 @@
 import { motion } from 'motion/react';
-import thirdPhoto from '@/assets/gallery/third-section.webp';
-import thirdPhotoMobile from '@/assets/gallery/third-section-mobile.webp';
-import FadeInImage from './FadeInImage';
+import MidPhotoSection from './MidPhotoSection';
 
 const officiatingMinister = "Rev. Marcelino V. Abisado";
 const expositors = "Rev. Norman W. Holmes & Rev. Linda N. Holmes";
@@ -36,7 +34,7 @@ const principalSponsorsClosing: [string, string][] = [
 ];
 
 const secondarySponsors = [
-  { role: "To light our path", groom: "Ptr. Mark Anthony A. Marcon", bride: "Mrs. Christine S. Marcon" },
+  { role: "To light our path", groom: "Ptr. Mark Anthony A. Marcon", bride: "Mrs. Christina S. Marcon" },
   { role: "To clothe us as one", groom: "Ptr. Arturo R. Pelias, Jr", bride: "Mrs. Mary Licette T. Pelias" },
   { role: "To bind us together", groom: "Ptr. Albert Q. Garcia", bride: "Mrs. Pauline M. Garcia" },
   { role: "To carry our symbol of faith", groom: "Ptr. Windell John Moses S. Valle", bride: "Ptr. Arianne Rachelle P. Valle" },
@@ -160,19 +158,8 @@ export default function EntourageSection() {
           </div>
         </div>
 
-        <div className="relative w-screen ml-[calc(50%-50vw)] mb-8 h-[40vh] md:h-[55vh] lg:h-[70vh] overflow-hidden">
-          <picture>
-            <source media="(min-width: 1280px)" srcSet={thirdPhoto} />
-            <FadeInImage
-              src={thirdPhotoMobile}
-              loading="lazy"
-              decoding="async"
-              alt="Israel and Deborah"
-              className="w-full h-full object-cover object-center"
-            />
-          </picture>
-          <div className="absolute inset-x-0 top-0 h-[12%] bg-[linear-gradient(to_bottom,#FDFBF7_0%,rgba(253,251,247,0.5)_25%,transparent_70%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-[12%] bg-[linear-gradient(to_top,#FDFBF7_0%,rgba(253,251,247,0.5)_25%,transparent_70%)]" />
+        <div className="mb-8">
+          <MidPhotoSection />
         </div>
 
         <div className="mb-8">

@@ -7,7 +7,7 @@ import FirstPhotoSection from '@/components/shared/FirstPhotoSection';
 import SecondPhotoSection from '@/components/shared/SecondPhotoSection';
 import VenueSection from '@/components/shared/VenueSection';
 import EntourageSection from '@/components/shared/EntourageSection';
-import MidPhotoSection from '@/components/shared/MidPhotoSection';
+import ThirdPhotoSection from '@/components/shared/ThirdPhotoSection';
 import DressCodeSection, { type DressCodeCardKey } from '@/components/shared/DressCodeSection';
 import ProgramSection from '@/components/shared/ProgramSection';
 import GiftsSection from '@/components/shared/GiftsSection';
@@ -149,7 +149,7 @@ export default function LandingPage() {
         <EntourageSection />
       </div>
 
-      <MidPhotoSection />
+      <ThirdPhotoSection />
 
       <div ref={dressCodeRef}>
         <DressCodeSection cards={dressCodeCards} />
