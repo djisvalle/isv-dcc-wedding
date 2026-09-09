@@ -168,21 +168,21 @@ for (const { input, output, width } of rsvpPhotoConversions) {
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
 }
 
-// Wedding-party dress code illustrations. `.trim()` strips each source's
-// margins first (they aren't symmetric), which otherwise renders as the
-// artwork looking off-center in its box.
+// Wedding-party dress code illustrations, with a real transparent background
+// (the earlier paper-textured versions are kept as groomsmen-paper.png /
+// bridesmaids-paper.png but are no longer used). `.trim()` finds the figure
+// bounds precisely against transparency, and alphaQuality preserves the
+// cutout edges instead of flattening them onto a solid color.
 const weddingPartyAttireConversions = [
-  { input: 'source-images/gallery/groomsmen-outfit.png', output: 'public/groomsmen-outfit.webp', width: 480 },
-  // Client-supplied crop with all four hems already flush and a plain white
-  // background (no alpha, unlike the original PNG source).
-  { input: 'source-images/gallery/bridesmaids-outfit-1-final.jpg', output: 'public/bridesmaids-outfit-1.webp', width: 480 },
+  { input: 'source-images/gallery/groomsmen.png', output: 'public/groomsmen-outfit.webp' },
+  { input: 'source-images/gallery/bridesmaids.png', output: 'public/bridesmaids-outfit-1.webp' },
 ];
 
-for (const { input, output, width } of weddingPartyAttireConversions) {
+for (const { input, output } of weddingPartyAttireConversions) {
   const info = await sharp(input)
     .trim()
-    .resize(width, null, { withoutEnlargement: true })
-    .webp({ quality: 90 })
+    .resize(480, null, { withoutEnlargement: true })
+    .webp({ quality: 90, alphaQuality: 100 })
     .toFile(output);
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
 }
@@ -236,18 +236,21 @@ for (const { input, output, width } of sealConversions) {
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB, ${info.width}x${info.height})`);
 }
 
-// General guest dress code illustrations, sized by height since the gallery
-// displays them at a fixed height with width flexing to fit.
+// General guest dress code illustrations. Unlike the wedding-party attire
+// art above, these sources have a real transparent background, so `.trim()`
+// finds the figure bounds precisely (no hand-tuned extract box needed), and
+// alphaQuality preserves the cutout edges instead of flattening them onto a
+// solid color.
 const guestAttireConversions = [
-  { input: 'source-images/gallery/guest-male-outfit.png', output: 'public/men-attire.webp', height: 480 },
-  { input: 'source-images/gallery/guest-female-outfit.png', output: 'public/women-attire.webp', height: 480 },
+  { input: 'source-images/gallery/men.png', output: 'public/men-attire.webp' },
+  { input: 'source-images/gallery/ladies.png', output: 'public/women-attire.webp' },
 ];
 
-for (const { input, output, height } of guestAttireConversions) {
+for (const { input, output } of guestAttireConversions) {
   const info = await sharp(input)
     .trim()
-    .resize(null, height, { withoutEnlargement: true })
-    .webp({ quality: 90 })
+    .resize(null, 480, { withoutEnlargement: true })
+    .webp({ quality: 90, alphaQuality: 100 })
     .toFile(output);
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
 }
