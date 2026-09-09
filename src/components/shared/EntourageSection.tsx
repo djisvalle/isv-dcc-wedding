@@ -16,11 +16,11 @@ const principalSponsors: [string, string][] = [
   ["Rev. Miguel S. Muyot", "Ptr. Carolina C. Muyot"],
   ["Ptr. Mark Anthony A. Marcon", "Mrs. Christina S. Marcon"],
   ["Ptr. Jaime M. Isidro", "Mrs. Mary Ann R. Isidro"],
-  ["Rev. John G. Fianza", "Dr. Emma Fianza"],
+  ["Rev. John G. Fianza", "Dr. Emma S. Fianza"],
   ["Ptr. Arturo R. Pelias, Jr.", "Mrs. Mary Licette T. Pelias"],
   ["Rev. Vergel J. Montesines", "Ptr. Merlita U. Montesines"],
   ["Ptr. Efren T. Alzate", "Mrs. Emilia J. Alzate"],
-  ["Ptr. Celerino Bargoyo", "Ptr. Jocel Bargoyo"],
+  ["Ptr. Celerino F. Bargoyo", "Ptr. Jocel G. Bargoyo"],
   ["Ptr. Antonio C. Goudin", "Mrs. Aurenita R. Goudin"],
   ["Ptr. Marc Aaron S. Abisado", "Ptr. Rossanna R. Abisado"],
   ["Rev. Ferdinand P. Ibon", "Mrs. Everlyn C. Ibon"],
@@ -29,7 +29,7 @@ const principalSponsors: [string, string][] = [
 const principalSponsorsClosing: [string, string][] = [
   ["Mrs. Gerda Cruz", "Mrs. Barbara G. Delos Reyes"],
   ["Rev. Beulah S. Badua", "Mrs. Zoraida H. Candazo"],
-  ["Rev. Ma. Cecilia Baluyot", "Ptr. Martita Pasion"],
+  ["Rev. Ma. Cecilia V. Baluyot", "Ptr. Martita Pasion"],
   ["", "Mrs. Nazareth M. Ignacio"],
 ];
 
