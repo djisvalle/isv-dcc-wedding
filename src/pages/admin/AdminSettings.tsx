@@ -8,7 +8,12 @@ import {
   Loader2,
   Calendar,
   MessageSquare,
-  QrCode
+  QrCode,
+  Users,
+  Plus,
+  X,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,13 +26,17 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { QrCodeDialog } from '@/components/admin/QrCodeDialog';
+import { DEFAULT_GUEST_ROLES } from '@/features/guests/hooks/useGuestRoles';
 
 export default function AdminSettings() {
   const [deadline, setDeadline] = useState('');
   const [messageTemplate, setMessageTemplate] = useState('');
+  const [guestRoles, setGuestRoles] = useState<string[]>([]);
+  const [newRole, setNewRole] = useState('');
   const [loading, setLoading] = useState(true);
   const [savingDeadline, setSavingDeadline] = useState(false);
   const [savingMessage, setSavingMessage] = useState(false);
+  const [savingRoles, setSavingRoles] = useState(false);
   const [isQrOpen, setIsQrOpen] = useState(false);
   const siteUrl = window.location.origin;
 
@@ -49,6 +58,10 @@ export default function AdminSettings() {
         if (templateSnap.exists()) {
           setMessageTemplate(templateSnap.data().value);
         }
+
+        const rolesSnap = await getDoc(doc(db, 'settings', 'guest_roles'));
+        const rolesValue = rolesSnap.exists() ? rolesSnap.data().value : null;
+        setGuestRoles(Array.isArray(rolesValue) && rolesValue.length > 0 ? rolesValue : DEFAULT_GUEST_ROLES);
       } catch (error) {
         console.error('Error fetching settings:', error);
         toast.error('Failed to load settings');
@@ -58,6 +71,44 @@ export default function AdminSettings() {
     }
     fetchSettings();
   }, []);
+
+  const handleAddRole = () => {
+    const role = newRole.trim();
+    if (!role || guestRoles.includes(role)) return;
+    setGuestRoles(prev => [...prev, role]);
+    setNewRole('');
+  };
+
+  const handleRemoveRole = (index: number) => {
+    setGuestRoles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleMoveRole = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= guestRoles.length) return;
+    setGuestRoles(prev => {
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const handleSaveRoles = async () => {
+    setSavingRoles(true);
+    try {
+      await setDoc(doc(db, 'settings', 'guest_roles'), {
+        key: 'guest_roles',
+        value: guestRoles,
+        updated_at: new Date().toISOString()
+      });
+      toast.success('Guest roles saved');
+    } catch (error) {
+      console.error('Error saving guest roles:', error);
+      toast.error('Failed to save guest roles');
+    } finally {
+      setSavingRoles(false);
+    }
+  };
 
   const handleSaveDeadline = async () => {
     setSavingDeadline(true);
@@ -220,6 +271,105 @@ export default function AdminSettings() {
               className="bg-wedding-gold hover:bg-wedding-gold/90 text-white rounded-xl"
             >
               {savingMessage ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-wedding-gold/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Users className="w-6 h-6 text-wedding-gold" />
+              </div>
+              <div>
+                <CardTitle className="font-serif text-xl">Guest Roles</CardTitle>
+                <CardDescription>Options shown for the guest Role field, in order.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              {guestRoles.map((role, index) => (
+                <div key={`${role}-${index}`} className="flex items-center gap-2">
+                  <span className="flex-1 text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 truncate">
+                    {role}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="rounded-xl h-9 w-9 shrink-0"
+                    onClick={() => handleMoveRole(index, -1)}
+                    disabled={index === 0}
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="rounded-xl h-9 w-9 shrink-0"
+                    onClick={() => handleMoveRole(index, 1)}
+                    disabled={index === guestRoles.length - 1}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="rounded-xl h-9 w-9 shrink-0 text-red-500 hover:text-red-600"
+                    onClick={() => handleRemoveRole(index)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              {guestRoles.length === 0 && (
+                <p className="text-xs text-slate-400">No roles yet. Add one below.</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Input
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddRole();
+                  }
+                }}
+                placeholder="Add a role, e.g. Ninong"
+                className="rounded-xl"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAddRole}
+                className="rounded-xl shrink-0"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+            </div>
+
+            <Button
+              onClick={handleSaveRoles}
+              disabled={savingRoles}
+              className="bg-wedding-gold hover:bg-wedding-gold/90 text-white rounded-xl"
+            >
+              {savingRoles ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Saving...

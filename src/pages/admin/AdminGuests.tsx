@@ -64,6 +64,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGuests } from '@/features/guests/context/GuestsProvider';
 import { useInvites } from '@/features/invites/context/InvitesProvider';
+import { useGuestRoles } from '@/features/guests/hooks/useGuestRoles';
 import { batchDeleteGuests, batchUpdateGuestStatus, batchImportGuests } from '@/features/guests/api/guestsApi';
 import { copyToClipboard } from '@/lib/clipboard';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -75,20 +76,6 @@ const TABLE_TYPES = [
   { id: 'bridal', label: 'Bridal Table' },
   { id: 'vip', label: 'VIP Table' },
   { id: 'regular', label: 'Regular Table' }
-];
-
-const GUEST_ROLES = [
-  'Groom',
-  'Bride',
-  'Mother of the Groom',
-  'Father of the Bride',
-  'Mother of the Bride',
-  'Principal Sponsor',
-  'Secondary Sponsor',
-  'Best Man',
-  'Maid of Honor',
-  'Groomsman',
-  'Bridesmaid'
 ];
 
 const SEX_OPTIONS = ['Male', 'Female'];
@@ -107,11 +94,6 @@ const RSVP_STATUS_OPTIONS = [
   { value: 'attending', label: 'Attending' },
   { value: 'declined', label: 'Declined' },
   { value: 'pending', label: 'Pending' },
-];
-
-const ROLE_FILTER_OPTIONS = [
-  { value: 'guest', label: 'Guest' },
-  ...GUEST_ROLES.map(role => ({ value: role, label: role })),
 ];
 
 const SEX_FILTER_OPTIONS = [
@@ -185,27 +167,24 @@ function MultiSelectFilter({
   );
 }
 
-const ROLE_PRIORITY: Record<string, number> = {
-  'Groom': 1,
-  'Bride': 2,
-  'Mother of the Groom': 3,
-  'Father of the Bride': 4,
-  'Mother of the Bride': 4,
-  'Principal Sponsor': 5,
-  'Principal': 5,
-  'Secondary Sponsor': 6,
-  'Secondary': 6,
-  'Best Man': 7,
-  'Maid of Honor': 8,
-  'MOH': 8,
-  'Groomsman': 9,
-  'Bridesmaid': 10,
-  'Guest': 11
-};
-
 export default function AdminGuests() {
   const { guests, loading } = useGuests();
   const { invites } = useInvites();
+  const { roles: guestRoles } = useGuestRoles();
+
+  const roleFilterOptions = useMemo(() => [
+    { value: 'guest', label: 'Guest' },
+    ...guestRoles.map(role => ({ value: role, label: role })),
+  ], [guestRoles]);
+
+  // Order in Settings drives sort priority; a guest with no role sorts last.
+  const rolePriority = useMemo(() => {
+    const priority: Record<string, number> = {};
+    guestRoles.forEach((role, index) => {
+      priority[role] = index + 1;
+    });
+    return priority;
+  }, [guestRoles]);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
@@ -559,8 +538,10 @@ export default function AdminGuests() {
 
     return [...filteredGuests].sort((a, b) => {
       if (sortField === 'role') {
-        const aPriority = a.role ? (ROLE_PRIORITY[a.role] || 99) : 11;
-        const bPriority = b.role ? (ROLE_PRIORITY[b.role] || 99) : 11;
+        const noRole = guestRoles.length + 1;
+        const unknownRole = guestRoles.length + 2;
+        const aPriority = a.role ? (rolePriority[a.role] || unknownRole) : noRole;
+        const bPriority = b.role ? (rolePriority[b.role] || unknownRole) : noRole;
 
         if (aPriority !== bPriority) {
           return sortDirection === 'asc' ? aPriority - bPriority : bPriority - aPriority;
@@ -587,7 +568,7 @@ export default function AdminGuests() {
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [guests, inviteById, debouncedSearch, statusFilter, roleFilter, sexFilter, tableFilter, sortField, sortDirection]);
+  }, [guests, inviteById, debouncedSearch, statusFilter, roleFilter, sexFilter, tableFilter, sortField, sortDirection, guestRoles, rolePriority]);
 
   const totalPages = Math.ceil(sortedGuests.length / itemsPerPage);
   const paginatedGuests = sortedGuests.slice(
@@ -698,7 +679,7 @@ export default function AdminGuests() {
                       onChange={e => setNewGuest(prev => ({ ...prev, role: e.target.value }))}
                     >
                       <option value="">None</option>
-                      {GUEST_ROLES.map(role => (
+                      {guestRoles.map(role => (
                         <option key={role} value={role}>{role}</option>
                       ))}
                     </select>
@@ -922,7 +903,7 @@ export default function AdminGuests() {
                       worksheet.getCell(`B${i}`).dataValidation = {
                         type: 'list',
                         allowBlank: true,
-                        formulae: [`"${GUEST_ROLES.join(',')}"`],
+                        formulae: [`"${guestRoles.join(',')}"`],
                         showErrorMessage: true,
                         errorStyle: 'error',
                         errorTitle: 'Invalid Role',
@@ -993,7 +974,7 @@ export default function AdminGuests() {
           <MultiSelectFilter
             label="Role"
             placeholder="All Roles"
-            options={ROLE_FILTER_OPTIONS}
+            options={roleFilterOptions}
             selected={roleFilter}
             onChange={(values) => {
               setRoleFilter(values);
@@ -1209,7 +1190,7 @@ export default function AdminGuests() {
                   onChange={e => setEditingGuest(prev => prev ? ({ ...prev, role: e.target.value }) : null)}
                 >
                   <option value="">None</option>
-                  {GUEST_ROLES.map(role => (
+                  {guestRoles.map(role => (
                     <option key={role} value={role}>{role}</option>
                   ))}
                 </select>
