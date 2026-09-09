@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import FadeInImage from './FadeInImage';
 
-export type DressCodeCardKey = 'groomsmen' | 'bridesmaids' | 'gentlemen' | 'ladies';
+export type DressCodeCardKey = 'groomsmen' | 'bridesmaids' | 'gentlemen' | 'ladies' | 'ninong' | 'ninang';
 
 interface DressCodeCardDef {
   label: string;
@@ -34,6 +34,18 @@ const CARD_DEFS: Record<DressCodeCardKey, DressCodeCardDef> = {
     images: ['/women-attire.webp'],
     caption: 'Soft, Airy Long Gown',
     detail: 'Any color except white',
+  },
+  ninong: {
+    label: 'Ninong',
+    images: ['/ninong-outfit.webp'],
+    caption: 'Embroidered Barong',
+    detail: 'Cream, with black slacks',
+  },
+  ninang: {
+    label: 'Ninang',
+    images: ['/ninang-outfit.webp'],
+    caption: 'Filipiniana-Inspired Gown',
+    detail: 'Pastel tones, floral details',
   },
 };
 

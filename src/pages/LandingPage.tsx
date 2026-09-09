@@ -24,6 +24,16 @@ import { useMemo, useRef } from 'react';
 
 const WEDDING_PARTY_ROLES = new Set(['Groomsman', 'Bridesmaid']);
 
+// Secondary sponsors don't get dedicated art of their own — they dress like
+// the groomsmen/ninang, so they're routed straight onto those cards.
+function cardKeyForGuest(role: string | undefined, sex: 'Male' | 'Female'): DressCodeCardKey {
+  if (role === 'Principal Sponsor') return sex === 'Male' ? 'ninong' : 'ninang';
+  if (role === 'Secondary Sponsor') return sex === 'Male' ? 'groomsmen' : 'ninang';
+  const isWeddingPartyGuest = Boolean(role && WEDDING_PARTY_ROLES.has(role));
+  if (sex === 'Male') return isWeddingPartyGuest ? 'groomsmen' : 'gentlemen';
+  return isWeddingPartyGuest ? 'bridesmaids' : 'ladies';
+}
+
 export default function LandingPage() {
   const [searchParams] = useSearchParams();
   const rawInviteId = searchParams.get('inviteUrl') || searchParams.get('invite') || searchParams.get('id');
@@ -32,17 +42,17 @@ export default function LandingPage() {
   const dressCodeCards = useMemo<DressCodeCardKey[]>(() => {
     const knownSexGuests = guests.filter(g => g.sex);
     if (knownSexGuests.length === 0) {
+      if (guests.some(g => g.role === 'Principal Sponsor')) return ['ninong', 'ninang'];
+      if (guests.some(g => g.role === 'Secondary Sponsor')) return ['groomsmen', 'ninang'];
       const isWeddingParty = guests.some(g => g.role && WEDDING_PARTY_ROLES.has(g.role));
       return isWeddingParty ? ['groomsmen', 'bridesmaids'] : ['gentlemen', 'ladies'];
     }
 
     const keys = new Set<DressCodeCardKey>();
     for (const guest of knownSexGuests) {
-      const isWeddingPartyGuest = Boolean(guest.role && WEDDING_PARTY_ROLES.has(guest.role));
-      if (guest.sex === 'Male') keys.add(isWeddingPartyGuest ? 'groomsmen' : 'gentlemen');
-      else if (guest.sex === 'Female') keys.add(isWeddingPartyGuest ? 'bridesmaids' : 'ladies');
+      keys.add(cardKeyForGuest(guest.role, guest.sex!));
     }
-    const order: DressCodeCardKey[] = ['groomsmen', 'bridesmaids', 'gentlemen', 'ladies'];
+    const order: DressCodeCardKey[] = ['ninong', 'ninang', 'groomsmen', 'bridesmaids', 'gentlemen', 'ladies'];
     return order.filter(key => keys.has(key));
   }, [guests]);
   const landingPhotoRef = useRef<HTMLDivElement>(null);

@@ -187,6 +187,38 @@ for (const { input, output } of weddingPartyAttireConversions) {
   console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
 }
 
+// Principal sponsor (ninong/ninang) dress code illustrations. Same
+// transparent-background treatment as the wedding-party art above, except
+// the ninang source's soft vignette edge confuses `.trim()`'s background
+// detection (it stops short of the true figure bounds), so that one gets a
+// hand-tuned extract instead — still auto-trimmed left/right, just extended
+// down to the bottom of the frame since the source art itself crops close
+// to the hemline there.
+const principalSponsorAttireConversions = [
+  { input: 'source-images/gallery/ninongs invitation.png', output: 'public/ninong-outfit.webp' },
+];
+
+for (const { input, output } of principalSponsorAttireConversions) {
+  const info = await sharp(input)
+    .trim()
+    .resize(480, null, { withoutEnlargement: true })
+    .webp({ quality: 90, alphaQuality: 100 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
+
+{
+  const input = 'source-images/gallery/ninangs invitation.png';
+  const output = 'public/ninang-outfit.webp';
+  const { height } = await sharp(input).metadata();
+  const info = await sharp(input)
+    .extract({ left: 35, top: 170, width: 1501, height: height - 170 })
+    .resize(480, null, { withoutEnlargement: true })
+    .webp({ quality: 90, alphaQuality: 100 })
+    .toFile(output);
+  console.log(`${input} -> ${output} (${(info.size / 1024).toFixed(1)} KB)`);
+}
+
 // Wax seal on the invitation cover. Alpha is preserved (the scalloped wax
 // edge sits on transparency), and it renders at 216px at most, so 3x covers
 // high-density screens — the engraved wreath needs the pixels.
