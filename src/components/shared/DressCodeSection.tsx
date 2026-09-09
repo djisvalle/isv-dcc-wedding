@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import FadeInImage from './FadeInImage';
 
-export type DressCodeCardKey = 'groomsmen' | 'bridesmaids' | 'gentlemen' | 'ladies' | 'ninong' | 'ninang';
+export type DressCodeCardKey = 'groomsmen' | 'bridesmaids' | 'gentlemen' | 'ladies' | 'ninong' | 'ninang' | 'secondarySponsorsMale' | 'secondarySponsorsFemale';
 
 interface DressCodeCardDef {
   label: string;
@@ -43,6 +43,20 @@ const CARD_DEFS: Record<DressCodeCardKey, DressCodeCardDef> = {
   },
   ninang: {
     label: 'Ninang',
+    images: ['/ninang-outfit.webp'],
+    caption: 'Filipiniana-Inspired Gown',
+    detail: 'Pastel tones, floral details',
+  },
+  // Secondary sponsors dress like the groomsmen/ninang, but keep their own
+  // label rather than appearing to say "Groomsmen" or "Ninang".
+  secondarySponsorsMale: {
+    label: 'Secondary Sponsor',
+    images: ['/groomsmen-outfit.webp'],
+    caption: 'Classic Barong',
+    detail: 'Cream, with black slacks',
+  },
+  secondarySponsorsFemale: {
+    label: 'Secondary Sponsor',
     images: ['/ninang-outfit.webp'],
     caption: 'Filipiniana-Inspired Gown',
     detail: 'Pastel tones, floral details',

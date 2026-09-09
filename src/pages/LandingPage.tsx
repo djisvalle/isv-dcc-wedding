@@ -24,15 +24,22 @@ import { useMemo, useRef } from 'react';
 
 const WEDDING_PARTY_ROLES = new Set(['Groomsman', 'Bridesmaid']);
 
-// Secondary sponsors don't get dedicated art of their own — they dress like
-// the groomsmen/ninang, so they're routed straight onto those cards.
+// Secondary sponsors dress like the groomsmen/ninang (same art), but keep
+// their own "Secondary Sponsor" label rather than reusing those cards outright.
 function cardKeyForGuest(role: string | undefined, sex: 'Male' | 'Female'): DressCodeCardKey {
   if (role === 'Principal Sponsor') return sex === 'Male' ? 'ninong' : 'ninang';
-  if (role === 'Secondary Sponsor') return sex === 'Male' ? 'groomsmen' : 'ninang';
+  if (role === 'Secondary Sponsor') return sex === 'Male' ? 'secondarySponsorsMale' : 'secondarySponsorsFemale';
   const isWeddingPartyGuest = Boolean(role && WEDDING_PARTY_ROLES.has(role));
   if (sex === 'Male') return isWeddingPartyGuest ? 'groomsmen' : 'gentlemen';
   return isWeddingPartyGuest ? 'bridesmaids' : 'ladies';
 }
+
+// Cards always render men before women, regardless of guest role — grouped
+// by gender first, then by role priority within each gender.
+const CARD_ORDER: DressCodeCardKey[] = [
+  'ninong', 'secondarySponsorsMale', 'groomsmen', 'gentlemen',
+  'ninang', 'secondarySponsorsFemale', 'bridesmaids', 'ladies',
+];
 
 export default function LandingPage() {
   const [searchParams] = useSearchParams();
@@ -43,7 +50,7 @@ export default function LandingPage() {
     const knownSexGuests = guests.filter(g => g.sex);
     if (knownSexGuests.length === 0) {
       if (guests.some(g => g.role === 'Principal Sponsor')) return ['ninong', 'ninang'];
-      if (guests.some(g => g.role === 'Secondary Sponsor')) return ['groomsmen', 'ninang'];
+      if (guests.some(g => g.role === 'Secondary Sponsor')) return ['secondarySponsorsMale', 'secondarySponsorsFemale'];
       const isWeddingParty = guests.some(g => g.role && WEDDING_PARTY_ROLES.has(g.role));
       return isWeddingParty ? ['groomsmen', 'bridesmaids'] : ['gentlemen', 'ladies'];
     }
@@ -52,8 +59,7 @@ export default function LandingPage() {
     for (const guest of knownSexGuests) {
       keys.add(cardKeyForGuest(guest.role, guest.sex!));
     }
-    const order: DressCodeCardKey[] = ['ninong', 'ninang', 'groomsmen', 'bridesmaids', 'gentlemen', 'ladies'];
-    return order.filter(key => keys.has(key));
+    return CARD_ORDER.filter(key => keys.has(key));
   }, [guests]);
   const landingPhotoRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
