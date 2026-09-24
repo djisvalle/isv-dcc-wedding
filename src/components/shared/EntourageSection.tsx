@@ -27,7 +27,7 @@ const principalSponsors: [string, string][] = [
 ];
 
 const principalSponsorsClosing: [string, string][] = [
-  ["Mrs. Gerda Cruz", "Mrs. Barbara G. Delos Reyes"],
+  ["Mrs. Gerda G. Cruz", "Mrs. Barbara G. Delos Reyes"],
   ["Rev. Beulah S. Badua", "Mrs. Zoraida H. Candazo"],
   ["Rev. Ma. Cecilia V. Baluyot", "Ptr. Martita Pasion"],
   ["", "Mrs. Nazareth M. Ignacio"],
